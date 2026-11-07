@@ -180,6 +180,21 @@ export function createCompanyDataRepository(
       if (!data) throw new Error('A locação não foi encontrada ou você não tem permissão para excluí-la.');
     },
 
+    async deleteProduct(productId: string) {
+      const { data, error } = await client.from('products').delete()
+        .eq('id', productId)
+        .eq('company_id', companyId)
+        .select('id')
+        .maybeSingle();
+      if (error) {
+        if (error.code === '23503' || /foreign key|violates.*constraint/i.test(error.message)) {
+          throw new Error('Este brinquedo possui histórico de locações, movimentações ou manutenção. Para preservar esses registros, ele não pode ser excluído.');
+        }
+        throw error;
+      }
+      if (!data) throw new Error('Brinquedo não encontrado ou você não tem permissão para excluí-lo.');
+    },
+
     async saveProduct(input: {
       id?: string;
       name: string;
