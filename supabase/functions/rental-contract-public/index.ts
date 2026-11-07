@@ -95,7 +95,7 @@ async function createSignedPdf(snapshot: Record<string, any>, contractNumber: nu
   stripe(page);
   try {
     const logoUrl = snapshot.brand?.logoUrl;
-    if (typeof logoUrl==="string" && /^https:\\/\\//i.test(logoUrl)) {
+    if (typeof logoUrl === "string" && logoUrl.toLowerCase().startsWith("https://")) {
       const response=await fetch(logoUrl);
       if(response.ok){
         const bytes=new Uint8Array(await response.arrayBuffer());
