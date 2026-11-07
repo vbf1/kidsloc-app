@@ -530,7 +530,7 @@ export default function App() {
         {page === 'agenda' && <AgendaPage companyId={company.id} onOpenRentals={() => navigateTo('locacoes')} />}
         {page === 'estatisticas' && <StatisticsPage companyId={company.id} />}
         {page === 'clientes' && <CustomersPage companyId={company.id} />}
-        {page === 'estoque' && <ProductsPage companyId={company.id} />}
+        {page === 'estoque' && <ProductsPage companyId={company.id} role={company.role} />}
         {page === 'servicos' && <ServicesPage companyId={company.id} />}
         {page === 'orcamentos' && <QuotesPage companyId={company.id} />}
         {page === 'locacoes' && <RentalsPage key={company.id} companyId={company.id} />}

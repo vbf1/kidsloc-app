@@ -9,6 +9,10 @@ on:
       - main
     paths:
       - 'apps/desktop_react/src/data/rentalDomain.ts'
+      - 'apps/desktop_react/src/data/ProductsPage.tsx'
+      - 'apps/desktop_react/src/data/companyDataRepository.ts'
+      - 'apps/desktop_react/src/App.tsx'
+      - 'supabase/migrations/*restrict_product_deletion_to_owner_admin.sql'
       - 'apps/desktop_react/package.json'
       - 'apps/mobile_flutter/lib/features/rentals/**'
       - 'tests/rental-domain-check.mjs'
