@@ -42,7 +42,11 @@ export function ProductsPage({ companyId, role }: { companyId: string; role: str
   const [message, setMessage] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const canDeleteProducts = role === 'owner' || role === 'admin';
+  // Normalize legacy/localized role labels as well as the canonical database values.
+  // The same React page is loaded by the Android WebView and by the browser.
+  const normalizedRole = role.trim().toLocaleLowerCase('pt-BR')
+    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+  const canDeleteProducts = ['owner', 'admin', 'proprietario', 'administrador'].includes(normalizedRole);
 
   const load = useCallback(async (): Promise<string | null> => {
     setLoading(true);
@@ -168,7 +172,7 @@ export function ProductsPage({ companyId, role }: { companyId: string; role: str
         <div className="customer-avatar">🎈</div>
         <div className="customer-info"><strong>{product.name}</strong><span>{product.available === null ? 'Disponibilidade indisponível' : `${product.available} disponível(is)`} de {product.total_quantity} · R$ {Number(product.daily_price).toFixed(2)} / dia · {product.inventory_mode === 'individual' ? 'Unidades individuais' : 'Por quantidade'}</span></div>
         <button type="button" className="secondary-button" onClick={() => openForm(product)}>Editar</button>
-        {canDeleteProducts && <button type="button" className="secondary-button" onClick={() => setDeleteTarget(product)}>Excluir</button>}
+        {canDeleteProducts && <button type="button" className="danger-button" onClick={() => setDeleteTarget(product)}>Excluir</button>}
         {product.inventory_mode === 'individual' && product.units?.length ? <div className="record-card-units">{product.units.map(unit => {
           const history = (rentals ?? []).filter(r => (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id))).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date))).slice(0, 3);
           const reserved = rentals !== null && rentals.some(r => rentalIsActiveToday(r, localDateKey()) && (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id)));
