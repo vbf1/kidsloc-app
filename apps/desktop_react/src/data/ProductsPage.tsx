@@ -25,7 +25,7 @@ function rentalIsActiveToday(rental: any, today: string): boolean {
     && String(rental.end_date ?? rental.start_date ?? '') >= today;
 }
 
-export function ProductsPage({ companyId }: { companyId: string }) {
+export function ProductsPage({ companyId, role }: { companyId: string; role: string }) {
   const repository = useMemo(() => createCompanyDataRepository(supabase, companyId), [companyId]);
   const [products, setProducts] = useState<Product[]>([]);
   const [rentals, setRentals] = useState<any[] | null>(null);
@@ -40,6 +40,9 @@ export function ProductsPage({ companyId }: { companyId: string }) {
   const [quantity, setQuantity] = useState('1');
   const [price, setPrice] = useState('0');
   const [message, setMessage] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const canDeleteProducts = role === 'owner' || role === 'admin';
 
   const load = useCallback(async (): Promise<string | null> => {
     setLoading(true);
@@ -118,6 +121,22 @@ export function ProductsPage({ companyId }: { companyId: string }) {
     } finally { setSaving(false); }
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget || !canDeleteProducts || deleting) return;
+    setDeleting(true);
+    try {
+      await repository.deleteProduct(deleteTarget.id);
+      const deletedName = deleteTarget.name;
+      setDeleteTarget(null);
+      await load();
+      setMessage(`Brinquedo "${deletedName}" excluído do estoque.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não foi possível excluir o brinquedo.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const visible = products.filter(product => product.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
 
   return <section className="module-shell">
@@ -149,6 +168,7 @@ export function ProductsPage({ companyId }: { companyId: string }) {
         <div className="customer-avatar">🎈</div>
         <div className="customer-info"><strong>{product.name}</strong><span>{product.available === null ? 'Disponibilidade indisponível' : `${product.available} disponível(is)`} de {product.total_quantity} · R$ {Number(product.daily_price).toFixed(2)} / dia · {product.inventory_mode === 'individual' ? 'Unidades individuais' : 'Por quantidade'}</span></div>
         <button type="button" className="secondary-button" onClick={() => openForm(product)}>Editar</button>
+        {canDeleteProducts && <button type="button" className="secondary-button" onClick={() => setDeleteTarget(product)}>Excluir</button>}
         {product.inventory_mode === 'individual' && product.units?.length ? <div className="record-card-units">{product.units.map(unit => {
           const history = (rentals ?? []).filter(r => (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id))).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date))).slice(0, 3);
           const reserved = rentals !== null && rentals.some(r => rentalIsActiveToday(r, localDateKey()) && (r.rental_items ?? []).some((item: any) => (item.rental_item_units ?? []).some((allocation: any) => allocation.product_unit_id === unit.id)));
@@ -165,5 +185,16 @@ export function ProductsPage({ companyId }: { companyId: string }) {
         })}</div> : null}
       </article>)}</div>
     )}
+    {deleteTarget && <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'grid', placeItems: 'center', padding: 18, background: 'rgba(15, 23, 42, .55)' }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="delete-product-title" className="customer-form" style={{ width: 'min(440px, 100%)', margin: 0, boxShadow: '0 18px 60px rgba(0,0,0,.24)' }}>
+        <h3 id="delete-product-title">Excluir brinquedo?</h3>
+        <p>Você está prestes a excluir <strong>{deleteTarget.name}</strong> do estoque.</p>
+        <p className="module-description">A exclusão só será concluída se não houver histórico de locações, movimentações ou manutenção vinculado. Registros históricos não serão apagados.</p>
+        <div className="form-actions">
+          <button type="button" className="secondary-button" disabled={deleting} onClick={() => setDeleteTarget(null)}>Cancelar</button>
+          <button type="button" disabled={deleting} onClick={() => void confirmDelete()}>{deleting ? 'Excluindo...' : 'Confirmar exclusão'}</button>
+        </div>
+      </section>
+    </div>}
   </section>;
 }
