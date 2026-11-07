@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 
 const baseUrl = process.env.KIDSLOC_BASE_URL || 'http://127.0.0.1:4173/kidsloc-app/';
-const supabaseOrigin = 'https://wcxvswomcfpeuhnbxivh.supabase.co';
+const supabaseOrigin = 'https://wfwohnssvftegnhwdzmt.supabase.co';
 const ownerId = 'e9ee1898-2cb0-42d0-a40a-a1176c5f7635';
 const companies = [
   { id: 'b5234db8-d73a-42da-beba-a55e83578cd8', name: 'Festejando' },
