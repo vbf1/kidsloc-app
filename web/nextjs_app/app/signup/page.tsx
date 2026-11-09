@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { AuthShell, fieldClass, primaryButtonClass } from '../../components/auth-shell';
 import { supabase } from '../../lib/supabase';
 
@@ -21,10 +22,11 @@ export default function SignupPage() {
       return;
     }
     setBusy(true);
+    const redirectTo = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/`;
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { full_name: name.trim() } },
+      options: { data: { full_name: name.trim() }, emailRedirectTo: redirectTo },
     });
     setBusy(false);
     if (error) {
