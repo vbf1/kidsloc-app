@@ -41,6 +41,9 @@ create table public.company_users (
 );
 
 create index company_users_user_idx on public.company_users(user_id, is_active);
+-- MVP rule: one active company per account (multi-company is out of scope).
+create unique index company_users_one_active_company_per_user_idx
+  on public.company_users(user_id) where is_active = true;
 create index companies_status_idx on public.companies(status);
 
 create or replace function public.set_updated_at()
@@ -83,8 +86,88 @@ begin
   if length(trim(coalesce(p_name, ''))) < 2 or length(trim(p_name)) > 160 then
     raise exception 'Nome da empresa inválido' using errcode = '22023';
   end if;
-  if p_slug is null or p_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' then
+  if p_slug is null or p_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*
+  values (trim(p_name), p_slug)
+  returning id into v_company_id;
+
+  insert into public.company_users (company_id, user_id, role)
+  values (v_company_id, v_user_id, 'administrador');
+
+  return v_company_id;
+end;
+$$;
+
+create or replace function public.is_company_member(p_company_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.company_users cu
+    join public.companies c on c.id = cu.company_id
+    where cu.company_id = p_company_id
+      and cu.user_id = (select auth.uid())
+      and cu.is_active = true
+      and c.status = 'ativa'
+  );
+$$;
+
+create or replace function public.has_company_role(p_company_id uuid, p_roles public.company_role[])
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.company_users cu
+    join public.companies c on c.id = cu.company_id
+    where cu.company_id = p_company_id
+      and cu.user_id = (select auth.uid())
+      and cu.is_active = true
+      and c.status = 'ativa'
+      and cu.role = any(p_roles)
+  );
+$$;
+
+alter table public.profiles enable row level security;
+alter table public.companies enable row level security;
+alter table public.company_users enable row level security;
+
+-- A pessoa pode consultar/editar somente o próprio perfil.
+create policy profiles_select_self on public.profiles
+for select to authenticated using (id = (select auth.uid()));
+create policy profiles_update_self on public.profiles
+for update to authenticated using (id = (select auth.uid()))
+with check (id = (select auth.uid()));
+
+-- Membros ativos podem consultar os dados básicos da própria empresa.
+create policy companies_select_members on public.companies
+for select to authenticated using (public.is_company_member(id));
+create policy companies_update_admin on public.companies
+for update to authenticated using (public.has_company_role(id, array['administrador']::public.company_role[]))
+with check (public.has_company_role(id, array['administrador']::public.company_role[]));
+
+create policy company_users_select_members on public.company_users
+for select to authenticated using (public.is_company_member(company_id));
+create policy company_users_admin_manage on public.company_users
+for all to authenticated
+using (public.has_company_role(company_id, array['administrador']::public.company_role[]))
+with check (public.has_company_role(company_id, array['administrador']::public.company_role[]));
+
+-- Restringe execução das funções auxiliares a usuários autenticados.
+revoke all on function public.create_company(text, text) from public;
+grant execute on function public.create_company(text, text) to authenticated;
+revoke all on function public.is_company_member(uuid) from public;
+revoke all on function public.has_company_role(uuid, public.company_role[]) from public;
+grant execute on function public.is_company_member(uuid) to authenticated;
+grant execute on function public.has_company_role(uuid, public.company_role[]) to authenticated;
+
+-- Authenticated clients may read/update their own profile. Company creation is
+-- intentionally limited to the transactional onboarding function above.
+grant select, update on public.profiles to authenticated;
+grant select, update on public.companies to authenticated;
+grant select, insert, update, delete on public.company_users to authenticated;
+ then
     raise exception 'Identificador da empresa inválido' using errcode = '22023';
+  end if;
+  if exists (
+    select 1 from public.company_users
+    where user_id = v_user_id and is_active = true
+  ) then
+    raise exception 'Esta conta já está vinculada a uma empresa' using errcode = '23505';
   end if;
 
   insert into public.companies (name, slug)
