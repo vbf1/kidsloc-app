@@ -53,14 +53,14 @@ select is(
 );
 
 select throws_ok(
-  $ select public.create_company('Segunda Empresa') $,
+  $$ select public.create_company('Segunda Empresa') $$,
   '23505',
   'Esta conta já está vinculada a uma empresa.',
   'same account cannot create a second company'
 );
 
 select throws_ok(
-  $ select public.create_company('A') $,
+  $$ select public.create_company('A') $$,
   '22023',
   'Nome da empresa inválido.',
   'company name shorter than two characters is rejected'
