@@ -462,7 +462,7 @@ class _BrandHeader extends StatelessWidget {
               borderRadius: BorderRadius.all(Radius.circular(22)),
             ),
             alignment: Alignment.center,
-            child: Text(
+            child: const Text(
               'K',
               style: TextStyle(
                 color: Colors.white,
@@ -471,8 +471,8 @@ class _BrandHeader extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 12),
-          Text('KidsLoc App',
+          const SizedBox(height: 12),
+          const Text('KidsLoc App',
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
         ],
       );
