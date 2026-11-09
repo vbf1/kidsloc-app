@@ -14,3 +14,10 @@ jobs:
       - run: supabase db start
       - run: supabase db reset
       - run: supabase test db
+      - name: Run local Auth and onboarding end-to-end checks
+        run: |
+          supabase status -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          MAILPIT_URL=http://127.0.0.1:54324 node supabase/tests/auth-e2e.mjs
