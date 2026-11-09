@@ -67,7 +67,7 @@ export default function CompanySetupPage() {
         <form onSubmit={submit} className="space-y-4">
           <p className="rounded-xl bg-purple-50 p-3 text-xs text-purple-800">Conta: {email}</p>
           <label className="block text-sm font-medium">Nome da empresa
-            <input className={fieldClass} required minLength={2} maxLength={160} value={name} onChange={e => updateName(e.target.value)} placeholder="Ex.: Minha Locadora" />
+            <input className={fieldClass} required minLength={2} maxLength={160} value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Minha Locadora" />
           </label>
           {message && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-5 text-red-700">{message}</p>}
           <button className={primaryButtonClass} disabled={saving || name.trim().length < 2}>{saving ? 'Salvando...' : 'Cadastrar empresa'}</button>
