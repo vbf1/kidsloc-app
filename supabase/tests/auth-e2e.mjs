@@ -185,7 +185,8 @@ assert.equal(
 
 // 6. The new password must work and the first company must be created atomically.
 const newSession = await signIn(updatedPassword);
-const companyName = `KidsLoc CI ${randomUUID().slice(0, 8)}`;
+const companyName = `  KidsLoc   CI ${randomUUID().slice(0, 8)}  `;
+const normalizedCompanyName = companyName.trim().replace(/\\s+/g, ' ');
 const company = await request('/rest/v1/rpc/create_company', {
   method: 'POST',
   token: newSession.access_token,
@@ -197,6 +198,13 @@ assert.equal(
   `Company creation failed: ${JSON.stringify(company.data)}`,
 );
 assert.match(String(company.data), /^[0-9a-f-]{36}$/i, 'Company RPC did not return a UUID');
+
+const companyRow = await request(
+  `/rest/v1/companies?select=name&id=eq.${encodeURIComponent(company.data)}`,
+  { token: newSession.access_token },
+);
+assert.equal(companyRow.response.ok, true, 'Company row query failed');
+assert.equal(companyRow.data?.[0]?.name, normalizedCompanyName, 'Company name was not normalized');
 
 const membership = await request(
   `/rest/v1/company_members?select=company_id,role&user_id=eq.${encodeURIComponent(user.id)}`,
