@@ -44,6 +44,8 @@ export default function CompanySetupPage() {
           .eq('user_id', user.id)
           .limit(1);
 
+        if (!active) return;
+
         if (error) {
           setMessage(
             'Não foi possível consultar o vínculo da empresa. Tente novamente.',
