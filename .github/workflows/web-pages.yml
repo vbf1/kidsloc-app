@@ -15,8 +15,6 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,27 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
-      - name: Commit generated lockfile to the pull request branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          cp package-lock.json "$RUNNER_TEMP/package-lock.json"
-          git -C "$GITHUB_WORKSPACE" fetch origin "$GITHUB_HEAD_REF"
-          git -C "$GITHUB_WORKSPACE" checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
-          cp "$RUNNER_TEMP/package-lock.json" "$GITHUB_WORKSPACE/web/nextjs_app/package-lock.json"
-          git -C "$GITHUB_WORKSPACE" config user.name "github-actions[bot]"
-          git -C "$GITHUB_WORKSPACE" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$GITHUB_WORKSPACE" add web/nextjs_app/package-lock.json
-          if git -C "$GITHUB_WORKSPACE" diff --cached --quiet; then
-            exit 0
-          fi
-          git -C "$GITHUB_WORKSPACE" commit -m "chore(web): commit dependency lockfile"
-          git -C "$GITHUB_WORKSPACE" push origin "HEAD:$GITHUB_HEAD_REF"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-package-lock
-          path: web/nextjs_app/package-lock.json
-          retention-days: 1
+      - run: npm ci
       - name: Audit dependency tree
         run: npm audit --audit-level=low
       - run: npm test
