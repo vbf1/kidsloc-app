@@ -25,6 +25,11 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-package-lock
+          path: web/nextjs_app/package-lock.json
+          retention-days: 1
       - name: Audit dependency tree
         continue-on-error: true
         run: |
