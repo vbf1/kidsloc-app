@@ -8,8 +8,6 @@ on:
   workflow_dispatch:
 jobs:
   test:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -19,23 +17,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.9
-      - run: flutter pub get
-      - name: Commit generated Flutter lockfile to the pull request branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          cp pubspec.lock "$RUNNER_TEMP/flutter-pubspec.lock"
-          rm pubspec.lock
-          git -C "$GITHUB_WORKSPACE" fetch origin "$GITHUB_HEAD_REF"
-          git -C "$GITHUB_WORKSPACE" checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
-          cp "$RUNNER_TEMP/flutter-pubspec.lock" "$GITHUB_WORKSPACE/mobile/flutter_app/pubspec.lock"
-          git -C "$GITHUB_WORKSPACE" config user.name "github-actions[bot]"
-          git -C "$GITHUB_WORKSPACE" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$GITHUB_WORKSPACE" add mobile/flutter_app/pubspec.lock
-          if git -C "$GITHUB_WORKSPACE" diff --cached --quiet; then
-            exit 0
-          fi
-          git -C "$GITHUB_WORKSPACE" commit -m "chore(flutter): commit dependency lockfile"
-          git -C "$GITHUB_WORKSPACE" push origin "HEAD:$GITHUB_HEAD_REF"
+      - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
