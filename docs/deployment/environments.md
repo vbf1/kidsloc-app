@@ -2,11 +2,11 @@
 
 ## Web (GitHub Pages)
 
-O Next.js usa exportação estática. O projeto é publicado em:
+O Next.js usa exportação estática. O projeto está preparado para publicação em:
 
 - https://vbf1.github.io/kidsloc-app/
 
-Configure as seguintes **Actions variables** no repositório:
+O workflow usa a URL e a chave publicável do projeto Supabase conectado como valores padrão. As seguintes **Actions variables** podem sobrescrever esses valores por ambiente:
 
 - `NEXT_PUBLIC_BASE_PATH`: `/kidsloc-app`
 - `NEXT_PUBLIC_SUPABASE_URL`: URL do projeto Supabase do ambiente publicado.
@@ -14,15 +14,40 @@ Configure as seguintes **Actions variables** no repositório:
 
 A publishable key é destinada ao cliente e não substitui políticas RLS. Nunca configure `service_role` ou uma secret key em variáveis `NEXT_PUBLIC_*`.
 
-## Supabase Auth
+O workflow instala dependências com `npm ci`, usa o `package-lock.json` versionado e interrompe o build se a auditoria detectar vulnerabilidades.
+
+## Supabase Auth — configuração necessária antes de produção
 
 No painel Supabase, em Authentication → URL Configuration, configure:
 
 - Site URL: `https://vbf1.github.io/kidsloc-app/`
 - Redirect URLs: `https://vbf1.github.io/kidsloc-app/**` e `http://localhost:3000/**`.
 
-O fluxo de cadastro e recuperação de senha usa redirecionamento explícito para páginas hospedadas no GitHub Pages.
+Antes de permitir cadastro de clientes reais:
 
-## Banco de dados
+1. Ative a confirmação de e-mail.
+2. Configure um SMTP próprio em Authentication → SMTP Settings. O serviço de e-mail padrão do Supabase é limitado para testes e não deve ser tratado como serviço de envio de produção.
+3. Ative a proteção contra senhas vazadas em Authentication → Password Security.
+4. Teste cadastro, confirmação, login, recuperação e redefinição de senha com uma conta de teste.
 
-A migration inicial deve ser aplicada primeiro em um projeto Supabase de desenvolvimento descartável. Não aplicar diretamente no projeto atual até reconciliar o histórico e o esquema remoto. Validar RLS com usuários de teste antes de qualquer promoção.
+Os testes locais usam o Mailpit do Supabase local; isso não configura nem valida o SMTP do projeto hospedado.
+
+## Banco de dados e histórico de migrations
+
+A branch contém a migration local da fundação e testes pgTAP. O projeto Supabase remoto possui 30 versões de migration registradas, enquanto o repositório não contém a sequência SQL histórica correspondente. Essa divergência já existia na base do projeto.
+
+**Não executar `supabase db push`, reparar o histórico remoto ou aplicar migrations no projeto conectado até reconciliar o histórico e revisar o snapshot do esquema.** A migration desta branch ainda não foi aplicada remotamente.
+
+A validação local executa:
+
+- `supabase db reset`
+- 16 verificações pgTAP de RLS, privilégios e regras de criação de empresa
+- teste E2E local de Auth e onboarding, com confirmação de e-mail capturada pelo Mailpit
+
+## Flutter mobile
+
+O código Dart passa por formatação, análise estática e testes. O diretório atual ainda não contém os projetos nativos Android/iOS; portanto, ainda não existe APK/IPA validado. Antes de gerar os projetos nativos, confirmar o identificador de pacote/bundle do aplicativo e os alvos de distribuição.
+
+## Publicação
+
+O PR de fundação permanece aberto. Build e artefato do GitHub Pages em PR não significam publicação. Não mesclar nem publicar sem autorização explícita.
