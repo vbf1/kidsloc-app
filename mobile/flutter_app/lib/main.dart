@@ -423,7 +423,7 @@ class _BrandHeader extends StatelessWidget {
           Container(
             width: 72,
             height: 72,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Color(0xFF8054D8),
               borderRadius: BorderRadius.all(Radius.circular(22)),
             ),
