@@ -282,7 +282,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
   }
 
   Future<void> _createCompany() async {
-    final name = _name.text.trim();
+    final name = _name.text.trim().replaceAll(RegExp(r'\s+'), ' ');
     if (name.runes.length < 2 || name.runes.length > 160) {
       setState(() =>
           _message = 'Informe um nome de empresa entre 2 e 160 caracteres.');
