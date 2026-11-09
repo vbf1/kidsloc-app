@@ -3,9 +3,13 @@ import 'package:kidsloc_app/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  testWidgets('renders KidsLoc brand foundation', (tester) async {
+  testWidgets('shows Supabase setup guidance before credentials are configured',
+      (tester) async {
     await tester.pumpWidget(const ProviderScope(child: KidsLocApp()));
     expect(find.text('KidsLoc App'), findsOneWidget);
-    expect(find.textContaining('Sua locadora organizada'), findsOneWidget);
+    expect(
+      find.textContaining('Configure a URL e a chave publicável do Supabase'),
+      findsOneWidget,
+    );
   });
 }

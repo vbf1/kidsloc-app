@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { AuthShell, fieldClass, primaryButtonClass } from '../../../components/auth-shell';
 import { isValidCompanySlug, slugifyCompanyName } from '../../../lib/company';
 import { supabase } from '../../../lib/supabase';
