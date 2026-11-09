@@ -94,5 +94,6 @@ select throws_ok(
   'anonymous role cannot execute company creation'
 );
 
+reset role;
 select * from finish();
 rollback;
