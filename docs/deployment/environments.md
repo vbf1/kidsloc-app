@@ -51,3 +51,7 @@ O código Dart passa por formatação, análise estática e testes. O diretório
 ## Publicação
 
 O PR de fundação permanece aberto. Build e artefato do GitHub Pages em PR não significam publicação. Não mesclar nem publicar sem autorização explícita.
+
+Para reconciliar esse histórico sem alterar o banco remoto, o próximo passo seguro é gerar um dump **somente de esquema** com `supabase db dump --remote`, revisar o resultado e criar um baseline versionado. A CLI v3 exige o alvo remoto explícito; os comandos locais do CI não acessam o projeto hospedado.
+
+Se esse procedimento for autorizado, configure no GitHub, em Settings → Secrets and variables → Actions, os secrets `SUPABASE_ACCESS_TOKEN` e `SUPABASE_DB_PASSWORD`. Não envie esses valores pelo chat. O dump é leitura; a aplicação de migrations e qualquer reparo de histórico continuam exigindo autorização separada.
