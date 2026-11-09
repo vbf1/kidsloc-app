@@ -197,8 +197,10 @@ class _AuthPageState extends State<AuthPage> {
                               return;
                             }
                             try {
-                              await Supabase.instance.client.auth
-                                  .resetPasswordForEmail(email);
+                              await Supabase.instance.client.auth.resetPasswordForEmail(
+                                email,
+                                redirectTo: 'https://vbf1.github.io/kidsloc-app/reset-password/',
+                              );
                               if (mounted) {
                                 setState(() => _message =
                                     'Se o e-mail estiver cadastrado, você receberá o link de recuperação.');
@@ -233,12 +235,43 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
   final _name = TextEditingController();
   final _slug = TextEditingController();
   bool _busy = false;
+  bool _checking = true;
   String? _message;
 
   @override
   void initState() {
     super.initState();
     _name.addListener(_suggestSlug);
+    _checkMembership();
+  }
+
+  Future<void> _checkMembership() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      final rows = await Supabase.instance.client
+          .from('company_users')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .limit(1);
+      if (!mounted) return;
+      if (rows.isNotEmpty) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(builder: (_) => const HomePage()),
+        );
+        return;
+      }
+    } on PostgrestException catch (_) {
+      if (mounted) {
+        setState(() => _message =
+            'O banco ainda precisa receber a migration da Fundação do KidsLoc.');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _message = 'Não foi possível verificar a empresa.');
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
   }
 
   void _suggestSlug() {
@@ -249,6 +282,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
         .replaceAll(RegExp(r'[íìîï]'), 'i')
         .replaceAll(RegExp(r'[óòõôö]'), 'o')
         .replaceAll(RegExp(r'[úùûü]'), 'u')
+        .replaceAll('ç', 'c')
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
     if (_slug.text.isEmpty || _slug.text == _lastSuggested) {
@@ -313,7 +347,9 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
             ),
           ],
         ),
-        body: Center(
+        body: _checking
+          ? const Center(child: CircularProgressIndicator())
+          : Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
