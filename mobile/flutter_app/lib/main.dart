@@ -233,7 +233,6 @@ class CompanySetupPage extends StatefulWidget {
 
 class _CompanySetupPageState extends State<CompanySetupPage> {
   final _name = TextEditingController();
-  final _slug = TextEditingController();
   bool _busy = false;
   bool _checking = true;
   String? _message;
@@ -241,7 +240,6 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
   @override
   void initState() {
     super.initState();
-    _name.addListener(_suggestSlug);
     _checkMembership();
   }
 
@@ -250,10 +248,9 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
       final rows = await Supabase.instance.client
-          .from('company_users')
+          .from('company_members')
           .select('company_id')
           .eq('user_id', user.id)
-          .eq('is_active', true)
           .limit(1);
       if (!mounted) return;
       if (rows.isNotEmpty) {
@@ -274,30 +271,9 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
     }
   }
 
-  void _suggestSlug() {
-    final normalized = _name.text
-        .toLowerCase()
-        .replaceAll(RegExp(r'[áàãâä]'), 'a')
-        .replaceAll(RegExp(r'[éèêë]'), 'e')
-        .replaceAll(RegExp(r'[íìîï]'), 'i')
-        .replaceAll(RegExp(r'[óòõôö]'), 'o')
-        .replaceAll(RegExp(r'[úùûü]'), 'u')
-        .replaceAll('ç', 'c')
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-    if (_slug.text.isEmpty || _slug.text == _lastSuggested) {
-      _slug.text = normalized;
-      _lastSuggested = normalized;
-    }
-  }
-
-  String _lastSuggested = '';
-
   Future<void> _createCompany() async {
     final name = _name.text.trim();
-    final slug = _slug.text.trim();
-    if (name.length < 2 ||
-        !RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(slug)) {
+    if (name.length < 2) {
       setState(() => _message = 'Confira o nome e o identificador da empresa.');
       return;
     }
@@ -308,7 +284,6 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
     try {
       await Supabase.instance.client.rpc('create_company', params: {
         'p_name': name,
-        'p_slug': slug,
       });
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -329,9 +304,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
 
   @override
   void dispose() {
-    _name.removeListener(_suggestSlug);
     _name.dispose();
-    _slug.dispose();
     super.dispose();
   }
 
@@ -371,13 +344,6 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
                         const InputDecoration(labelText: 'Nome da empresa'),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _slug,
-                    decoration: const InputDecoration(
-                      labelText: 'Identificador',
-                      helperText: 'Use letras minúsculas, números e hífens.',
-                    ),
-                  ),
                   if (_message != null) ...[
                     const SizedBox(height: 16),
                     Text(_message!, style: const TextStyle(color: Colors.red)),
