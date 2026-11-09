@@ -321,43 +321,52 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
           ],
         ),
         body: _checking
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _BrandHeader(),
-                  const SizedBox(height: 28),
-                  Text('Cadastre sua empresa',
-                      style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 8),
-                  const Text(
-                      'Essas informações serão usadas para organizar seus clientes, brinquedos, serviços e reservas.'),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _name,
-                    decoration:
-                        const InputDecoration(labelText: 'Nome da empresa'),
+            ? const Center(child: CircularProgressIndicator())
+            : Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 440),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const _BrandHeader(),
+                        const SizedBox(height: 28),
+                        Text(
+                          'Cadastre sua empresa',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Essas informações serão usadas para organizar seus clientes, brinquedos, serviços e reservas.',
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _name,
+                          decoration: const InputDecoration(
+                            labelText: 'Nome da empresa',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_message != null) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            _message!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: _busy ? null : _createCompany,
+                          child: Text(
+                            _busy ? 'Salvando...' : 'Cadastrar empresa',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  if (_message != null) ...[
-                    const SizedBox(height: 16),
-                    Text(_message!, style: const TextStyle(color: Colors.red)),
-                  ],
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: _busy ? null : _createCompany,
-                    child: Text(_busy ? 'Salvando...' : 'Cadastrar empresa'),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
       );
 }
 
@@ -418,28 +427,33 @@ class _BrandHeader extends StatelessWidget {
   const _BrandHeader();
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) => const Column(
         children: [
-          Container(
+          SizedBox(
             width: 72,
             height: 72,
-            decoration: const BoxDecoration(
-              color: Color(0xFF8054D8),
-              borderRadius: BorderRadius.all(Radius.circular(22)),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              'K',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 36,
-                fontWeight: FontWeight.w800,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFF8054D8),
+                borderRadius: BorderRadius.all(Radius.circular(22)),
+              ),
+              child: Center(
+                child: Text(
+                  'K',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          const Text('KidsLoc App',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          SizedBox(height: 12),
+          Text(
+            'KidsLoc App',
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          ),
         ],
       );
 }
