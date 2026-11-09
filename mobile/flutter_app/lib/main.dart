@@ -170,7 +170,6 @@ class _AuthPageState extends State<AuthPage> {
                         const SizedBox(height: 16),
                         Text(_message!,
                             style: const TextStyle(color: Colors.red)),
-
                       ],
                       const SizedBox(height: 20),
                       FilledButton(
