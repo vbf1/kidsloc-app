@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(16);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'companies', 'companies table exists');
@@ -53,10 +53,17 @@ select is(
 );
 
 select throws_ok(
-  $$ select public.create_company('Segunda Empresa') $$,
+  $ select public.create_company('Segunda Empresa') $,
   '23505',
   'Esta conta já está vinculada a uma empresa.',
   'same account cannot create a second company'
+);
+
+select throws_ok(
+  $ select public.create_company('A') $,
+  '22023',
+  'Nome da empresa inválido.',
+  'company name shorter than two characters is rejected'
 );
 
 reset role;
@@ -89,6 +96,14 @@ reset role;
 select ok(
   not has_function_privilege('anon', 'public.create_company(text)', 'EXECUTE'),
   'anonymous role cannot execute company creation'
+);
+select ok(
+  not has_table_privilege('anon', 'public.companies', 'SELECT'),
+  'anonymous role cannot read company data'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.companies', 'TRUNCATE'),
+  'authenticated role cannot truncate company data'
 );
 
 select * from finish();
