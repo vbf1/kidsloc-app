@@ -116,7 +116,7 @@ as $$
 declare
   v_user_id uuid := (select auth.uid());
   v_company_id uuid;
-  v_name text := trim(coalesce(p_name, ''));
+  v_name text := regexp_replace(trim(coalesce(p_name, '')), '[[:space:]]+', ' ', 'g');
 begin
   if v_user_id is null then
     raise exception 'É necessário estar autenticado.'
