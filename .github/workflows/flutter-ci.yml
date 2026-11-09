@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths: ['mobile/flutter_app/**', '.github/workflows/flutter-ci.yml']
   pull_request:
-    paths: ['mobile/flutter_app/**']
+    paths: ['mobile/flutter_app/**', '.github/workflows/flutter-ci.yml']
   workflow_dispatch:
 jobs:
   test:

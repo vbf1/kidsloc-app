@@ -212,7 +212,7 @@ class _AuthPageState extends State<AuthPage> {
                               }
                             }
                           },
-                          child: const Text('Esqueci minha senha'),
+                          child: Text('Esqueci minha senha'),
                         ),
                     ],
                   ),
@@ -426,17 +426,17 @@ class FoundationScreen extends StatelessWidget {
   const FoundationScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => const Scaffold(
         body: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const _BrandHeader(),
-                  const SizedBox(height: 20),
-                  const Text(
+                  _BrandHeader(),
+                  SizedBox(height: 20),
+                  Text(
                     'Configure a URL e a chave publicável do Supabase para habilitar o acesso.',
                     textAlign: TextAlign.center,
                   ),
@@ -452,9 +452,9 @@ class _BrandHeader extends StatelessWidget {
   const _BrandHeader();
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) => const Column(
         children: [
-          const Container(
+          Container(
             width: 72,
             height: 72,
             decoration: BoxDecoration(
