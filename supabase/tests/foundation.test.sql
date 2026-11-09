@@ -86,14 +86,10 @@ select is(
 );
 
 reset role;
-set local role anon;
-select throws_ok(
-  $$ select public.create_company('Empresa Anônima') $$,
-  '42501',
-  null,
+select ok(
+  not has_function_privilege('anon', 'public.create_company(text)', 'EXECUTE'),
   'anonymous role cannot execute company creation'
 );
 
-reset role;
 select * from finish();
 rollback;
