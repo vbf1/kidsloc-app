@@ -59,7 +59,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_is_platform_owner boolean := false;
 begin
@@ -69,7 +69,7 @@ begin
   end if;
   return coalesce(v_is_platform_owner, false);
 end;
-$;
+$$;
 
 create or replace function public.is_company_member(p_company_id uuid)
 returns boolean
@@ -77,7 +77,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select public.is_platform_owner_for_company()
     or exists (
       select 1
@@ -85,7 +85,7 @@ as $
       where m.company_id = p_company_id
         and m.user_id = (select auth.uid())
     );
-$;
+$$;
 
 create or replace function public.has_company_role(p_company_id uuid, p_roles text[])
 returns boolean
@@ -93,7 +93,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select (
       public.is_platform_owner_for_company()
       and 'owner' = any (p_roles)
@@ -105,7 +105,7 @@ as $
         and m.user_id = (select auth.uid())
         and m.role = any (p_roles)
     );
-$;
+$$;
 
 create or replace function public.create_company(p_name text)
 returns uuid
