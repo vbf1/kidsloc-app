@@ -19,4 +19,9 @@ describe('company name validation', () => {
   it('rejects names longer than 160 characters', () => {
     expect(isValidCompanyName('A'.repeat(161))).toBe(false);
   });
+
+  it('counts Unicode code points rather than UTF-16 code units', () => {
+    expect(isValidCompanyName('😀'.repeat(80))).toBe(true);
+    expect(isValidCompanyName('😀'.repeat(161))).toBe(false);
+  });
 });
