@@ -14,9 +14,11 @@ jobs:
       - run: supabase db start
       - run: supabase db reset
       - run: supabase test db
+      - run: supabase start
       - name: Run local Auth and onboarding end-to-end checks
         run: |
           supabase status -o env > /tmp/supabase.env
+          grep -E '^(API_URL|ANON_KEY|PUBLISHABLE_KEY)=' /tmp/supabase.env | cut -d= -f1
           set -a
           source /tmp/supabase.env
           set +a
