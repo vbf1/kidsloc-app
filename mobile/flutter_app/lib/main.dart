@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-const supabasePublishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+const supabasePublishableKey =
+    String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
-    await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
+    await Supabase.initialize(
+        url: supabaseUrl, publishableKey: supabasePublishableKey);
   }
   runApp(const ProviderScope(child: KidsLocApp()));
 }
@@ -90,8 +92,8 @@ class _AuthPageState extends State<AuthPage> {
           data: {'full_name': _name.text.trim()},
         );
         if (response.session == null && mounted) {
-          setState(() => _message =
-              'Conta criada. Confirme seu e-mail para continuar.');
+          setState(() =>
+              _message = 'Conta criada. Confirme seu e-mail para continuar.');
         }
       } else {
         await auth.signInWithPassword(
@@ -136,7 +138,8 @@ class _AuthPageState extends State<AuthPage> {
                       if (_creating) ...[
                         TextFormField(
                           controller: _name,
-                          decoration: const InputDecoration(labelText: 'Seu nome'),
+                          decoration:
+                              const InputDecoration(labelText: 'Seu nome'),
                           validator: (value) =>
                               (value == null || value.trim().length < 2)
                                   ? 'Informe seu nome.'
@@ -165,7 +168,9 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                       if (_message != null) ...[
                         const SizedBox(height: 16),
-                        Text(_message!, style: const TextStyle(color: Colors.red)),
+                        Text(_message!,
+                            style: const TextStyle(color: Colors.red)),
+
                       ],
                       const SizedBox(height: 20),
                       FilledButton(
@@ -197,9 +202,11 @@ class _AuthPageState extends State<AuthPage> {
                               return;
                             }
                             try {
-                              await Supabase.instance.client.auth.resetPasswordForEmail(
+                              await Supabase.instance.client.auth
+                                  .resetPasswordForEmail(
                                 email,
-                                redirectTo: 'https://vbf1.github.io/kidsloc-app/reset-password/',
+                                redirectTo:
+                                    'https://vbf1.github.io/kidsloc-app/reset-password/',
                               );
                               if (mounted) {
                                 setState(() => _message =
@@ -265,7 +272,9 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
             'Não foi possível consultar seu vínculo com a empresa. Tente novamente.');
       }
     } catch (_) {
-      if (mounted) setState(() => _message = 'Não foi possível verificar a empresa.');
+      if (mounted) {
+        setState(() => _message = 'Não foi possível verificar a empresa.');
+      }
     } finally {
       if (mounted) setState(() => _checking = false);
     }
@@ -273,8 +282,8 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
 
   Future<void> _createCompany() async {
     final name = _name.text.trim();
-    if (name.length < 2) {
-      setState(() => _message = 'Confira o nome e o identificador da empresa.');
+    if (name.length < 2 || name.length > 160) {
+      setState(() => _message = 'Informe um nome de empresa entre 2 e 160 caracteres.');
       return;
     }
     setState(() {
@@ -296,7 +305,9 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
             'Não foi possível cadastrar a empresa. Confira os dados e tente novamente.');
       }
     } catch (_) {
-      if (mounted) setState(() => _message = 'Ocorreu um erro. Tente novamente.');
+      if (mounted) {
+        setState(() => _message = 'Ocorreu um erro. Tente novamente.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -346,6 +357,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
                           decoration: const InputDecoration(
                             labelText: 'Nome da empresa',
                           ),
+                          maxLength: 160,
                         ),
                         const SizedBox(height: 12),
                         if (_message != null) ...[
@@ -389,7 +401,7 @@ class HomePage extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'Empresa cadastrada. Os módulos de clientes, catálogo, agenda e reservas serão habilitados nas próximas etapas do MVP.',
+              'Cadastro da empresa concluído. Seu acesso ao KidsLoc está ativo.',
               textAlign: TextAlign.center,
             ),
           ),
