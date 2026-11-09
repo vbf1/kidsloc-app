@@ -1,0 +1,4 @@
+@import "tailwindcss";
+:root { color-scheme: light; --kidsloc-purple: #8054d8; --kidsloc-yellow: #ffc83d; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #faf9fd; color: #262238; font-family: Arial, Helvetica, sans-serif; }

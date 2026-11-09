@@ -1,0 +1,3 @@
+-- Seed intentionally contains no real customer or employee data.
+-- Create the first Sonho Kids Brinquedos tenant through the onboarding flow
+-- after the first administrator account has been created.

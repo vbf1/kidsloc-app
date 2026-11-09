@@ -1,12 +1,25 @@
-project_id = "wcxvswomcfpeuhnbxivh"
+project_id = "kidsloc-app"
 
-[functions.manage-employees]
-verify_jwt = true
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[functions.send-employee-push]
-verify_jwt = false
+[db]
+port = 54322
+major_version = 15
 
-[functions.rental-contract-public]
-# Public customer signing uses a high-entropy bearer token stored as a SHA-256 hash.
-# The function validates that token itself; Supabase Auth JWT is not required.
-verify_jwt = false
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**", "http://localhost:8080/**"]
+enable_signup = true
+
+[storage]
+enabled = true
+file_size_limit = "20MiB"

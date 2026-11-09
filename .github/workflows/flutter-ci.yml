@@ -1,0 +1,23 @@
+name: Mobile - Flutter checks
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/flutter_app/**', '.github/workflows/flutter-ci.yml']
+  pull_request:
+    paths: ['mobile/flutter_app/**']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/flutter_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
