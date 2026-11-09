@@ -13,3 +13,4 @@ jobs:
           version: latest
       - run: supabase db start
       - run: supabase db reset
+      - run: supabase test db
