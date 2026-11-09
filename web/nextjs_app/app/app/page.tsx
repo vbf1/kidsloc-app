@@ -21,10 +21,9 @@ export default function AppHomePage() {
         return;
       }
       const { data, error } = await supabase
-        .from('company_users')
+        .from('company_members')
         .select('companies(name)')
         .eq('user_id', user.id)
-        .eq('is_active', true)
         .limit(1)
         .maybeSingle();
       if (!active) return;
