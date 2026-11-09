@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(17);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'companies', 'companies table exists');
@@ -41,7 +41,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 
 select lives_ok(
-  $$ select public.create_company('Empresa de Teste') $$,
+  $ select public.create_company('  Empresa   de Teste  ') $,
   'authenticated user can create the first company'
 );
 
@@ -50,6 +50,13 @@ select is(
    where user_id = '10000000-0000-4000-8000-000000000001' and role = 'owner'),
   1,
   'company creator becomes owner'
+);
+
+select is(
+  (select name from public.companies
+   where created_by = '10000000-0000-4000-8000-000000000001'),
+  'Empresa de Teste',
+  'company name whitespace is normalized'
 );
 
 select throws_ok(
