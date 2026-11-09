@@ -25,6 +25,11 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Audit dependency tree
+        continue-on-error: true
+        run: |
+          npm audit --json > npm-audit.json || true
+          node -e "const a=require('./npm-audit.json'); for (const [name,v] of Object.entries(a.vulnerabilities || {})) console.log(name + ': severity=' + v.severity + ', direct=' + v.isDirect + ', range=' + v.range + ', fix=' + JSON.stringify(v.fixAvailable)); console.log('Totals:', JSON.stringify(a.metadata?.vulnerabilities || {}));"
       - run: npm test
       - run: npm run lint
       - run: npm run build
