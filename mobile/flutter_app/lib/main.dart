@@ -212,7 +212,7 @@ class _AuthPageState extends State<AuthPage> {
                               }
                             }
                           },
-                          child: Text('Esqueci minha senha'),
+                          child: const Text('Esqueci minha senha'),
                         ),
                     ],
                   ),
@@ -452,7 +452,7 @@ class _BrandHeader extends StatelessWidget {
   const _BrandHeader();
 
   @override
-  Widget build(BuildContext context) => const Column(
+  Widget build(BuildContext context) => Column(
         children: [
           Container(
             width: 72,
