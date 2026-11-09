@@ -13,6 +13,8 @@ jobs:
           version: latest
       - run: supabase db start
       - run: supabase db reset
+      - run: supabase stop
+      - run: supabase start
       - name: Run local Auth and onboarding end-to-end checks
         run: |
           supabase status -o env > /tmp/supabase.env
