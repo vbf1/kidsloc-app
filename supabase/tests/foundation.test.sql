@@ -59,18 +59,18 @@ select is(
   'company name whitespace is normalized'
 );
 select throws_ok(
-  $ insert into public.companies (name, created_by)
-     values ('Bypass attempt', auth.uid()) $,
+  $$ insert into public.companies (name, created_by)
+     values ('Bypass attempt', auth.uid()) $$,
   '42501',
   'new row violates row-level security policy for table "companies"',
   'authenticated owner cannot bypass company onboarding RPC'
 );
 
 select throws_ok(
-  $ insert into public.company_members (company_id, user_id, role)
+  $$ insert into public.company_members (company_id, user_id, role)
      select id, auth.uid(), 'owner'
      from public.companies
-     where created_by = auth.uid() $,
+     where created_by = auth.uid() $$,
   '42501',
   'new row violates row-level security policy for table "company_members"',
   'authenticated user cannot directly create company memberships'
