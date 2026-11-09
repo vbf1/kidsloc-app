@@ -4,5 +4,6 @@ export function normalizeCompanyName(value: string): string {
 
 export function isValidCompanyName(value: string): boolean {
   const normalized = normalizeCompanyName(value);
-  return normalized.length >= 2 && normalized.length <= 160;
+  const length = Array.from(normalized).length;
+  return length >= 2 && length <= 160;
 }
