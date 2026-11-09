@@ -186,7 +186,7 @@ assert.equal(
 // 6. The new password must work and the first company must be created atomically.
 const newSession = await signIn(updatedPassword);
 const companyName = `  KidsLoc   CI ${randomUUID().slice(0, 8)}  `;
-const normalizedCompanyName = companyName.trim().replace(/\\s+/g, ' ');
+const normalizedCompanyName = companyName.trim().replace(/\s+/g, ' ');
 const company = await request('/rest/v1/rpc/create_company', {
   method: 'POST',
   token: newSession.access_token,
