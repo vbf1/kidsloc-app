@@ -27,7 +27,7 @@ Antes de permitir cadastro de clientes reais:
 
 1. Ative a confirmação de e-mail.
 2. Configure um SMTP próprio em Authentication → SMTP Settings. O serviço de e-mail padrão do Supabase é limitado para testes e não deve ser tratado como serviço de envio de produção.
-3. Ative a proteção contra senhas vazadas em Authentication → Password Security.
+3. Ative a proteção contra senhas vazadas em Authentication → Password Security, se o projeto estiver em um plano que ofereça esse recurso (Pro ou superior; não incluído no Free). Se estiver no Free, registre essa limitação e avalie a mudança de plano ou controles compensatórios antes de produção.
 4. Teste cadastro, confirmação, login, recuperação e redefinição de senha com uma conta de teste.
 
 Os testes locais usam o Mailpit do Supabase local; isso não configura nem valida o SMTP do projeto hospedado.
