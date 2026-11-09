@@ -8,9 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 3.0.0
+      - name: Generate migration filename with Supabase CLI
+        run: supabase migration new foundation_cli_probe
       - run: supabase db start
       - run: supabase db reset
       - run: supabase stop
