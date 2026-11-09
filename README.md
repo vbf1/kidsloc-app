@@ -9,7 +9,7 @@ Plataforma SaaS de gestão para locadoras de brinquedos, equipamentos e serviço
 - `docs`: decisões arquiteturais, segurança e implantação.
 
 ## Ambientes
-Crie três projetos Supabase independentes: desenvolvimento, homologação e produção. Nunca reutilize credenciais entre ambientes. Após aplicar a migration inicial e criar o primeiro usuário pelo Supabase Auth, invoque `create_company(nome, slug)` autenticado para registrar a empresa e conceder o papel inicial de administrador. Para o primeiro tenant, use Sonho Kids Brinquedos; confirme o slug disponível antes de executar.
+Crie três projetos Supabase independentes: desenvolvimento, homologação e produção. Nunca reutilize credenciais entre ambientes. Após criar o primeiro usuário pelo Supabase Auth, invoque `create_company(p_name)` autenticado para registrar a empresa e conceder o papel inicial de proprietário (`owner`). O cadastro usa as tabelas existentes `companies`, `company_members` e `profiles`; não existe campo `slug` nesse contrato atual.
 
 ### Web
 Copie `web/nextjs_app/.env.example` para `.env.local` e preencha URL e publishable key do projeto Supabase correspondente.
@@ -41,4 +41,4 @@ supabase start
 supabase db reset
 ```
 
-> Esta entrega é a fundação da Fase 1. Antes de produção, execute as migrations em ambiente de desenvolvimento, valide RLS com usuários de empresas distintas e configure os secrets das Edge Functions no painel/CLI do Supabase. Não coloque `service_role` em nenhum cliente.
+> A migration versionada nesta branch prepara somente o esquema mínimo da fundação para ambientes locais e testes. O histórico remoto possui migrations que ainda precisam ser reconciliadas com o repositório; não aplique `db push` nem esta migration diretamente no projeto remoto. Antes de produção, valide RLS com usuários distintos e configure os secrets das Edge Functions. Nunca coloque `service_role` em clientes.
