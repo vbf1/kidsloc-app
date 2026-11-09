@@ -262,7 +262,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
     } on PostgrestException catch (_) {
       if (mounted) {
         setState(() => _message =
-            'O banco ainda precisa receber a migration da Fundação do KidsLoc.');
+            'Não foi possível consultar seu vínculo com a empresa. Tente novamente.');
       }
     } catch (_) {
       if (mounted) setState(() => _message = 'Não foi possível verificar a empresa.');
@@ -293,7 +293,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
     } on PostgrestException catch (_) {
       if (mounted) {
         setState(() => _message =
-            'Não foi possível cadastrar. O banco precisa receber a migration da Fundação antes deste passo.');
+            'Não foi possível cadastrar a empresa. Confira os dados e tente novamente.');
       }
     } catch (_) {
       if (mounted) setState(() => _message = 'Ocorreu um erro. Tente novamente.');
