@@ -14,13 +14,7 @@ jobs:
       - run: supabase db start
       - run: supabase db reset
       - run: supabase stop
-      - name: Start local Supabase services without printing ephemeral credentials
-        run: |
-          if ! supabase start > /tmp/supabase-start.log 2>&1; then
-            grep -viE 'key|secret|password|token' /tmp/supabase-start.log | tail -100
-            exit 1
-          fi
-          echo "Local Supabase services started."
+      - run: supabase start
       - name: Run local Auth and onboarding end-to-end checks
         run: |
           supabase status -o env > /tmp/supabase.env
