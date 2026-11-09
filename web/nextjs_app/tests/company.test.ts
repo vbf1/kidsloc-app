@@ -1,20 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { isValidCompanySlug, slugifyCompanyName } from '../lib/company';
+import { isValidCompanyName, normalizeCompanyName } from '../lib/company';
 
-describe('company identifier', () => {
-  it('normalizes Brazilian company names', () => {
-    expect(slugifyCompanyName('Sonho Kids Brinquedos')).toBe('sonho-kids-brinquedos');
-    expect(slugifyCompanyName('Locação & Diversão São José')).toBe('locacao-diversao-sao-jose');
+describe('company name validation', () => {
+  it('trims leading and trailing spaces and collapses repeated spaces', () => {
+    expect(normalizeCompanyName('  Minha   Locadora  ')).toBe('Minha Locadora');
   });
 
-  it('rejects empty, uppercase and malformed identifiers', () => {
-    expect(isValidCompanySlug('')).toBe(false);
-    expect(isValidCompanySlug('Minha Empresa')).toBe(false);
-    expect(isValidCompanySlug('-kidsloc')).toBe(false);
-    expect(isValidCompanySlug('kidsloc-')).toBe(false);
+  it('rejects names shorter than two characters', () => {
+    expect(isValidCompanyName('')).toBe(false);
+    expect(isValidCompanyName(' A ')).toBe(false);
   });
 
-  it('accepts lowercase hyphenated identifiers', () => {
-    expect(isValidCompanySlug('sonho-kids')).toBe(true);
+  it('accepts names within the database length limit', () => {
+    expect(isValidCompanyName('Sonho Kids Brinquedos')).toBe(true);
+    expect(isValidCompanyName('A'.repeat(160))).toBe(true);
+  });
+
+  it('rejects names longer than 160 characters', () => {
+    expect(isValidCompanyName('A'.repeat(161))).toBe(false);
   });
 });
