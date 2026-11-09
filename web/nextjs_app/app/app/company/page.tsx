@@ -137,7 +137,7 @@ export default function CompanySetupPage() {
               className={fieldClass}
               required
               minLength={2}
-              maxLength={160}
+              maxLength={320}
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Ex.: Minha Locadora"
