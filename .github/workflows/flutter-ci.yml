@@ -18,6 +18,10 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
+      - name: Temporary formatter diagnostic
+        run: |
+          dart format lib test
+          git diff -- lib/main.dart
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
