@@ -8,7 +8,7 @@ const supabasePublishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY'
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabasePublishableKey);
+    await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
   }
   runApp(const ProviderScope(child: KidsLocApp()));
 }
@@ -454,12 +454,12 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          Container(
+          const Container(
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFF8054D8),
-              borderRadius: BorderRadius.circular(22),
+              color: Color(0xFF8054D8),
+              borderRadius: BorderRadius.all(Radius.circular(22)),
             ),
             alignment: Alignment.center,
             child: const Text(
