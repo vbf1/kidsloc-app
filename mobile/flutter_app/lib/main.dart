@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const _webAppBaseUrl = 'https://vbf1.github.io/kidsloc-app';
+
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabasePublishableKey =
     String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
@@ -89,6 +91,7 @@ class _AuthPageState extends State<AuthPage> {
         final response = await auth.signUp(
           email: _email.text.trim(),
           password: _password.text,
+          emailRedirectTo: '$_webAppBaseUrl/app/company/',
           data: {'full_name': _name.text.trim()},
         );
         if (response.session == null && mounted) {
@@ -204,8 +207,7 @@ class _AuthPageState extends State<AuthPage> {
                               await Supabase.instance.client.auth
                                   .resetPasswordForEmail(
                                 email,
-                                redirectTo:
-                                    'https://vbf1.github.io/kidsloc-app/reset-password/',
+                                redirectTo: '$_webAppBaseUrl/reset-password/',
                               );
                               if (mounted) {
                                 setState(() => _message =
