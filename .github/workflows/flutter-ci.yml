@@ -28,6 +28,7 @@ jobs:
         run: |
           if [ ! -d android ]; then
             flutter create --platforms=android --org br.com.kidsloc --project-name app --no-pub .
+            git checkout -- pubspec.yaml pubspec.lock
           fi
           grep -R --include='build.gradle*' -F 'br.com.kidsloc.app' android/app
       - run: flutter pub get --enforce-lockfile
