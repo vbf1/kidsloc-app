@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '../../components/app-shell';
 import { getWorkspaceCompanyName } from '../../lib/workspace';
 import { supabase } from '../../lib/supabase';
@@ -10,17 +11,19 @@ type Workspace = {
   companyName: string;
 };
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-
 export default function AppHomePage() {
+  const router = useRouter();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
-  const loadWorkspace = useCallback(async () => {
-    setLoading(true);
+  const loadWorkspace = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setMessage('');
+
+    // Defer state updates until the effect has yielded to the event loop.
+    await Promise.resolve();
 
     try {
       if (!supabase) {
@@ -34,7 +37,7 @@ export default function AppHomePage() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        window.location.replace(`${basePath}/login/`);
+        router.replace('/login/');
         return;
       }
 
@@ -51,7 +54,7 @@ export default function AppHomePage() {
       }
 
       if (!data) {
-        window.location.replace(`${basePath}/app/company/`);
+        router.replace('/app/company/');
         return;
       }
 
@@ -70,10 +73,10 @@ export default function AppHomePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    void loadWorkspace();
+    void loadWorkspace(false);
   }, [loadWorkspace]);
 
   async function signOut() {
@@ -87,7 +90,7 @@ export default function AppHomePage() {
         setMessage('Não foi possível encerrar sua sessão. Tente novamente.');
         return;
       }
-      window.location.assign(`${basePath}/login/`);
+      router.push('/login/');
     } catch {
       setMessage('Não foi possível encerrar sua sessão. Tente novamente.');
     } finally {
@@ -130,7 +133,7 @@ export default function AppHomePage() {
     <AppShell
       companyName={workspace.companyName}
       email={workspace.email}
-      basePath={basePath}
+      basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
       signingOut={signingOut}
       onSignOut={signOut}
     >
