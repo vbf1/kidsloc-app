@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(19);
+select plan(20);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'companies', 'companies table exists');
@@ -29,6 +29,19 @@ values
    'foundation-staff@example.test', '', now(), now()),
   ('10000000-0000-4000-8000-000000000003', 'authenticated', 'authenticated',
    'foundation-outsider@example.test', '', now(), now());
+
+select is(
+  (select count(*)::int
+   from pg_trigger t
+   join pg_class c on c.oid = t.tgrelid
+   join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'auth'
+     and c.relname = 'users'
+     and not t.tgisinternal
+     and t.tgfoid = 'public.handle_new_user()'::regprocedure),
+  1,
+  'exactly one auth trigger creates profiles'
+);
 
 select is(
   (select count(*)::int from public.profiles
