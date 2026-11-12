@@ -38,7 +38,7 @@ export default function SignupPage() {
 
     setBusy(true);
     try {
-      const redirectTo = \`\${window.location.origin}\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/\`;
+      const redirectTo = window.location.origin + (process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/company/';
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -49,7 +49,7 @@ export default function SignupPage() {
         return;
       }
       if (data.session) {
-        window.location.assign(\`\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/\`);
+        window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/company/');
         return;
       }
       setSuccess(true);
