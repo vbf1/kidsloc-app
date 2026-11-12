@@ -5,9 +5,10 @@ export type AuthErrorLike = {
   status?: number;
 };
 
-export function getPasswordUpdateErrorMessage(error: AuthErrorLike | null | undefined): string {
-  const code = error?.code?.toLowerCase();
-  const name = error?.name?.toLowerCase();
+export function getPasswordUpdateErrorMessage(error: unknown): string {
+  const details = error && typeof error === 'object' ? (error as AuthErrorLike) : undefined;
+  const code = details?.code?.toLowerCase();
+  const name = details?.name?.toLowerCase();
 
   if (code === 'same_password') {
     return 'A nova senha deve ser diferente da senha atual.';
@@ -32,7 +33,7 @@ export function getPasswordUpdateErrorMessage(error: AuthErrorLike | null | unde
     name === 'authretryablefetcherror' ||
     name === 'typeerror' ||
     code === 'fetch_error' ||
-    error?.status === 0
+    details?.status === 0
   ) {
     return 'Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.';
   }
