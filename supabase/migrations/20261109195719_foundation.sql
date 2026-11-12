@@ -46,8 +46,13 @@ begin
 end;
 $$;
 
+-- The connected KidsLoc project historically used
+-- on_auth_user_created_profile. Drop both known names before creating one
+-- canonical trigger so applying this migration cannot leave duplicate
+-- profile-creation triggers behind.
+drop trigger if exists on_auth_user_created_profile on auth.users;
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
+create trigger on_auth_user_created_profile
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
