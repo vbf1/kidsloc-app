@@ -33,7 +33,7 @@ export function getAuthErrorMessage(
 
   if (
     code === 'invalid_credentials' ||
-    code === 'invalid_grant' ||
+    (code === 'invalid_grant' && context === 'login') ||
     message.includes('invalid login credentials')
   ) {
     return 'E-mail ou senha incorretos.';
@@ -51,6 +51,7 @@ export function getAuthErrorMessage(
     code === 'otp_expired' ||
     code === 'flow_state_expired' ||
     code === 'session_not_found' ||
+    code === 'invalid_grant' ||
     code === 'bad_jwt' ||
     code === 'invalid_token' ||
     message.includes('expired') ||
