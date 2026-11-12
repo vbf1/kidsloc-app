@@ -20,10 +20,10 @@ export default function AppHomePage() {
 
   const loadWorkspace = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
-    setMessage('');
 
-    // Defer state updates until the effect has yielded to the event loop.
+    // Wait for the asynchronous request before updating the loading feedback.
     await Promise.resolve();
+    setMessage('');
 
     try {
       if (!supabase) {
@@ -76,6 +76,8 @@ export default function AppHomePage() {
   }, [router]);
 
   useEffect(() => {
+    // This effect starts an asynchronous Supabase read; state updates happen after it yields.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadWorkspace(false);
   }, [loadWorkspace]);
 
