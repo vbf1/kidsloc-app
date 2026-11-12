@@ -1,98 +1,93 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { AppShell } from '../../components/app-shell';
+import { getWorkspaceCompanyName } from '../../lib/workspace';
 import { supabase } from '../../lib/supabase';
 
+type Workspace = {
+  email: string;
+  companyName: string;
+};
+
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
 export default function AppHomePage() {
-  const [email, setEmail] = useState('');
-  const [company, setCompany] = useState('');
-  const [message, setMessage] = useState('Carregando sua área de trabalho...');
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+  const loadWorkspace = useCallback(async () => {
+    setLoading(true);
+    setMessage('');
 
-    async function load() {
-      try {
-        if (!supabase) {
-          setMessage('Supabase ainda não está configurado neste ambiente.');
-          return;
-        }
-
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError) {
-          setMessage('Não foi possível validar sua sessão. Tente novamente.');
-          return;
-        }
-
-        if (!user) {
-          window.location.replace(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/login/`,
-          );
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('company_members')
-          .select('companies(name)')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
-
-        if (!active) return;
-
-        if (error) {
-          setMessage(
-            'Não foi possível carregar os dados da empresa. Tente novamente.',
-          );
-          return;
-        }
-
-        if (!data) {
-          window.location.replace(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/`,
-          );
-          return;
-        }
-
-        const companyValue = data.companies as unknown as
-          | { name: string }
-          | null;
-        setEmail(user.email ?? '');
-        setCompany(companyValue?.name ?? 'Empresa vinculada');
-        setMessage('');
-      } catch {
-        if (active) {
-          setMessage(
-            'Ocorreu um erro ao carregar sua área de trabalho. Confira sua conexão.',
-          );
-        }
+    try {
+      if (!supabase) {
+        setMessage('O acesso ainda não está configurado. Tente novamente mais tarde.');
+        return;
       }
-    }
 
-    void load();
-    return () => {
-      active = false;
-    };
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        window.location.replace(`${basePath}/login/`);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('company_members')
+        .select('companies(name)')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        setMessage('Não foi possível carregar os dados da empresa. Tente novamente.');
+        return;
+      }
+
+      if (!data) {
+        window.location.replace(`${basePath}/app/company/`);
+        return;
+      }
+
+      const companyName = getWorkspaceCompanyName(data.companies);
+      if (!companyName) {
+        setMessage('Não foi possível identificar a empresa vinculada à sua conta.');
+        return;
+      }
+
+      setWorkspace({
+        email: user.email ?? 'E-mail não informado',
+        companyName,
+      });
+    } catch {
+      setMessage('Ocorreu um erro ao carregar sua área de trabalho. Confira sua conexão.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void loadWorkspace();
+  }, [loadWorkspace]);
+
   async function signOut() {
-    if (!supabase) return;
+    if (!supabase || signingOut) return;
 
     setSigningOut(true);
+    setMessage('');
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
         setMessage('Não foi possível encerrar sua sessão. Tente novamente.');
         return;
       }
-      window.location.assign(
-        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/login/`,
-      );
+      window.location.assign(`${basePath}/login/`);
     } catch {
       setMessage('Não foi possível encerrar sua sessão. Tente novamente.');
     } finally {
@@ -100,65 +95,80 @@ export default function AppHomePage() {
     }
   }
 
+  if (loading) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5">
+        <p role="status" className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm font-medium text-gray-600 shadow-sm">
+          Carregando sua área de trabalho...
+        </p>
+      </main>
+    );
+  }
+
+  if (!workspace) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5">
+        <section className="w-full max-w-md rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
+          <div className="mb-4 grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</div>
+          <h1 className="text-xl font-bold">Não foi possível abrir o KidsLoc</h1>
+          <p role="alert" className="mt-3 text-sm leading-6 text-gray-600">
+            {message || 'Não foi possível carregar os dados da sua conta.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadWorkspace()}
+            className="mt-5 rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6e43c4]"
+          >
+            Tentar novamente
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen px-5 py-8 md:px-12">
-      <div className="mx-auto max-w-6xl">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">
-              K
-            </span>
-            <span className="text-xl font-bold">
-              KidsLoc <span className="text-[#8054d8]">App</span>
+    <AppShell
+      companyName={workspace.companyName}
+      email={workspace.email}
+      basePath={basePath}
+      signingOut={signingOut}
+      onSignOut={signOut}
+    >
+      <section aria-labelledby="workspace-title">
+        <div className="mb-6">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Área da empresa</p>
+          <h1 id="workspace-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+            Visão geral
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Bem-vindo ao espaço de gestão da {workspace.companyName}.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Sua empresa</p>
+              <h2 className="mt-1 text-xl font-bold">{workspace.companyName}</h2>
+              <p className="mt-2 break-all text-sm text-gray-500">{workspace.email}</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+              <span aria-hidden="true" className="size-2 rounded-full bg-green-500" />
+              Acesso ativo
             </span>
           </div>
-          <button
-            onClick={signOut}
-            disabled={signingOut}
-            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold disabled:opacity-50"
-          >
-            {signingOut ? 'Saindo...' : 'Sair'}
-          </button>
-        </header>
+        </div>
 
-        <section className="mt-12">
-          <p className="text-sm font-semibold text-[#8054d8]">
-            ÁREA DA EMPRESA
+        <div className="mt-6 rounded-2xl border border-dashed border-purple-200 bg-white/70 p-6 sm:p-8">
+          <div className="grid size-12 place-items-center rounded-2xl bg-purple-50 text-2xl" aria-hidden="true">
+            ✨
+          </div>
+          <h2 className="mt-4 text-lg font-bold">Sua área de trabalho está pronta</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            A estrutura inicial da sua empresa está configurada. Os recursos de gestão serão disponibilizados gradualmente, após a implementação e validação de cada módulo.
           </p>
-          <h1 className="mt-2 text-3xl font-bold">
-            {company || 'Bem-vindo ao KidsLoc'}
-          </h1>
-          <p className="mt-2 text-sm text-gray-500">{email}</p>
-
-          {message ? (
-            <div
-              role="status"
-              className="mt-6 max-w-2xl rounded-xl bg-purple-50 p-4 text-sm text-purple-800"
-            >
-              {message}
-              <button
-                onClick={() => window.location.reload()}
-                className="ml-2 font-semibold underline"
-              >
-                Tentar novamente
-              </button>
-            </div>
-          ) : (
-            <div className="mt-8 max-w-2xl rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-green-700">
-                ACESSO ATIVO
-              </p>
-              <h2 className="mt-2 text-xl font-bold">
-                Cadastro da empresa concluído
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                Sua conta está autenticada e vinculada à empresa acima. A
-                configuração inicial do KidsLoc foi concluída.
-              </p>
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+        </div>
+      </section>
+    </AppShell>
   );
 }
