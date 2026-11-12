@@ -23,7 +23,10 @@ export default function LoginPage() {
       email: validateEmail(email),
       password: validatePassword(password, 6),
     };
-    setFieldErrors(Object.fromEntries(Object.entries(errors).filter(([, value]) => value)));
+    setFieldErrors(Object.entries(errors).reduce<Record<string, string>>((result, [field, error]) => {
+      if (error) result[field] = error;
+      return result;
+    }, {}));
     if (Object.values(errors).some(Boolean)) return;
     if (!supabase) {
       setMessage('O acesso ainda não está configurado. Tente novamente mais tarde.');
@@ -40,7 +43,7 @@ export default function LoginPage() {
         setMessage(getAuthErrorMessage(error, 'login'));
         return;
       }
-      window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/`);
+      window.location.assign(\`\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/\`);
     } catch (error) {
       setMessage(getAuthErrorMessage(error, 'login'));
     } finally {
