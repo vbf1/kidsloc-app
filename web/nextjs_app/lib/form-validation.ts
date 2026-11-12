@@ -10,7 +10,7 @@ export function validateEmail(value: string): string | undefined {
 }
 
 export function validateRequired(value: string, label: string): string | undefined {
-  if (!value.trim()) return \`Informe \${label.toLowerCase()}.\`;
+  if (!value.trim()) return 'Informe ' + label.toLowerCase() + '.';
   return undefined;
 }
 
@@ -25,7 +25,7 @@ export function validateName(value: string): string | undefined {
 export function validatePassword(value: string, minimumLength = 8): string | undefined {
   if (!value) return 'Informe sua senha.';
   if (value.length < minimumLength) {
-    return \`A senha deve ter pelo menos \${minimumLength} caracteres.\`;
+    return 'A senha deve ter pelo menos ' + minimumLength + ' caracteres.';
   }
   return undefined;
 }
