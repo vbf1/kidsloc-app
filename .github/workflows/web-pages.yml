@@ -48,3 +48,4 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+# Trigger Pages deployment for the validated password-reset error messages.
