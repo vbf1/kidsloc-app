@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { AuthShell, fieldClass, primaryButtonClass } from '../../components/auth-shell';
+import { getPasswordUpdateErrorMessage } from '../../lib/auth-error-message';
 import { supabase } from '../../lib/supabase';
 
 export default function ResetPasswordPage() {
@@ -19,15 +20,22 @@ export default function ResetPasswordPage() {
       setMessage('O acesso ainda não está configurado no ambiente.');
       return;
     }
+
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setBusy(false);
-    if (error) {
-      setMessage('O link pode ter expirado. Solicite uma nova recuperação de senha.');
-      return;
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setMessage(getPasswordUpdateErrorMessage(error));
+        return;
+      }
+
+      setDone(true);
+      setMessage('Senha atualizada com sucesso. Entre novamente com sua nova senha.');
+    } catch (error) {
+      setMessage(getPasswordUpdateErrorMessage(error));
+    } finally {
+      setBusy(false);
     }
-    setDone(true);
-    setMessage('Senha atualizada com sucesso. Entre novamente com sua nova senha.');
   }
 
   return (
