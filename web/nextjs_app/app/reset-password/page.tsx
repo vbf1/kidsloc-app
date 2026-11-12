@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { AuthShell, fieldClass, primaryButtonClass } from '../../components/auth-shell';
-import { getPasswordUpdateErrorMessage } from '../../lib/auth-error-message';
+import { FieldFeedback, FormFeedback } from '../../components/form-feedback';
+import { getAuthErrorMessage } from '../../lib/auth-error-message';
+import { validatePassword } from '../../lib/form-validation';
 import { supabase } from '../../lib/supabase';
 
 export default function ResetPasswordPage() {
@@ -12,12 +14,16 @@ export default function ResetPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [done, setDone] = useState(false);
+  const [fieldError, setFieldError] = useState('');
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage('');
+    const validationError = validatePassword(password);
+    setFieldError(validationError ?? '');
+    if (validationError) return;
     if (!supabase) {
-      setMessage('O acesso ainda não está configurado no ambiente.');
+      setMessage('O acesso ainda não está configurado. Tente novamente mais tarde.');
       return;
     }
 
@@ -25,14 +31,13 @@ export default function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        setMessage(getPasswordUpdateErrorMessage(error));
+        setMessage(getAuthErrorMessage(error, 'password_update'));
         return;
       }
-
       setDone(true);
       setMessage('Senha atualizada com sucesso. Entre novamente com sua nova senha.');
     } catch (error) {
-      setMessage(getPasswordUpdateErrorMessage(error));
+      setMessage(getAuthErrorMessage(error, 'password_update'));
     } finally {
       setBusy(false);
     }
@@ -40,12 +45,18 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthShell title="Definir nova senha" description="Escolha uma senha nova para sua conta KidsLoc.">
-      {done ? <div className="space-y-4"><p role="status" className="rounded-xl bg-green-50 p-3 text-sm text-green-800">{message}</p><Link href="/login/" className="block text-center font-semibold text-[#8054d8]">Ir para o login</Link></div> : (
-        <form onSubmit={submit} className="space-y-4">
+      {done ? (
+        <div className="space-y-4">
+          <FormFeedback variant="success">{message}</FormFeedback>
+          <Link href="/login/" className="block text-center font-semibold text-[#8054d8]">Ir para o login</Link>
+        </div>
+      ) : (
+        <form noValidate onSubmit={submit} className="space-y-4">
           <label className="block text-sm font-medium">Nova senha
-            <input className={fieldClass} type="password" required minLength={8} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} />
+            <input id="reset-password" className={fieldClass} type="password" autoComplete="new-password" aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? 'reset-password-error' : undefined} value={password} onChange={e => setPassword(e.target.value)} />
+            {fieldError && <FieldFeedback id="reset-password-error">{fieldError}</FieldFeedback>}
           </label>
-          {message && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{message}</p>}
+          {message && <FormFeedback>{message}</FormFeedback>}
           <button className={primaryButtonClass} disabled={busy}>{busy ? 'Salvando...' : 'Salvar nova senha'}</button>
         </form>
       )}

@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { AuthShell, fieldClass, primaryButtonClass } from '../../components/auth-shell';
+import { FieldFeedback, FormFeedback } from '../../components/form-feedback';
+import { getAuthErrorMessage } from '../../lib/auth-error-message';
+import { validateEmail, validatePassword } from '../../lib/form-validation';
 import { supabase } from '../../lib/supabase';
 
 export default function LoginPage() {
@@ -11,34 +14,52 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage('');
+    const errors = {
+      email: validateEmail(email),
+      password: validatePassword(password, 6),
+    };
+    setFieldErrors(Object.fromEntries(Object.entries(errors).filter(([, value]) => value)));
+    if (Object.values(errors).some(Boolean)) return;
     if (!supabase) {
-      setMessage('O acesso ainda não está configurado. Informe a URL e a chave pública do Supabase no ambiente de implantação.');
+      setMessage('O acesso ainda não está configurado. Tente novamente mais tarde.');
       return;
     }
+
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setBusy(false);
-    if (error) {
-      setMessage(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Confira seus dados e tente novamente.');
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        setMessage(getAuthErrorMessage(error, 'login'));
+        return;
+      }
+      window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/`);
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error, 'login'));
+    } finally {
+      setBusy(false);
     }
-    window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/company/`);
   }
 
   return (
     <AuthShell title="Entrar na sua conta" description="Acesse o KidsLoc para organizar sua locadora e seus eventos.">
-      <form onSubmit={submit} className="space-y-4">
+      <form noValidate onSubmit={submit} className="space-y-4">
         <label className="block text-sm font-medium">E-mail
-          <input className={fieldClass} type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="voce@empresa.com" />
+          <input id="login-email" className={fieldClass} type="email" autoComplete="email" aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? 'login-email-error' : undefined} value={email} onChange={e => setEmail(e.target.value)} placeholder="voce@empresa.com" />
+          {fieldErrors.email && <FieldFeedback id="login-email-error">{fieldErrors.email}</FieldFeedback>}
         </label>
         <label className="block text-sm font-medium">Senha
-          <input className={fieldClass} type="password" autoComplete="current-password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="Sua senha" />
+          <input id="login-password" className={fieldClass} type="password" autoComplete="current-password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? 'login-password-error' : undefined} value={password} onChange={e => setPassword(e.target.value)} placeholder="Sua senha" />
+          {fieldErrors.password && <FieldFeedback id="login-password-error">{fieldErrors.password}</FieldFeedback>}
         </label>
-        {message && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{message}</p>}
+        {message && <FormFeedback>{message}</FormFeedback>}
         <button className={primaryButtonClass} disabled={busy}>{busy ? 'Entrando...' : 'Entrar'}</button>
       </form>
       <div className="mt-5 flex flex-wrap justify-between gap-3 text-sm">
