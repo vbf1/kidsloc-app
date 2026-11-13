@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { CustomerForm } from '../../../components/customer-form';
 import { CustomerList } from '../../../components/customer-list';
-import { buildCustomerSearchFilter, normalizeCustomer, type CustomerFormValues, type CustomerRecord } from '../../../lib/customers';
+import { matchesCustomerSearch, normalizeCustomer, type CustomerFormValues, type CustomerRecord } from '../../../lib/customers';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
@@ -100,16 +100,21 @@ export default function CustomersPage() {
       setListLoading(true);
       setListError('');
       try {
-        const filter = buildCustomerSearchFilter(searchTerm);
         let request = supabaseClient.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
-          .eq('company_id', companyId).order('name', { ascending: true })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-        if (filter) request = request.or(filter);
+          .eq('company_id', companyId).order('name', { ascending: true });
+        if (!searchTerm) request = request.range(page * pageSize, (page + 1) * pageSize - 1);
         const { data, error, count } = await request;
         if (!active) return;
         if (error) { setListError('Não foi possível carregar os clientes. Tente novamente.'); return; }
-        setCustomers((data ?? []) as CustomerRecord[]);
-        setTotalCount(count ?? 0);
+        const records = (data ?? []) as CustomerRecord[];
+        if (searchTerm) {
+          const matches = records.filter((customer) => matchesCustomerSearch(customer, searchTerm));
+          setTotalCount(matches.length);
+          setCustomers(matches.slice(page * pageSize, (page + 1) * pageSize));
+        } else {
+          setCustomers(records);
+          setTotalCount(count ?? 0);
+        }
       } catch {
         if (active) setListError('Ocorreu um erro ao carregar os clientes. Confira sua conexão.');
       } finally {
