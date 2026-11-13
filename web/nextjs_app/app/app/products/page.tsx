@@ -254,7 +254,7 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
-        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={PRODUCT_PAGE_SIZE} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={deleteProduct} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
+        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={PRODUCT_PAGE_SIZE} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
       </section>
     </AppShell>
   );
