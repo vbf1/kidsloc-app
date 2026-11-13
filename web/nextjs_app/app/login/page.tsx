@@ -24,7 +24,7 @@ export default function LoginPage() {
         if (supabase) {
           const { data, error } = await supabase.auth.getSession();
           if (active && !error && data.session?.user) {
-            window.location.replace(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/`);
+            window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/');
             return;
           }
         }
@@ -40,10 +40,7 @@ export default function LoginPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage('');
-    const errors = {
-      email: validateEmail(email),
-      password: validatePassword(password, 6),
-    };
+    const errors = { email: validateEmail(email), password: validatePassword(password, 6) };
     setFieldErrors(Object.entries(errors).reduce<Record<string, string>>((result, [field, error]) => {
       if (error) result[field] = error;
       return result;
@@ -56,15 +53,13 @@ export default function LoginPage() {
 
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
         setMessage(getAuthErrorMessage(error, 'login'));
         return;
       }
-      window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/company/');
+      // The workspace router detects platform owners and company members separately.
+      window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/');
     } catch (error) {
       setMessage(getAuthErrorMessage(error, 'login'));
     } finally {
