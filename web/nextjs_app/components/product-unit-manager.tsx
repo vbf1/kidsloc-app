@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { useScrollIntoViewOnChange } from '../lib/use-scroll-into-view';
 
 type ProductUnit = {
   id: string;
@@ -16,9 +17,10 @@ type ProductUnitManagerProps = {
   companyId: string;
   totalQuantity: number;
   onClose: () => void;
+  scrollRequest: number;
 };
 
-export function ProductUnitManager({ productId, productName, companyId, totalQuantity, onClose }: ProductUnitManagerProps) {
+export function ProductUnitManager({ productId, productName, companyId, totalQuantity, onClose, scrollRequest }: ProductUnitManagerProps) {
   const [units, setUnits] = useState<ProductUnit[]>([]);
   const [assetCode, setAssetCode] = useState('');
   const [description, setDescription] = useState('');
@@ -28,9 +30,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
   const [notice, setNotice] = useState('');
   const panelRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [productId]);
+  useScrollIntoViewOnChange(panelRef, `${productId}-${scrollRequest}`);
 
   const loadUnits = useCallback(async () => {
     if (!supabase) return;
