@@ -29,7 +29,6 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
 
   const loadUnits = useCallback(async () => {
     if (!supabase) return;
-    setLoading(true);
     setError('');
     const { data, error: queryError } = await supabase
       .from('product_units')
