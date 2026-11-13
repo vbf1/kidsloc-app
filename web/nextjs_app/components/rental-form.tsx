@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { FieldFeedback, FormFeedback } from './form-feedback';
+import { SearchablePicker } from './searchable-picker';
 import {
   defaultRentalUnitPrice, EMPTY_RENTAL, formatRentalPrice, parseRentalPrice, rentalItemsTotal,
   validateRental, type RentalCustomer, type RentalFieldErrors, type RentalFormValues,
@@ -116,13 +117,22 @@ export function RentalForm({
       <section aria-labelledby="rental-customer-heading">
         <h3 id="rental-customer-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Cliente e período</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className={labelClass}>Cliente *
-            <select value={values.customer_id} onChange={(event) => updateField('customer_id', event.target.value)} className={inputClass} disabled={saving}>
-              <option value="">Selecione um cliente</option>
-              {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}{customer.phone ? ' · ' + customer.phone : ''}</option>)}
-            </select>
+          <div>
+            <label className={labelClass}>Cliente *</label>
+            <div className="mt-1">
+              <SearchablePicker
+                title="Selecionar cliente"
+                value={values.customer_id}
+                options={customers.map((customer) => ({ value: customer.id, label: customer.name, description: customer.phone || 'Telefone não informado' }))}
+                placeholder="Selecione um cliente"
+                searchPlaceholder="Buscar por nome ou telefone..."
+                emptyText="Nenhum cliente encontrado."
+                disabled={saving}
+                onChange={(value) => updateField('customer_id', value)}
+              />
+            </div>
             {fieldErrors.customer_id && <FieldFeedback id="rental-customer-error">{fieldErrors.customer_id}</FieldFeedback>}
-          </label>
+          </div>
           <label className={labelClass}>Situação
             <select value={values.status} onChange={(event) => updateField('status', event.target.value as RentalFormValues['status'])} className={inputClass} disabled={saving}>
               <option value="pending">Pendente</option><option value="confirmed">Confirmada</option><option value="ongoing">Em andamento</option>
@@ -176,12 +186,22 @@ export function RentalForm({
             </label>
           </div>
         </fieldset>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="sr-only" htmlFor="rental-product-to-add">Adicionar item</label>
-          <select id="rental-product-to-add" value={productToAdd} onChange={(event) => setProductToAdd(event.target.value)} className={inputClass + ' mt-0 min-w-0 flex-1'} disabled={saving || !availableProducts.length}>
-            <option value="">Selecione um brinquedo ou máquina</option>
-            {availableProducts.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.item_type === 'toy' ? 'Brinquedo' : 'Máquina'}</option>)}
-          </select>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <label className={labelClass}>Brinquedo ou máquina</label>
+            <div className="mt-1">
+              <SearchablePicker
+                title="Adicionar equipamento"
+                value={productToAdd}
+                options={availableProducts.map((product) => ({ value: product.id, label: product.name, description: product.item_type === 'toy' ? 'Brinquedo' : 'Máquina' }))}
+                placeholder="Selecione um brinquedo ou máquina"
+                searchPlaceholder="Buscar equipamento..."
+                emptyText="Nenhum equipamento disponível."
+                disabled={saving || !availableProducts.length}
+                onChange={setProductToAdd}
+              />
+            </div>
+          </div>
           <button type="button" onClick={addItem} disabled={saving || !productToAdd} className="rounded-xl border border-purple-200 px-4 py-3 text-sm font-semibold text-[#6840bd] hover:bg-purple-50 disabled:opacity-50">Adicionar item</button>
         </div>
         {fieldErrors.items && <FieldFeedback id="rental-items-error">{fieldErrors.items}</FieldFeedback>}
