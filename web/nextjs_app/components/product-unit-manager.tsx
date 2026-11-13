@@ -122,7 +122,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
         <label className="text-sm font-medium text-gray-700">Descrição (opcional)
           <input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} disabled={saving} placeholder="Ex.: lona azul" className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm" />
         </label>
-        <button type="submit" disabled={saving || units.length >= totalQuantity} className="self-end rounded-lg bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Adicionar unidade'}</button>
+        <button type="submit" disabled={loading || saving || units.length >= totalQuantity} className="self-end rounded-lg bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Adicionar unidade'}</button>
       </form>
       <div className="mt-5">
         <h3 className="text-sm font-bold text-gray-900">Unidades cadastradas</h3>
