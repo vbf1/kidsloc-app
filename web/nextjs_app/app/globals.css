@@ -83,9 +83,9 @@ select option { padding: 10px; background: #fff; color: var(--kidsloc-ink); }
 }
 
 /* Fundo dos modais com contraste suave e desfoque discreto. */
-body:has([role="dialog]), body:has([role="alertdialog]) { isolation: isolate; }
+body:has([role="dialog]), body:has([role="alertdialog"]) { isolation: isolate; }
 .fixed.inset-0:has(> [role="dialog"]),
-.fixed.inset-0:has(> [role="alertdialog]) {
+.fixed.inset-0:has(> [role="alertdialog"]) {
   z-index: 100;
   background: rgb(25 18 42 / 48%);
   padding: 16px;
@@ -99,7 +99,7 @@ body:has([role="dialog]), body:has([role="alertdialog]) { isolation: isolate; }
     border-radius: 20px;
   }
   .fixed.inset-0:has(> [role="dialog"]),
-  .fixed.inset-0:has(> [role="alertdialog]) {
+  .fixed.inset-0:has(> [role="alertdialog"]) {
     align-items: flex-end;
     padding: 10px;
   }
