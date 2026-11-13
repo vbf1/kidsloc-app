@@ -69,7 +69,10 @@ export default function ProductsPage() {
   const pageSize = useResponsivePageSize();
   const [pagination, setPagination] = useState({ page: 0, pageSize: 6 });
   const page = pagination.pageSize === pageSize ? pagination.page : 0;
-  function setPage(nextPage: number) { setPagination({ page: nextPage, pageSize }); }
+  function setPage(nextPage: number | ((current: number) => number)) {
+    const resolvedPage = typeof nextPage === 'function' ? nextPage(page) : nextPage;
+    setPagination({ page: resolvedPage, pageSize });
+  }
   const [searchDraft, setSearchDraft] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | ProductType>('all');
