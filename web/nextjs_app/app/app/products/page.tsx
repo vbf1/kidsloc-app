@@ -224,7 +224,12 @@ export default function ProductsPage() {
           : 'Não foi possível excluir o item. Verifique se sua conta tem permissão de administrador ou proprietário.');
         return;
       }
-      setNotice('Item excluído com sucesso.');
+      let cleanupWarning = '';
+      if (product.image_path) {
+        const { error: imageDeleteError } = await supabase.storage.from('product-images').remove([product.image_path]);
+        if (imageDeleteError) cleanupWarning = ' A foto antiga não pôde ser removida do armazenamento; será necessário tentar a limpeza novamente.';
+      }
+      setNotice(cleanupWarning ? 'Item excluído com sucesso, mas' + cleanupWarning : 'Item excluído com sucesso.');
       if (products.length === 1 && page > 0) setPage((current) => current - 1);
       setRefreshIndex((current) => current + 1);
     } catch {
