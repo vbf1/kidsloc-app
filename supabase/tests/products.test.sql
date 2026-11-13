@@ -3,7 +3,7 @@ create extension if not exists pgtap with schema extensions;
 select plan(15);
 select has_column('public', 'products', 'item_type', 'catalog item type exists');
 select has_column('public', 'products', 'event_price', 'event price column exists');
-select col_default_is('public', 'products', 'item_type', '''toy''::text', 'existing and new products default to toy');
+select col_default_is('public', 'products', 'item_type', 'toy', 'existing and new products default to toy');
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
  ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'products-owner@example.test', '', now(), now()),
