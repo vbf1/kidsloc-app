@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(17);
 select has_column('public', 'products', 'item_type', 'catalog item type exists');
 select has_column('public', 'products', 'event_price', 'event price column exists');
 select col_default_is('public', 'products', 'item_type', 'toy', 'existing and new products default to toy');
@@ -33,17 +33,28 @@ select throws_ok(
 );
 select lives_ok(
   $$ insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price)
-     values ('41000000-0000-4000-8000-000000000002', '31000000-0000-4000-8000-000000000001', 'Cama elástica', 'toy', 'quantity', 2, 80.00) $$,
-  'toy can be created with daily pricing and quantity inventory'
+     values ('41000000-0000-4000-8000-000000000002', '31000000-0000-4000-8000-000000000001', 'Cama elástica', 'toy', 'individual', 2, 80.00) $$,
+  'toy can be created with daily pricing and individual inventory'
 );
 select lives_ok(
   $$ insert into public.product_units (company_id, product_id, asset_code, status)
      values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000002', 'ELASTICA-01', 'available') $$,
   'physical unit can be registered for a toy'
 );
+select lives_ok(
+  $ insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price)
+     values ('41000000-0000-4000-8000-000000000003', '31000000-0000-4000-8000-000000000001', 'Mesa de jogos', 'toy', 'quantity', 2, 40.00) $,
+  'toy can also use quantity inventory'
+);
 select throws_ok(
-  $$ insert into public.product_units (company_id, product_id, asset_code, status)
-     values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000001', 'SERVICO-01', 'available') $$,
+  $ insert into public.product_units (company_id, product_id, asset_code, status)
+     values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000003', 'MESA-01', 'available') $,
+  '23514', 'Unidades físicas exigem controle individual de estoque.',
+  'physical units require individual inventory mode'
+);
+select throws_ok(
+  $ insert into public.product_units (company_id, product_id, asset_code, status)
+     values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000001', 'SERVICO-01', 'available') $,
   '23514', 'Serviços não podem possuir unidades físicas.',
   'physical unit cannot be registered for a service'
 );
