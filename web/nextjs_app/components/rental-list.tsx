@@ -22,10 +22,14 @@ const statusClasses: Record<string, string> = {
 function RentalStatus({ status }: { status: RentalRecord['status'] }) {
   return <span className={'inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ' + (statusClasses[status] ?? statusClasses.pending)}>{rentalStatusLabel(status)}</span>;
 }
+function isFixedPriceCombo(rental: RentalRecord) {
+  return rental.items.length > 0 && rental.items.every((item) => Number(item.unit_price) === 0);
+}
 function RentalDetails({ rental }: { rental: RentalRecord }) {
   return (
     <div className="mt-2 space-y-1 text-xs leading-5 text-gray-500">
       <p>{rental.items.length ? rental.items.map((item) => item.product_name + ' × ' + item.quantity).join(', ') : 'Itens não disponíveis para este acesso'}</p>
+      {isFixedPriceCombo(rental) && <p className="font-semibold text-purple-700">Combo fechado</p>}
       <p>Responsáveis: {rental.responsible_names.length ? rental.responsible_names.join(', ') : 'Não definidos'}</p>
       {rental.delivery_method === 'delivery' && rental.delivery_address && <p>Entrega: {rental.delivery_address}</p>}
     </div>
@@ -48,7 +52,7 @@ export function RentalList({ rentals, loading, totalCount, page, pageSize, onPag
                 <td className="px-4 py-4 font-semibold text-gray-900">#{rental.rental_number}</td>
                 <td className="px-4 py-4"><p className="font-semibold text-gray-800">{rental.customer_name}</p><p className="mt-1 text-xs text-gray-500">{rental.delivery_method === 'delivery' ? 'Entrega' : 'Retirada'}</p></td>
                 <td className="px-4 py-4 whitespace-nowrap text-gray-600">{formatRentalDate(rental.start_date)} – {formatRentalDate(rental.end_date)}<p className="mt-1 text-xs text-gray-400">{rental.start_time?.slice(0,5) ?? '—'} às {rental.end_time?.slice(0,5) ?? '—'}</p></td>
-                <td className="max-w-[220px] px-4 py-4 text-gray-600">{rental.items.map((item) => <p key={item.id}>{item.product_name} × {item.quantity}</p>)}</td>
+                <td className="max-w-[220px] px-4 py-4 text-gray-600">{rental.items.map((item) => <p key={item.id}>{item.product_name} × {item.quantity}</p>)}{isFixedPriceCombo(rental) && <p className="mt-1 text-xs font-semibold text-purple-700">Combo fechado</p>}</td>
                 <td className="max-w-[180px] px-4 py-4 text-xs text-gray-600">{rental.responsible_names.length ? rental.responsible_names.join(', ') : 'Não definidos'}</td>
                 <td className="px-4 py-4"><RentalStatus status={rental.status} /></td>
                 <td className="px-4 py-4 text-right font-semibold tabular-nums text-gray-900">{formatRentalPrice(rental.total_amount)}</td>

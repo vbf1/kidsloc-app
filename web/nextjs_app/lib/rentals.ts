@@ -87,7 +87,6 @@ export function validateRental(values: RentalFormValues, isEditing = false): Ren
   if (values.start_date && values.end_date && values.start_date === values.end_date && values.start_time && values.end_time && values.end_time <= values.start_time) {
     errors.end_time = 'O horário final deve ser posterior ao inicial.';
   }
-  if (values.delivery_method === 'delivery' && !values.delivery_address.trim()) errors.delivery_address = 'Informe o endereço de entrega.';
   if (values.delivery_address.trim().length > 500) errors.delivery_address = 'O endereço deve ter no máximo 500 caracteres.';
   if (parseRentalPrice(values.total_amount) === null) errors.total_amount = 'Informe um valor total válido.';
   if (!values.items.length) errors.items = 'Adicione pelo menos um item à locação.';
