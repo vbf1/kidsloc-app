@@ -33,8 +33,8 @@ function toPayload(companyId: string, values: ProductFormValues): ProductPayload
     item_type: values.item_type,
     inventory_mode: values.item_type === 'service' ? 'quantity' : values.inventory_mode,
     total_quantity: values.item_type === 'service' ? 0 : Number(values.total_quantity),
-    daily_price: values.item_type === 'toy' ? price : 0,
-    event_price: values.item_type === 'service' ? price : null,
+    daily_price: values.item_type === 'service' || (values.item_type === 'machine' && values.price_mode === 'event') ? 0 : price,
+    event_price: values.item_type === 'service' || (values.item_type === 'machine' && values.price_mode === 'event') ? price : null,
     active: values.active,
     notes: values.notes.trim() || null,
     updated_at: new Date().toISOString(),
@@ -47,7 +47,8 @@ function fromRecord(product: ProductRecord): ProductFormValues {
     item_type: product.item_type,
     inventory_mode: product.inventory_mode,
     total_quantity: String(product.total_quantity),
-    price: String(product.item_type === 'toy' ? product.daily_price : product.event_price ?? ''),
+    price: String(product.item_type === 'service' || (product.item_type === 'machine' && product.event_price !== null) ? product.event_price ?? '' : product.daily_price),
+    price_mode: product.item_type === 'service' || (product.item_type === 'machine' && product.event_price !== null) ? 'event' : 'daily',
     active: product.active,
     notes: product.notes ?? '',
   };
@@ -214,7 +215,7 @@ export default function ProductsPage() {
     <AppShell companyName={companyName} email={email} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
       <section aria-labelledby="products-title">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Gestão da empresa</p><h1 id="products-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Brinquedos e serviços</h1><p className="mt-2 text-sm text-gray-500">Organize seu catálogo, preços e disponibilidade.</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Gestão da empresa</p><h1 id="products-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Catálogo</h1><p className="mt-2 text-sm text-gray-500">Organize brinquedos, máquinas, serviços, preços e disponibilidade.</p></div>
           {!formOpen && <button type="button" onClick={openNewProduct} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Novo item</button>}
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
@@ -238,7 +239,7 @@ export default function ProductsPage() {
             <div>
               <p className="mb-2 text-xs font-semibold text-gray-500">Mostrar</p>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por tipo">
-                {([{ value: 'all', label: 'Todos' }, { value: 'toy', label: 'Brinquedos' }, { value: 'service', label: 'Serviços' }] as const).map((option) => (
+                {([{ value: 'all', label: 'Todos' }, { value: 'toy', label: 'Brinquedos' }, { value: 'machine', label: 'Máquinas' }, { value: 'service', label: 'Serviços' }] as const).map((option) => (
                   <button key={option.value} type="button" aria-pressed={typeFilter === option.value} onClick={() => changeFilter('type', option.value)}
                     className={typeFilter === option.value ? 'rounded-full bg-[#8054d8] px-4 py-2 text-sm font-semibold text-white' : 'rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:border-purple-200 hover:text-[#6840bd]'}>
                     {option.label}
