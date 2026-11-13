@@ -7,7 +7,7 @@ import { ProductForm } from '../../../components/product-form';
 import { ProductList } from '../../../components/product-list';
 import { ProductUnitManager } from '../../../components/product-unit-manager';
 import { SearchablePicker } from '../../../components/searchable-picker';
-import { matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
+import { formatProductInventoryError, matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
@@ -182,7 +182,7 @@ export default function ProductsPage() {
           .eq('id', editingProduct.id).eq('company_id', companyId).select('id').single();
         if (error) {
           if (uploadedPath) await supabase.storage.from('product-images').remove([uploadedPath]);
-          setFormError('Não foi possível atualizar o item. Confira os dados e tente novamente.'); return;
+          setFormError(formatProductInventoryError(error.message, 'Não foi possível atualizar o item. Confira os dados e tente novamente.')); return;
         }
         if ((imageFile || removeImage) && editingProduct.image_path) await supabase.storage.from('product-images').remove([editingProduct.image_path]);
         setNotice('Item atualizado com sucesso.');
