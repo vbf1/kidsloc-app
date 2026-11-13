@@ -42,33 +42,33 @@ select lives_ok(
   'physical unit can be registered for a toy'
 );
 select lives_ok(
-  $ insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price)
-     values ('41000000-0000-4000-8000-000000000003', '31000000-0000-4000-8000-000000000001', 'Mesa de jogos', 'toy', 'quantity', 2, 40.00) $,
+  $$ insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price)
+     values ('41000000-0000-4000-8000-000000000003', '31000000-0000-4000-8000-000000000001', 'Mesa de jogos', 'toy', 'quantity', 2, 40.00) $$,
   'toy can also use quantity inventory'
 );
 select throws_ok(
-  $ insert into public.product_units (company_id, product_id, asset_code, status)
-     values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000003', 'MESA-01', 'available') $,
+  $$ insert into public.product_units (company_id, product_id, asset_code, status)
+     values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000003', 'MESA-01', 'available') $$,
   '23514', 'Unidades físicas exigem controle individual de estoque.',
   'physical units require individual inventory mode'
 );
 select throws_ok(
-  $ insert into public.product_units (company_id, product_id, asset_code, status)
-     values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000001', 'SERVICO-01', 'available') $,
+  $$ insert into public.product_units (company_id, product_id, asset_code, status)
+     values ('31000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000001', 'SERVICO-01', 'available') $$,
   '23514', 'Serviços não podem possuir unidades físicas.',
   'physical unit cannot be registered for a service'
 );
 select throws_ok(
-  $ update public.products set inventory_mode = 'quantity'
-     where id = '41000000-0000-4000-8000-000000000002' $,
+  $$ update public.products set inventory_mode = 'quantity'
+     where id = '41000000-0000-4000-8000-000000000002' $$,
   '23514', null, 'individual inventory cannot be disabled while physical units exist'
 );
 select throws_ok(
-  $ update public.products set item_type = 'service', event_price = 50, daily_price = 0, total_quantity = 0
-     where id = '41000000-0000-4000-8000-000000000002' $,
+  $$ update public.products set item_type = 'service', event_price = 50, daily_price = 0, total_quantity = 0
+     where id = '41000000-0000-4000-8000-000000000002' $$,
   '23514', null, 'item type cannot change after physical units exist'
 );
-select is((select count(*)::int from public.products where company_id = '31000000-0000-4000-8000-000000000001'), 2,
+select is((select count(*)::int from public.products where company_id = '31000000-0000-4000-8000-000000000001'), 3,
   'valid toy and service records remain stored');
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
