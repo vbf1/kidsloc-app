@@ -363,12 +363,20 @@ export default function PlatformAdminPage() {
           {customersError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{customersError}</p>}
           {customersLoading ? <p className="mt-4 text-sm text-gray-500">Carregando clientes...</p> : (() => {
             const term = customerSearch.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
-            const filtered = companyCustomers.filter((customer) => [
-              customer.name, customer.phone, customer.email, customer.city_state,
-              customer.cpf, customer.rg, customer.address, customer.neighborhood,
-              customer.zip, customer.notes,
-            ].some((value) => value !== null && value !== undefined
-              && value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(term)));
+            const numericTerm = customerSearch.replace(/\D/g, '');
+            const filtered = companyCustomers.filter((customer) => {
+              const textMatch = [
+                customer.name, customer.phone, customer.email, customer.city_state,
+                customer.cpf, customer.rg, customer.address, customer.neighborhood,
+                customer.zip, customer.notes,
+              ].some((value) => value !== null && value !== undefined
+                && value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(term));
+              const numericMatch = numericTerm.length > 0 && [
+                customer.phone, customer.cpf, customer.zip,
+              ].some((value) => value !== null && value !== undefined
+                && value.replace(/\D/g, '').includes(numericTerm));
+              return textMatch || numericMatch;
+            });
             return filtered.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[600px] text-left text-sm">
               <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Nome</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Cidade / UF</th><th className="px-3 py-3 text-right">Ações</th></tr></thead>
               <tbody>{filtered.map((customer) => <tr key={customer.id} className="border-b border-gray-50"><td className="px-3 py-3 font-semibold">{customer.name}</td><td className="px-3 py-3">{customer.phone || '—'}</td><td className="px-3 py-3">{customer.email || '—'}</td><td className="px-3 py-3">{customer.city_state || '—'}</td><td className="px-3 py-3 text-right"><button type="button" onClick={() => { setEditingCustomer(customer); setCustomerFormError(''); }} className={buttonClass}>Editar</button></td></tr>)}</tbody>
