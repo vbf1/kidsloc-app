@@ -57,3 +57,13 @@ export function buildProductSearchFilter(search: string): string | null {
   const pattern = '"%' + escaped + '%"';
   return ['name', 'description', 'notes'].map((column) => column + '.ilike.' + pattern).join(',');
 }
+
+export function normalizeProductSearchText(value: string): string {
+  return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
+}
+export function matchesProductSearch(product: Pick<ProductRecord, 'name' | 'description' | 'notes'>, search: string): boolean {
+  const term = normalizeProductSearchText(search.trim());
+  if (!term) return true;
+  return [product.name, product.description, product.notes]
+    .some((value) => value !== null && normalizeProductSearchText(value).includes(term));
+}
