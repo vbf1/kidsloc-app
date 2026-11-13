@@ -1,6 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CustomerForm } from '../components/customer-form';
+afterEach(() => cleanup());
+
 describe('CustomerForm', () => {
   it('shows a validation message and does not submit without a name', () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
