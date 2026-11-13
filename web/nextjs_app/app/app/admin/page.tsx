@@ -296,13 +296,13 @@ export default function PlatformAdminPage() {
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <section className="flex flex-wrap items-end justify-between gap-4">
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Administração global</p><h1 className="mt-2 text-3xl font-bold">Painel do proprietário</h1><p className="mt-2 text-sm text-gray-500">Acompanhamento das empresas e das conversas internas. {email}</p></div>
-          <button type="button" onClick={() => void refreshAll()} disabled={refreshing} className={buttonClass}>{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
+          <button type="button" onClick={() => void refreshAll()} disabled={refreshing || companySaving || customerSaving} className={buttonClass}>{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
         </section>
         {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <section className={panelClass}>
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Empresas cadastradas</h2><p className="text-sm text-gray-500">{companies.length} empresa(s) encontradas</p></div>
             <label className="min-w-64 text-sm font-semibold">Selecionar empresa
-              <select value={selectedCompanyId} onChange={(event) => {
+              <select value={selectedCompanyId} disabled={companySaving || customerSaving} onChange={(event) => {
                 setSelectedCompanyId(event.target.value);
                 setSelectedConversationId('');
                 setMessages([]);
