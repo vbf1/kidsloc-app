@@ -42,7 +42,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
         <p className="mt-1 text-sm text-gray-500">Cadastre brinquedos, máquinas e serviços em um só catálogo.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className={labelClass}>Tipo de item
+        <label className={labelClass}>Tipo de item
           <div className="mt-1"><SearchablePicker title="Tipo de item" value={values.item_type} options={[
             { value: 'toy', label: 'Brinquedo' }, { value: 'machine', label: 'Máquina' }, { value: 'service', label: 'Serviço' },
           ]} placeholder="Selecione o tipo" searchPlaceholder="Buscar tipo..." emptyText="Nenhum tipo encontrado." disabled={saving || Boolean(initialValues.name)} onChange={(value) => {
@@ -51,7 +51,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
             setFieldErrors({});
           }} /></div>
           {initialValues.name && <span className="mt-1 block text-xs text-gray-400">O tipo não pode ser alterado após o cadastro para preservar o histórico.</span>}
-        </div>
+        </label>
         <label className={labelClass} htmlFor="product-name">Nome *
           <input id="product-name" value={values.name} maxLength={160} disabled={saving} onChange={(event) => updateField('name', event.target.value)} placeholder="Ex.: Cama elástica" className={inputClass} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? 'product-name-error' : undefined} />
           {fieldErrors.name && <FieldFeedback id="product-name-error">{fieldErrors.name}</FieldFeedback>}
@@ -66,17 +66,17 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
           <input id="product-price" inputMode="decimal" value={values.price} disabled={saving} onChange={(event) => updateField('price', event.target.value)} placeholder="0,00" className={inputClass} aria-invalid={Boolean(fieldErrors.price)} aria-describedby={fieldErrors.price ? 'product-price-error' : undefined} />
           {fieldErrors.price && <FieldFeedback id="product-price-error">{fieldErrors.price}</FieldFeedback>}
         </label>
-        {values.item_type === 'machine' && <div className={labelClass}>Cobrança
+        {values.item_type === 'machine' && <label className={labelClass}>Cobrança
           <div className="mt-1"><SearchablePicker title="Forma de cobrança" value={values.price_mode} options={[
             { value: 'daily', label: 'Por diária' }, { value: 'event', label: 'Por evento' },
           ]} placeholder="Selecione a cobrança" searchPlaceholder="Buscar cobrança..." emptyText="Nenhuma opção encontrada." disabled={saving} onChange={(value) => updateField('price_mode', value as ProductFormValues['price_mode'])} /></div>
-        </div>}
+        </label>}
         {values.item_type !== 'service' && <>
-          <div className={labelClass}>Controle de estoque
+          <label className={labelClass}>Controle de estoque
             <div className="mt-1"><SearchablePicker title="Controle de estoque" value={values.inventory_mode} options={[
               { value: 'quantity', label: 'Por quantidade' }, { value: 'individual', label: 'Unidades individuais' },
             ]} placeholder="Selecione o controle" searchPlaceholder="Buscar controle..." emptyText="Nenhuma opção encontrada." disabled={saving} onChange={(value) => updateField('inventory_mode', value as ProductFormValues['inventory_mode'])} /></div>
-          </div>
+          </label>
           <label className={labelClass} htmlFor="product-quantity">Quantidade total *
             <input id="product-quantity" type="number" min="0" max="1000000" step="1" value={values.total_quantity} disabled={saving} onChange={(event) => updateField('total_quantity', event.target.value)} className={inputClass} aria-invalid={Boolean(fieldErrors.total_quantity)} aria-describedby={fieldErrors.total_quantity ? 'product-quantity-error' : undefined} />
             {fieldErrors.total_quantity && <FieldFeedback id="product-quantity-error">{fieldErrors.total_quantity}</FieldFeedback>}
