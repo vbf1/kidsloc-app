@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(18);
 select has_column('public', 'products', 'item_type', 'catalog item type exists');
 select has_column('public', 'products', 'event_price', 'event price column exists');
 select col_default_is('public', 'products', 'item_type', 'toy', 'existing and new products default to toy');
@@ -59,8 +59,13 @@ select throws_ok(
   'physical unit cannot be registered for a service'
 );
 select throws_ok(
-  $$ update public.products set item_type = 'service', event_price = 50, daily_price = 0, total_quantity = 0
-     where id = '41000000-0000-4000-8000-000000000002' $$,
+  $ update public.products set inventory_mode = 'quantity'
+     where id = '41000000-0000-4000-8000-000000000002' $,
+  '23514', null, 'individual inventory cannot be disabled while physical units exist'
+);
+select throws_ok(
+  $ update public.products set item_type = 'service', event_price = 50, daily_price = 0, total_quantity = 0
+     where id = '41000000-0000-4000-8000-000000000002' $,
   '23514', null, 'item type cannot change after physical units exist'
 );
 select is((select count(*)::int from public.products where company_id = '31000000-0000-4000-8000-000000000001'), 2,
