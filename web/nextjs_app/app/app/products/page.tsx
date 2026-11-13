@@ -193,7 +193,7 @@ export default function ProductsPage() {
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
         {formOpen && <div className="mb-6 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
-        {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} onClose={() => setManagingUnitsProduct(null)} />}
+        {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
           <input id="product-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por nome, descrição ou observações" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
