@@ -98,7 +98,8 @@ export default function ProductsPage() {
         if (!supabase) { if (active) setAccessError('O acesso ainda não está configurado. Tente novamente mais tarde.'); return; }
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (!active) return;
-        if (authError || !user) { router.replace('/login/'); return; }
+        if (authError) { setAccessError('Não foi possível validar sua sessão agora. Confira sua conexão e tente novamente.'); return; }
+        if (!user) { router.replace('/login/'); return; }
         setEmail(user.email ?? 'E-mail não informado');
         const { data: membership, error: membershipError } = await supabase
           .from('company_members').select('company_id, companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
