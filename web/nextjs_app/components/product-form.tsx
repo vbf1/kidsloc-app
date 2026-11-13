@@ -31,17 +31,18 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, saving, error, onCa
     <form noValidate onSubmit={submit} className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-gray-900">{initialValues.name ? 'Editar item' : 'Novo item do catálogo'}</h2>
-        <p className="mt-1 text-sm text-gray-500">Cadastre brinquedos e serviços em um só catálogo.</p>
+        <p className="mt-1 text-sm text-gray-500">Cadastre brinquedos, máquinas e serviços em um só catálogo.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass} htmlFor="product-item-type">Tipo de item
           <select id="product-item-type" value={values.item_type} disabled={saving || Boolean(initialValues.name)}
             onChange={(event) => {
               const item_type = event.target.value as ProductFormValues['item_type'];
-              setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1' }));
+              setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1', price_mode: item_type === 'service' ? 'event' : 'daily' }));
               setFieldErrors({});
             }} className={inputClass}>
             <option value="toy">Brinquedo</option>
+            <option value="machine">Máquina</option>
             <option value="service">Serviço</option>
           </select>
           {initialValues.name && <span className="mt-1 block text-xs text-gray-400">O tipo não pode ser alterado após o cadastro para preservar o histórico.</span>}
@@ -56,11 +57,16 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, saving, error, onCa
         {fieldErrors.description && <FieldFeedback id="product-description-error">{fieldErrors.description}</FieldFeedback>}
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="product-price">{values.item_type === 'toy' ? 'Preço por dia (R$) *' : 'Preço por evento (R$) *'}
+        <label className={labelClass} htmlFor="product-price">{values.item_type === 'service' || (values.item_type === 'machine' && values.price_mode === 'event') ? 'Preço por evento (R$) *' : 'Preço por diária (R$) *'}
           <input id="product-price" inputMode="decimal" value={values.price} disabled={saving} onChange={(event) => updateField('price', event.target.value)} placeholder="0,00" className={inputClass} aria-invalid={Boolean(fieldErrors.price)} aria-describedby={fieldErrors.price ? 'product-price-error' : undefined} />
           {fieldErrors.price && <FieldFeedback id="product-price-error">{fieldErrors.price}</FieldFeedback>}
         </label>
-        {values.item_type === 'toy' && <>
+        {values.item_type === 'machine' && <label className={labelClass} htmlFor="product-price-mode">Cobrança
+          <select id="product-price-mode" value={values.price_mode} disabled={saving} onChange={(event) => updateField('price_mode', event.target.value)} className={inputClass}>
+            <option value="daily">Por diária</option><option value="event">Por evento</option>
+          </select>
+        </label>}
+        {values.item_type !== 'service' && <>
           <label className={labelClass} htmlFor="product-inventory-mode">Controle de estoque
             <select id="product-inventory-mode" value={values.inventory_mode} disabled={saving} onChange={(event) => updateField('inventory_mode', event.target.value)} className={inputClass}>
               <option value="quantity">Por quantidade</option>
