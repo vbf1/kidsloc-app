@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(8);
+select plan(7);
 select has_table('public', 'customers', 'customers table exists');
 select ok((select relrowsecurity from pg_class where oid = 'public.customers'::regclass), 'RLS is enabled on customers');
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -31,12 +31,11 @@ select throws_ok(
   '42501', 'new row violates row-level security policy for table "customers"',
   'another company cannot create a customer for this company'
 );
-select is((with changed as (
-  update public.customers set name = 'Nome alterado indevidamente'
-  where id = '40000000-0000-4000-8000-000000000001' returning id
-) select count(*)::int from changed), 0, 'another company cannot update this company customer');
+update public.customers
+set name = 'Nome alterado indevidamente'
+where id = '40000000-0000-4000-8000-000000000001';
 reset role;
 select is((select name from public.customers where id = '40000000-0000-4000-8000-000000000001'),
-  'Cliente da empresa dona', 'customer data remains unchanged after cross-company update attempt');
+  'Cliente da empresa dona', 'another company cannot update this company customer');
 select * from finish();
 rollback;
