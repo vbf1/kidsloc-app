@@ -17,7 +17,7 @@ describe('ProductForm', () => {
     fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: '  Cama   Elástica ' } });
     fireEvent.change(screen.getByLabelText('Preço por dia (R$) *'), { target: { value: '80,00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Cama Elástica', item_type: 'toy', price: '80,00' })));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Cama Elástica', item_type: 'toy', price: '80,00' }), null, false));
   });
   it('switches to service fields and submits event price without stock', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
@@ -26,7 +26,7 @@ describe('ProductForm', () => {
     fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Recreação' } });
     fireEvent.change(screen.getByLabelText('Preço por evento (R$) *'), { target: { value: '150,00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Recreação', item_type: 'service', total_quantity: '0' })));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Recreação', item_type: 'service', total_quantity: '0' }), null, false));
   });
   it('shows machine stock controls and allows event-based pricing', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
@@ -40,7 +40,7 @@ describe('ProductForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Máquina de pipoca', item_type: 'machine', price_mode: 'event', total_quantity: '1',
-    })));
+    }), null, false));
   });
 
 });
