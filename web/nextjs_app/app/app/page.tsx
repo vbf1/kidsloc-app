@@ -36,7 +36,11 @@ export default function AppHomePage() {
         error: authError,
       } = await supabase.auth.getUser();
 
-      if (authError || !user) {
+      if (authError) {
+        setMessage('Não foi possível validar sua sessão agora. Confira sua conexão e tente novamente.');
+        return;
+      }
+      if (!user) {
         router.replace('/login/');
         return;
       }
