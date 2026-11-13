@@ -42,6 +42,17 @@ export default function CompanySetupPage() {
         if (!active) return;
         setEmail(user.email ?? '');
 
+        const { data: isPlatformOwner, error: ownerError } = await supabase.rpc('is_platform_owner_for_company');
+        if (!active) return;
+        if (ownerError) {
+          setMessage('Não foi possível confirmar as permissões da conta. Tente novamente.');
+          return;
+        }
+        if (isPlatformOwner === true) {
+          window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/admin/');
+          return;
+        }
+
         const { data: memberships, error } = await supabase
           .from('company_members')
           .select('company_id')
