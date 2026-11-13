@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AuthShell, fieldClass, primaryButtonClass } from '../../components/auth-shell';
 import { FieldFeedback, FormFeedback } from '../../components/form-feedback';
@@ -15,6 +15,27 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function checkSession() {
+      try {
+        if (supabase) {
+          const { data, error } = await supabase.auth.getSession();
+          if (active && !error && data.session?.user) {
+            window.location.replace(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/`);
+            return;
+          }
+        }
+      } catch {
+        // Keep the login available when session lookup fails temporarily.
+      }
+      if (active) setCheckingSession(false);
+    }
+    void checkSession();
+    return () => { active = false; };
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,6 +71,8 @@ export default function LoginPage() {
       setBusy(false);
     }
   }
+
+  if (checkingSession) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5"><p role="status" className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600 shadow-sm">Verificando sua sessão...</p></main>;
 
   return (
     <AuthShell title="Entrar na sua conta" description="Acesse o KidsLoc para organizar sua locadora e seus eventos.">
