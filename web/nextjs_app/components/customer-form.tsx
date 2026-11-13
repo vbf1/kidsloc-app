@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent, HTMLInputTypeAttribute } from 'react';
 import { FieldFeedback, FormFeedback } from './form-feedback';
 import { EMPTY_CUSTOMER, normalizeCustomer, validateCustomer, type CustomerFieldErrors, type CustomerFormValues } from '../lib/customers';
