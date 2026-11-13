@@ -48,7 +48,7 @@ describe('RentalForm', () => {
 
     fillRequiredFields();
     fireEvent.click(screen.getByRole('radio', { name: /Combo \/ pacote fechado/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Selecione a modalidade' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retirada pelo cliente' }));
     fireEvent.click(screen.getByRole('option', { name: /Entrega no endereço/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Selecione um brinquedo ou máquina' }));
     fireEvent.click(screen.getByRole('option', { name: /Cama Elástica/ }));
@@ -56,7 +56,7 @@ describe('RentalForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Selecione um brinquedo ou máquina' }));
     fireEvent.click(screen.getByRole('option', { name: /Máquina de Pipoca/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
-    fireEvent.change(screen.getByLabelText('Valor total do combo (R$) *'), { target: { value: '450,00' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Valor total do combo/ }), { target: { value: '450,00' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Criar locação' }));
 
