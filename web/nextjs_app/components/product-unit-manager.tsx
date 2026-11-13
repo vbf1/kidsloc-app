@@ -28,6 +28,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
   const [editAssetCode, setEditAssetCode] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editStatus, setEditStatus] = useState<ProductUnit['status']>('available');
+  const [editError, setEditError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -103,6 +104,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
 
   function startEditing(unit: ProductUnit) {
     setEditingUnitId(unit.id);
+    setEditError('');
     setEditAssetCode(unit.asset_code ?? '');
     setEditDescription(unit.description ?? '');
     setEditStatus(unit.status);
@@ -113,25 +115,26 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
   async function saveUnit(unit: ProductUnit) {
     if (!supabase || saving) return;
     const code = editAssetCode.trim();
-    if (!code) { setError('O código de identificação não pode ficar vazio.'); return; }
-    setSaving(true); setError(''); setNotice('');
+    if (!code) { setEditError('O código de identificação não pode ficar vazio.'); return; }
+    setSaving(true); setEditError(''); setNotice('');
     try {
       if (code !== (unit.asset_code ?? '')) {
         const { data: duplicate, error: duplicateError } = await supabase
           .from('product_units').select('id')
           .eq('company_id', companyId).eq('asset_code', code).neq('id', unit.id).limit(1);
-        if (duplicateError) { setError('Não foi possível validar o código. Tente novamente.'); return; }
-        if (duplicate?.length) { setError('Esse código já está sendo usado por outra unidade da empresa.'); return; }
+        if (duplicateError) { setEditError('Não foi possível validar o código. Tente novamente.'); return; }
+        if (duplicate?.length) { setEditError('Esse código já está sendo usado por outra unidade da empresa.'); return; }
       }
       const { error: updateError } = await supabase.from('product_units')
         .update({ asset_code: code, description: editDescription.trim() || null, status: editStatus })
         .eq('id', unit.id).eq('company_id', companyId).eq('product_id', productId);
-      if (updateError) { setError('Não foi possível atualizar a unidade. Tente novamente.'); return; }
+      if (updateError) { setEditError('Não foi possível atualizar a unidade. Tente novamente.'); return; }
       setEditingUnitId(null);
+      setEditError('');
       setNotice('Unidade atualizada com sucesso.');
       await loadUnits();
     } catch {
-      setError('Ocorreu um erro ao atualizar a unidade. Confira sua conexão.');
+      setEditError('Ocorreu um erro ao atualizar a unidade. Confira sua conexão.');
     } finally { setSaving(false); }
   }
 
@@ -187,6 +190,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
                         </select>
                       </label>
                     </div>
+                    {editError && <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">{editError}</p>}
                     <div className="flex flex-wrap justify-end gap-2">
                       <button type="button" disabled={saving} onClick={() => setEditingUnitId(null)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancelar</button>
                       <button type="button" disabled={saving} onClick={() => void saveUnit(unit)} className="rounded-lg bg-[#8054d8] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar alterações'}</button>
