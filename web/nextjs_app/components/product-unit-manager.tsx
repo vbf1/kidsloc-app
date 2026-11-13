@@ -41,7 +41,27 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
     setLoading(false);
   }, [companyId, productId]);
 
-  useEffect(() => { void loadUnits(); }, [loadUnits]);
+  useEffect(() => {
+    let active = true;
+    async function fetchInitialUnits() {
+      if (!supabase) {
+        if (active) setLoading(false);
+        return;
+      }
+      const { data, error: queryError } = await supabase
+        .from('product_units')
+        .select('id,asset_code,description,status')
+        .eq('company_id', companyId)
+        .eq('product_id', productId)
+        .order('created_at', { ascending: true });
+      if (!active) return;
+      if (queryError) setError('Não foi possível carregar as unidades. Tente novamente.');
+      else setUnits((data ?? []) as ProductUnit[]);
+      setLoading(false);
+    }
+    void fetchInitialUnits();
+    return () => { active = false; };
+  }, [companyId, productId]);
 
   async function addUnit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
