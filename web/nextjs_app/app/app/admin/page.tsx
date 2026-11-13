@@ -21,6 +21,10 @@ export default function PlatformAdminPage() {
   const [email, setEmail] = useState('');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [editingCompany, setEditingCompany] = useState(false);
+  const [companyNameDraft, setCompanyNameDraft] = useState('');
+  const [companySaving, setCompanySaving] = useState(false);
+  const [companyFormError, setCompanyFormError] = useState('');
   const [companyOverview, setCompanyOverview] = useState<CompanyOverview | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState('');
@@ -77,6 +81,32 @@ export default function PlatformAdminPage() {
     void initialize();
     return () => { active = false; };
   }, [loadCompanies]);
+
+  async function saveCompanyName() {
+    if (!supabase || !selectedCompanyId) return;
+    const name = companyNameDraft.trim();
+    if (name.length < 2 || name.length > 160) {
+      setCompanyFormError('O nome da empresa deve ter entre 2 e 160 caracteres.');
+      return;
+    }
+    setCompanySaving(true);
+    setCompanyFormError('');
+    const { data: updatedCompany, error: updateError } = await supabase.from('companies')
+      .update({ name, updated_at: new Date().toISOString() })
+      .eq('id', selectedCompanyId)
+      .select('id,name')
+      .maybeSingle();
+    if (updateError || !updatedCompany) {
+      setCompanyFormError('Não foi possível confirmar a atualização do nome. Confira os dados e tente novamente.');
+      setCompanySaving(false);
+      return;
+    }
+    setCompanies((current) => current.map((company) => company.id === updatedCompany.id
+      ? { ...company, name: updatedCompany.name }
+      : company));
+    setEditingCompany(false);
+    setCompanySaving(false);
+  }
 
   const loadCompanyOverview = useCallback(async () => {
     if (!supabase || !selectedCompanyId) {
@@ -262,6 +292,19 @@ export default function PlatformAdminPage() {
             </label>
           </div>
           {!companies.length && <p className="mt-4 text-sm text-gray-500">Ainda não há empresas cadastradas.</p>}
+          {selectedCompany && !editingCompany && <div className="mt-4">
+            <button type="button" onClick={() => { setCompanyNameDraft(selectedCompany.name); setCompanyFormError(''); setEditingCompany(true); }} className={buttonClass}>Editar nome da empresa</button>
+          </div>}
+          {selectedCompany && editingCompany && <form onSubmit={(event) => { event.preventDefault(); void saveCompanyName(); }} className="mt-4 max-w-xl rounded-xl border border-purple-100 bg-purple-50/40 p-4">
+            <label className="block text-sm font-semibold">Nome da empresa
+              <input value={companyNameDraft} onChange={(event) => setCompanyNameDraft(event.target.value)} maxLength={160} autoFocus className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 font-normal" />
+            </label>
+            {companyFormError && <p role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">{companyFormError}</p>}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="submit" disabled={companySaving} className="rounded-xl bg-[#8054d8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6840bd] disabled:opacity-50">{companySaving ? 'Salvando...' : 'Salvar alterações'}</button>
+              <button type="button" disabled={companySaving} onClick={() => { setEditingCompany(false); setCompanyFormError(''); }} className={buttonClass}>Cancelar</button>
+            </div>
+          </form>}
         </section>
         <section className={panelClass}>
           <div className="flex flex-wrap items-center justify-between gap-3">
