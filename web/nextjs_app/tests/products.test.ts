@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildProductSearchFilter, formatPrice, normalizeProduct, parsePrice, validateProduct, type ProductFormValues } from '../lib/products';
-const toy: ProductFormValues = { name: '  Cama   Elástica ', description: ' Brinquedo ', item_type: 'toy', inventory_mode: 'individual', total_quantity: '3', price: '85,50', active: true, notes: '' };
-const service: ProductFormValues = { ...toy, name: 'Recreação', item_type: 'service', total_quantity: '0', price: '150,00' };
+const toy: ProductFormValues = { name: '  Cama   Elástica ', description: ' Brinquedo ', item_type: 'toy', inventory_mode: 'individual', total_quantity: '3', price: '85,50', price_mode: 'daily', active: true, notes: '' };
+const service: ProductFormValues = { ...toy, name: 'Recreação', item_type: 'service', total_quantity: '0', price: '150,00', price_mode: 'event' };
+const machine: ProductFormValues = { ...toy, name: 'Máquina de pipoca', item_type: 'machine', total_quantity: '2', price: '300,00', price_mode: 'event' };
 describe('product price handling', () => {
   it('parses Brazilian and dot-decimal prices and rejects malformed or excessive values', () => {
     expect(parsePrice('85,50')).toBe(85.5); expect(parsePrice('85.50')).toBe(85.5);
@@ -16,6 +17,7 @@ describe('product normalization and validation', () => {
     expect(validateProduct(toy)).toEqual({});
   });
   it('normalizes services to zero physical stock', () => { expect(normalizeProduct(service).total_quantity).toBe('0'); expect(validateProduct(service)).toEqual({}); });
+  it('validates machines with physical stock and event-based pricing', () => { expect(normalizeProduct(machine)).toMatchObject({ item_type: 'machine', total_quantity: '2', price_mode: 'event' }); expect(validateProduct(machine)).toEqual({}); });
   it('rejects missing names, invalid price and fractional or negative toy quantities', () => {
     expect(validateProduct({ ...toy, name: 'A' }).name).toBeTruthy();
     expect(validateProduct({ ...toy, price: 'abc' }).price).toBeTruthy();
