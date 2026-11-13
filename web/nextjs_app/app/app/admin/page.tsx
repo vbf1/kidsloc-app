@@ -7,7 +7,6 @@ import { supabase } from '../../../lib/supabase';
 type Company = { id: string; name: string; created_at: string };
 type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
-
 const panelClass = 'rounded-2xl border border-purple-100 bg-white p-5 shadow-sm';
 const buttonClass = 'rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50';
 
@@ -96,12 +95,12 @@ export default function PlatformAdminPage() {
     setMessagesLoading(true);
     const { data, error: queryError } = await supabase.from('team_messages')
       .select('id,conversation_id,sender_id,body,created_at')
-      .eq('conversation_id', selectedConversationId).order('created_at', { ascending: true }).limit(300);
+      .eq('conversation_id', selectedConversationId).order('created_at', { ascending: false }).limit(300);
     if (queryError) {
       setError('Não foi possível carregar as mensagens desta conversa.');
       setMessages([]);
     } else {
-      setMessages((data ?? []) as Message[]);
+      setMessages(((data ?? []) as Message[]).reverse());
       setError('');
     }
     setMessagesLoading(false);
@@ -127,17 +126,13 @@ export default function PlatformAdminPage() {
 
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId);
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
-
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso administrativo...</p></main>;
 
   return (
     <main className="min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
-            <div><p className="text-xl font-bold">KidsLoc <span className="text-[#8054d8]">Admin</span></p><p className="text-xs text-gray-500">Proprietário da plataforma</p></div>
-          </div>
+          <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><div><p className="text-xl font-bold">KidsLoc <span className="text-[#8054d8]">Admin</span></p><p className="text-xs text-gray-500">Proprietário da plataforma</p></div></div>
           <button type="button" onClick={() => void signOut()} className={buttonClass}>Sair</button>
         </div>
       </header>
@@ -159,16 +154,13 @@ export default function PlatformAdminPage() {
         </section>
         <section className="grid gap-6 lg:grid-cols-[minmax(260px,.8fr)_minmax(0,1.5fr)]">
           <div className={panelClass}>
-            <h2 className="text-lg font-bold">Conversas</h2>
-            <p className="mb-4 text-sm text-gray-500">{selectedCompany?.name ?? 'Selecione uma empresa'}</p>
-            {conversationsLoading ? <p className="text-sm text-gray-500">Carregando conversas...</p> : conversations.length ? (
-              <ul className="space-y-2">{conversations.map((conversation) => <li key={conversation.id}>
-                <button type="button" onClick={() => setSelectedConversationId(conversation.id)} className={'w-full rounded-xl border p-3 text-left transition ' + (selectedConversationId === conversation.id ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:bg-gray-50')}>
-                  <span className="block font-semibold">{conversation.title?.trim() || (conversation.conversation_type === 'direct' ? 'Conversa direta' : 'Conversa da equipe')}</span>
-                  <span className="mt-1 block text-xs text-gray-500">{new Date(conversation.created_at).toLocaleString('pt-BR')}</span>
-                </button>
-              </li>)}</ul>
-            ) : <p className="text-sm text-gray-500">Nenhuma conversa cadastrada para esta empresa.</p>}
+            <h2 className="text-lg font-bold">Conversas</h2><p className="mb-4 text-sm text-gray-500">{selectedCompany?.name ?? 'Selecione uma empresa'}</p>
+            {conversationsLoading ? <p className="text-sm text-gray-500">Carregando conversas...</p> : conversations.length ? <ul className="space-y-2">{conversations.map((conversation) => <li key={conversation.id}>
+              <button type="button" onClick={() => setSelectedConversationId(conversation.id)} className={'w-full rounded-xl border p-3 text-left transition ' + (selectedConversationId === conversation.id ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:bg-gray-50')}>
+                <span className="block font-semibold">{conversation.title?.trim() || (conversation.conversation_type === 'direct' ? 'Conversa direta' : 'Conversa da equipe')}</span>
+                <span className="mt-1 block text-xs text-gray-500">{new Date(conversation.created_at).toLocaleString('pt-BR')}</span>
+              </button>
+            </li>)}</ul> : <p className="text-sm text-gray-500">Nenhuma conversa cadastrada para esta empresa.</p>}
           </div>
           <div className={panelClass}>
             <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-lg font-bold">Mensagens</h2><p className="text-sm text-gray-500">{selectedConversation?.title || 'Visualização somente leitura'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-[#6840bd]">Somente leitura</span></div>
@@ -178,7 +170,7 @@ export default function PlatformAdminPage() {
                 <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">{message.body}</p>
               </article>) : <p className="p-3 text-sm text-gray-500">{selectedConversationId ? 'Esta conversa ainda não possui mensagens.' : 'Selecione uma conversa para visualizar as mensagens.'}</p>}
             </div>
-            <p className="mt-3 text-xs text-gray-400">O painel não oferece ações para enviar, editar ou excluir mensagens. São exibidas até as 300 mensagens mais antigas da conversa selecionada.</p>
+            <p className="mt-3 text-xs text-gray-400">O painel não oferece ações para enviar, editar ou excluir mensagens. São exibidas as 300 mensagens mais recentes da conversa selecionada.</p>
           </div>
         </section>
       </div>
