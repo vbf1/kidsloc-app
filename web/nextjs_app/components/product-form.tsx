@@ -104,7 +104,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
               setImageError(''); setImageFile(file); setRemoveImage(false);
             }} className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#6840bd] hover:file:bg-purple-200" />
             <p className="mt-2 text-xs text-gray-500">JPG, PNG ou WebP · até 8 MB. Uma foto por item.</p>
-            {(imageFile || (!removeImage && initialImageUrl)) && <button type="button" disabled={saving} onClick={() => { setImageFile(null); setRemoveImage(true); setImageError(''); const input = document.getElementById('product-image') as HTMLInputElement | null; if (input) input.value = ''; }} className="mt-2 text-xs font-semibold text-red-600 underline">Remover foto atual</button>}
+            {(imageFile || (!removeImage && initialImageUrl)) && <button type="button" disabled={saving} onClick={() => { setImageFile(null); setRemoveImage(true); setImageError(''); const input = document.getElementById('product-image') as HTMLInputElement | null; if (input) input.value = ''; }} className="mt-2 text-xs font-semibold text-red-600 underline">{imageFile ? 'Cancelar nova foto' : 'Remover foto atual'}</button>}
             {removeImage && <p className="mt-2 text-xs text-amber-700">A foto atual será removida ao salvar.</p>}
             {imageError && <p role="alert" className="mt-2 text-xs text-red-600">{imageError}</p>}
           </div>
