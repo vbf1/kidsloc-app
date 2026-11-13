@@ -197,11 +197,23 @@ export default function ProductsPage() {
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
           <input id="product-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por nome, descrição ou observações" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
-          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
-            <label className="text-xs font-semibold text-gray-500">Tipo<select value={typeFilter} onChange={(event) => changeFilter('type', event.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-800"><option value="all">Todos</option><option value="toy">Brinquedos</option><option value="service">Serviços</option></select></label>
-            <label className="text-xs font-semibold text-gray-500">Situação<select value={statusFilter} onChange={(event) => changeFilter('status', event.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-800"><option value="all">Todas</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label>
-            <button type="submit" className="self-end rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-700">Pesquisar</button>
-            <button type="button" onClick={clearFilters} className="self-end rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Limpar</button>
+          <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="mb-2 text-xs font-semibold text-gray-500">Mostrar</p>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por tipo">
+                {([{ value: 'all', label: 'Todos' }, { value: 'toy', label: 'Brinquedos' }, { value: 'service', label: 'Serviços' }] as const).map((option) => (
+                  <button key={option.value} type="button" aria-pressed={typeFilter === option.value} onClick={() => changeFilter('type', option.value)}
+                    className={typeFilter === option.value ? 'rounded-full bg-[#8054d8] px-4 py-2 text-sm font-semibold text-white' : 'rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:border-purple-200 hover:text-[#6840bd]'}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <label className="text-xs font-semibold text-gray-500">Situação<select value={statusFilter} onChange={(event) => changeFilter('status', event.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-800"><option value="all">Todas</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label>
+              <button type="submit" className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-700">Pesquisar</button>
+              <button type="button" onClick={clearFilters} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Limpar</button>
+            </div>
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
