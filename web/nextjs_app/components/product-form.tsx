@@ -21,12 +21,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
   const [removeImage, setRemoveImage] = useState(false);
   const [imageError, setImageError] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!imageFile) { setPreviewUrl(null); return; }
-    const url = URL.createObjectURL(imageFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [imageFile]);
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   function updateField(field: keyof ProductFormValues, value: string | boolean) {
     setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
@@ -99,12 +94,12 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
             <input id="product-image" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(event) => {
               const file = event.target.files?.[0] ?? null;
               if (!file) return;
-              if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setImageError('Escolha uma imagem JPG, PNG ou WebP.'); setImageFile(null); return; }
-              if (file.size > 8 * 1024 * 1024) { setImageError('A imagem deve ter no máximo 8 MB.'); setImageFile(null); return; }
-              setImageError(''); setImageFile(file); setRemoveImage(false);
+              if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setImageError('Escolha uma imagem JPG, PNG ou WebP.'); setImageFile(null); setPreviewUrl(null); return; }
+              if (file.size > 8 * 1024 * 1024) { setImageError('A imagem deve ter no máximo 8 MB.'); setImageFile(null); setPreviewUrl(null); return; }
+              setImageError(''); setImageFile(file); setPreviewUrl(URL.createObjectURL(file)); setRemoveImage(false);
             }} className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#6840bd] hover:file:bg-purple-200" />
             <p className="mt-2 text-xs text-gray-500">JPG, PNG ou WebP · até 8 MB. Uma foto por item.</p>
-            {(imageFile || (!removeImage && initialImageUrl)) && <button type="button" disabled={saving} onClick={() => { if (imageFile) setImageFile(null); else setRemoveImage(true); setImageError(''); const input = document.getElementById('product-image') as HTMLInputElement | null; if (input) input.value = ''; }} className="mt-2 text-xs font-semibold text-red-600 underline">{imageFile ? 'Cancelar nova foto' : 'Remover foto atual'}</button>}
+            {(imageFile || (!removeImage && initialImageUrl)) && <button type="button" disabled={saving} onClick={() => { if (imageFile) { setImageFile(null); setPreviewUrl(null); } else setRemoveImage(true); setImageError(''); const input = document.getElementById('product-image') as HTMLInputElement | null; if (input) input.value = ''; }} className="mt-2 text-xs font-semibold text-red-600 underline">{imageFile ? 'Cancelar nova foto' : 'Remover foto atual'}</button>}
             {removeImage && <div className="mt-2 flex items-center gap-2"><p className="text-xs text-amber-700">A foto atual será removida ao salvar.</p><button type="button" disabled={saving} onClick={() => setRemoveImage(false)} className="text-xs font-semibold text-[#6840bd] underline">Manter foto atual</button></div>}
             {imageError && <p role="alert" className="mt-2 text-xs text-red-600">{imageError}</p>}
           </div>
