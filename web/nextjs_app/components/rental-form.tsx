@@ -133,12 +133,12 @@ export function RentalForm({
             </div>
             {fieldErrors.customer_id && <FieldFeedback id="rental-customer-error">{fieldErrors.customer_id}</FieldFeedback>}
           </div>
-          <label className={labelClass}>Situação
-            <select value={values.status} onChange={(event) => updateField('status', event.target.value as RentalFormValues['status'])} className={inputClass} disabled={saving}>
-              <option value="pending">Pendente</option><option value="confirmed">Confirmada</option><option value="ongoing">Em andamento</option>
-              {isEditing && <><option value="completed">Concluída</option><option value="cancelled">Cancelada</option></>}
-            </select>
-          </label>
+          <div className={labelClass}>Situação
+            <div className="mt-1"><SearchablePicker title="Situação da locação" value={values.status} options={[
+              { value: 'pending', label: 'Pendente' }, { value: 'confirmed', label: 'Confirmada' }, { value: 'ongoing', label: 'Em andamento' },
+              ...(isEditing ? [{ value: 'completed', label: 'Concluída' }, { value: 'cancelled', label: 'Cancelada' }] : []),
+            ]} placeholder="Selecione a situação" searchPlaceholder="Buscar situação..." emptyText="Nenhuma situação encontrada." disabled={saving} onChange={(value) => updateField('status', value as RentalFormValues['status'])} /></div>
+          </div>
           <label className={labelClass}>Data inicial *
             <input type="date" value={values.start_date} onChange={(event) => updateDate('start_date', event.target.value)} className={inputClass} disabled={saving} />
             {fieldErrors.start_date && <FieldFeedback id="rental-start-date-error">{fieldErrors.start_date}</FieldFeedback>}
@@ -160,11 +160,12 @@ export function RentalForm({
       <section aria-labelledby="rental-delivery-heading">
         <h3 id="rental-delivery-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Entrega</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className={labelClass}>Modalidade
-            <select value={values.delivery_method} onChange={(event) => updateField('delivery_method', event.target.value as RentalFormValues['delivery_method'])} className={inputClass} disabled={saving}>
-              <option value="customer_pickup">Retirada pelo cliente</option><option value="delivery">Entrega no endereço</option>
-            </select>
-          </label>
+          <div className={labelClass}>Modalidade
+            <div className="mt-1"><SearchablePicker title="Modalidade de entrega" value={values.delivery_method} options={[
+              { value: 'customer_pickup', label: 'Retirada pelo cliente', description: 'O cliente busca os equipamentos' },
+              { value: 'delivery', label: 'Entrega no endereço', description: 'A equipe leva os equipamentos ao local' },
+            ]} placeholder="Selecione a modalidade" searchPlaceholder="Buscar modalidade..." emptyText="Nenhuma modalidade encontrada." disabled={saving} onChange={(value) => updateField('delivery_method', value as RentalFormValues['delivery_method'])} /></div>
+          </div>
           {values.delivery_method === 'delivery' && <label className={labelClass + ' sm:col-span-2'}>Endereço de entrega (opcional)
             <textarea rows={2} maxLength={500} value={values.delivery_address} onChange={(event) => updateField('delivery_address', event.target.value)} className={inputClass} placeholder="Rua, número, bairro, cidade" disabled={saving} />
             {fieldErrors.delivery_address && <FieldFeedback id="rental-address-error">{fieldErrors.delivery_address}</FieldFeedback>}
