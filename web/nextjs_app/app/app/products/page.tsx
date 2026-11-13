@@ -11,7 +11,7 @@ import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
 
-const PRODUCT_COLUMNS = 'id,company_id,name,description,item_type,inventory_mode,total_quantity,daily_price,event_price,active,notes,created_at,updated_at';
+const PRODUCT_COLUMNS = 'id,company_id,name,description,item_type,inventory_mode,total_quantity,daily_price,event_price,active,notes,image_path,created_at,updated_at';
 type ProductPayload = {
   company_id: string;
   name: string;
@@ -137,7 +137,11 @@ export default function ProductsPage() {
         const { data, error, count } = await request;
         if (!active) return;
         if (error) { setListError('Não foi possível carregar o catálogo. Tente novamente.'); return; }
-        const records = (data ?? []) as ProductRecord[];
+        const records = await Promise.all(((data ?? []) as ProductRecord[]).map(async (product) => {
+          if (!product.image_path) return { ...product, image_url: null };
+          const { data: signedImage } = await client.storage.from('product-images').createSignedUrl(product.image_path, 3600);
+          return { ...product, image_url: signedImage?.signedUrl ?? null };
+        }));
         if (searchTerm) {
           const matches = records.filter((product) => matchesProductSearch(product, searchTerm));
           setTotalCount(matches.length);
@@ -157,24 +161,53 @@ export default function ProductsPage() {
   function openNewProduct() { setEditingProduct(null); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
   function openEditProduct(product: ProductRecord) { setEditingProduct(product); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
   function closeForm() { if (saving) return; setFormOpen(false); setEditingProduct(null); setFormError(''); }
-  async function saveProduct(values: ProductFormValues) {
+  async function saveProduct(values: ProductFormValues, imageFile: File | null, removeImage: boolean) {
     if (!supabase || !companyId || saving) return;
     setSaving(true); setFormError(''); setNotice('');
+    let uploadedPath: string | null = null;
     try {
       const payload = toPayload(companyId, values);
       if (editingProduct) {
-        const { error } = await supabase.from('products').update(payload)
+        let nextImagePath = editingProduct.image_path;
+        if (imageFile) {
+          const extension = imageFile.type === 'image/png' ? 'png' : imageFile.type === 'image/webp' ? 'webp' : 'jpg';
+          uploadedPath = `${companyId}/${editingProduct.id}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await supabase.storage.from('product-images').upload(uploadedPath, imageFile, { contentType: imageFile.type, cacheControl: '3600', upsert: false });
+          if (uploadError) { setFormError('Não foi possível enviar a foto. Verifique o arquivo e tente novamente.'); return; }
+          nextImagePath = uploadedPath;
+        } else if (removeImage) nextImagePath = null;
+        const { error } = await supabase.from('products').update({ ...payload, image_path: nextImagePath })
           .eq('id', editingProduct.id).eq('company_id', companyId).select('id').single();
-        if (error) { setFormError('Não foi possível atualizar o item. Confira os dados e tente novamente.'); return; }
+        if (error) {
+          if (uploadedPath) await supabase.storage.from('product-images').remove([uploadedPath]);
+          setFormError('Não foi possível atualizar o item. Confira os dados e tente novamente.'); return;
+        }
+        if ((imageFile || removeImage) && editingProduct.image_path) await supabase.storage.from('product-images').remove([editingProduct.image_path]);
         setNotice('Item atualizado com sucesso.');
       } else {
-        const { error } = await supabase.from('products').insert(payload).select('id').single();
-        if (error) { setFormError('Não foi possível cadastrar o item. Confira os dados e tente novamente.'); return; }
+        const { data: created, error } = await supabase.from('products').insert(payload).select('id').single();
+        if (error || !created) { setFormError('Não foi possível cadastrar o item. Confira os dados e tente novamente.'); return; }
+        if (imageFile) {
+          const extension = imageFile.type === 'image/png' ? 'png' : imageFile.type === 'image/webp' ? 'webp' : 'jpg';
+          uploadedPath = `${companyId}/${created.id}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await supabase.storage.from('product-images').upload(uploadedPath, imageFile, { contentType: imageFile.type, cacheControl: '3600', upsert: false });
+          if (uploadError) {
+            await supabase.from('products').delete().eq('id', created.id).eq('company_id', companyId);
+            setFormError('Não foi possível enviar a foto. O cadastro não foi concluído; verifique o arquivo e tente novamente.'); return;
+          }
+          const { error: imageUpdateError } = await supabase.from('products').update({ image_path: uploadedPath }).eq('id', created.id).eq('company_id', companyId);
+          if (imageUpdateError) {
+            await supabase.storage.from('product-images').remove([uploadedPath]);
+            await supabase.from('products').delete().eq('id', created.id).eq('company_id', companyId);
+            setFormError('Não foi possível salvar a foto. O cadastro não foi concluído; tente novamente.'); return;
+          }
+        }
         setNotice('Item cadastrado com sucesso.');
       }
       setFormOpen(false); setEditingProduct(null); setPage(0); setListLoading(true);
       setRefreshIndex((current) => current + 1);
     } catch {
+      if (uploadedPath) await supabase.storage.from('product-images').remove([uploadedPath]);
       setFormError('Ocorreu um erro ao salvar o item. Confira sua conexão e tente novamente.');
     } finally { setSaving(false); }
   }
@@ -244,7 +277,7 @@ export default function ProductsPage() {
             </div>
           </section>
         </div>}
-        {formOpen && <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
+        {formOpen && <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} initialImageUrl={editingProduct?.image_url ?? null} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
         {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} scrollRequest={unitsScrollRequest} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
