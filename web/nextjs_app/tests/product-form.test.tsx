@@ -32,7 +32,7 @@ describe('ProductForm', () => {
   it('shows machine stock controls and allows event-based pricing', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<ProductForm saving={false} error="" onCancel={vi.fn()} onSubmit={onSubmit} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Brinquedo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tipo de item' }));
     fireEvent.click(screen.getByRole('option', { name: 'Máquina' }));
     expect(screen.getByText('Controle de estoque')).toBeTruthy();
     expect(screen.getByLabelText('Quantidade total *')).toBeTruthy();
