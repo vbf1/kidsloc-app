@@ -26,6 +26,12 @@ security definer
 set search_path = ''
 as $$
 begin
+  if tg_op = 'UPDATE' and old.inventory_mode = 'individual' and new.inventory_mode <> 'individual'
+    and exists (select 1 from public.product_units u where u.product_id = old.id) then
+    raise exception 'Não é possível alterar o controle de estoque enquanto existirem unidades cadastradas.'
+      using errcode = '23514';
+  end if;
+
   if tg_op = 'UPDATE' and old.item_type is distinct from new.item_type then
     if exists (select 1 from public.product_units u where u.product_id = old.id)
       or exists (select 1 from public.rental_items r where r.product_id = old.id)
@@ -67,14 +73,18 @@ as $$
 declare
   v_item_type text;
   v_company_id uuid;
+  v_inventory_mode text;
 begin
-  select p.item_type, p.company_id into v_item_type, v_company_id
+  select p.item_type, p.company_id, p.inventory_mode into v_item_type, v_company_id, v_inventory_mode
   from public.products p where p.id = new.product_id;
   if not found then
     raise exception 'Produto não encontrado.' using errcode = '23503';
   end if;
   if v_item_type <> 'toy' then
     raise exception 'Serviços não podem possuir unidades físicas.' using errcode = '23514';
+  end if;
+  if v_inventory_mode <> 'individual' then
+    raise exception 'Unidades físicas exigem controle individual de estoque.' using errcode = '23514';
   end if;
   if new.company_id <> v_company_id then
     raise exception 'A unidade e o brinquedo devem pertencer à mesma empresa.' using errcode = '23514';
