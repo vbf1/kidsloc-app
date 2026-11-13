@@ -168,10 +168,10 @@ export default function ProductsPage() {
     if (!confirmed) return;
     setDeletingProductId(product.id); setListError(''); setNotice('');
     try {
-      const { error } = await supabase.from('products').delete()
-        .eq('id', product.id).eq('company_id', companyId);
-      if (error) {
-        setListError(error.code === '23503'
+      const { data: deleted, error } = await supabase.from('products').delete()
+        .eq('id', product.id).eq('company_id', companyId).select('id').maybeSingle();
+      if (error || !deleted) {
+        setListError(error?.code === '23503'
           ? 'Não é possível excluir este item porque ele possui histórico de locações, estoque ou manutenção. Você pode deixá-lo inativo.'
           : 'Não foi possível excluir o item. Verifique se sua conta tem permissão de administrador ou proprietário.');
         return;
