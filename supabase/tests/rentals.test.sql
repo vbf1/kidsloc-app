@@ -145,46 +145,46 @@ select throws_ok(
 
 
 select lives_ok(
-  $ select public.update_rental_with_items(
+  $body$ select public.update_rental_with_items(
        '93000000-0000-4000-8000-000000000001',
        (select rental_id from rental_reservation_qa_ids where kind = 'quantity_first'),
        '94000000-0000-4000-8000-000000000001',
        date '2035-04-11', date '2035-04-11', 'cancelled', 'customer_pickup', 100,
        '[{"product_id":"97000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '09:00', time '12:00'
-     ) $,
+     ) $body$,
   'cancelling a quantity-inventory rental succeeds'
 );
 
 select lives_ok(
-  $ select public.create_rental_with_items(
+  $body$ select public.create_rental_with_items(
        '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
        date '2035-04-11', date '2035-04-11', 'pending', 'customer_pickup', 100,
        '[{"product_id":"97000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '09:00', time '12:00'
-     ) $,
+     ) $body$,
   'cancelling a quantity-inventory rental releases stock for the same period'
 );
 
 select lives_ok(
-  $ select public.update_rental_with_items(
+  $body$ select public.update_rental_with_items(
        '93000000-0000-4000-8000-000000000001',
        (select rental_id from rental_reservation_qa_ids where kind = 'quantity_adjacent'),
        '94000000-0000-4000-8000-000000000001',
        date '2035-04-11', date '2035-04-11', 'completed', 'customer_pickup', 100,
        '[{"product_id":"97000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '12:00', time '18:00'
-     ) $,
+     ) $body$,
   'completing a quantity-inventory rental succeeds'
 );
 
 select lives_ok(
-  $ select public.create_rental_with_items(
+  $body$ select public.create_rental_with_items(
        '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
        date '2035-04-11', date '2035-04-11', 'pending', 'customer_pickup', 100,
        '[{"product_id":"97000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '12:00', time '18:00'
-     ) $,
+     ) $body$,
   'completing a quantity-inventory rental releases stock for the same period'
 );
 
