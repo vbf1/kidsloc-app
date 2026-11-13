@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildProductSearchFilter, formatPrice, matchesProductSearch, normalizeProduct, parsePrice, validateProduct, type ProductFormValues } from '../lib/products';
+import { buildProductSearchFilter, formatPrice, formatProductInventoryError, matchesProductSearch, normalizeProduct, parsePrice, validateProduct, type ProductFormValues } from '../lib/products';
 const toy: ProductFormValues = { name: '  Cama   Elástica ', description: ' Brinquedo ', item_type: 'toy', inventory_mode: 'individual', total_quantity: '3', price: '85,50', price_mode: 'daily', active: true, notes: '' };
 const service: ProductFormValues = { ...toy, name: 'Recreação', item_type: 'service', total_quantity: '0', price: '150,00', price_mode: 'event' };
 const machine: ProductFormValues = { ...toy, name: 'Máquina de pipoca', item_type: 'machine', total_quantity: '2', price: '300,00', price_mode: 'event' };
@@ -43,5 +43,16 @@ describe('product accent-insensitive search', () => {
     for (const term of ['maquina', 'PIPOCA', 'acucar refinado', 'manutencao']) {
       expect(matchesProductSearch(product, term), term).toBe(true);
     }
+  });
+});
+
+describe('product inventory error messages', () => {
+  it('explains reserved units and inventory count constraints', () => {
+    expect(formatProductInventoryError('Não é possível alterar a situação enquanto ela estiver reservada em uma locação ativa.', 'Falha.')).toContain('reservada');
+    expect(formatProductInventoryError('Todas as unidades físicas previstas já foram cadastradas (3).', 'Falha.')).toContain('3');
+    expect(formatProductInventoryError('A quantidade total não pode ser menor que o número de unidades físicas já cadastradas (2).', 'Falha.')).toContain('(2)');
+  });
+  it('uses a safe fallback for unrelated database errors', () => {
+    expect(formatProductInventoryError('permission denied', 'Não foi possível salvar.')).toBe('Não foi possível salvar.');
   });
 });
