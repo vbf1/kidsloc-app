@@ -100,7 +100,7 @@ body:has([role="dialog"]), body:has([role="alertdialog"]) { isolation: isolate; 
   }
   .fixed.inset-0:has(> [role="dialog"]),
   .fixed.inset-0:has(> [role="alertdialog"]) {
-    align-items: flex-end;
-    padding: 10px;
+    align-items: center;
+    padding: 16px;
   }
 }
