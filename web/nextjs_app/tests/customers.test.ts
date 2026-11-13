@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCustomerSearchFilter, isValidCpf, normalizeCustomer, validateCustomer, type CustomerFormValues } from '../lib/customers';
+import { buildCustomerSearchFilter, isValidCpf, matchesCustomerSearch, normalizeCustomer, validateCustomer, type CustomerFormValues } from '../lib/customers';
 const validValues: CustomerFormValues = {
   name: '  Maria   da Silva ', phone: '(31) 99999-1234', email: ' MARIA@EXAMPLE.COM ',
   cpf: '529.982.247-25', rg: 'MG-12.345.678', zip: '30.000-000', address: 'Rua das Flores, 10',
@@ -53,4 +53,18 @@ describe('customer search filter', () => {
     expect(buildCustomerSearchFilter('(31) 999-1234')).toContain('cpf.ilike."%319991234%"');
   });
   it('returns null for an empty search', () => { expect(buildCustomerSearchFilter('   ')).toBeNull(); });
+});
+
+describe('customer accent-insensitive search', () => {
+  const customer = {
+    id: 'customer-1', company_id: 'company-1', name: 'Márcia Oliveira', phone: '31999991234',
+    email: 'marcia@example.com', cpf: '52998224725', rg: 'MG-12.345.678', zip: '30000000',
+    address: 'Rua São João, 10', neighborhood: 'Jardim América', city_state: 'Belo Horizonte/MG',
+    notes: 'Prefere contato pela manhã.', created_at: '', updated_at: '',
+  };
+  it('finds customer text fields regardless of accents or letter case', () => {
+    for (const term of ['marcia', 'Sao Joao', 'jardim america', 'belo horizonte', 'prefere contato pela manha']) {
+      expect(matchesCustomerSearch(customer, term), term).toBe(true);
+    }
+  });
 });

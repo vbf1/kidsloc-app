@@ -1,11 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { CustomerForm } from '../../../components/customer-form';
 import { CustomerList } from '../../../components/customer-list';
-import { buildCustomerSearchFilter, CUSTOMER_PAGE_SIZE, normalizeCustomer, type CustomerFormValues, type CustomerRecord } from '../../../lib/customers';
+import { matchesCustomerSearch, normalizeCustomer, type CustomerFormValues, type CustomerRecord } from '../../../lib/customers';
+import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
+import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
 
 const CUSTOMER_COLUMNS = 'id,company_id,name,phone,email,address,notes,created_at,updated_at,cpf,rg,zip,neighborhood,city_state';
@@ -36,11 +38,19 @@ export default function CustomersPage() {
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(0);
+  const pageSize = useResponsivePageSize();
+  const [pagination, setPagination] = useState({ page: 0, pageSize: 6 });
+  const page = pagination.pageSize === pageSize ? pagination.page : 0;
+  function setPage(nextPage: number | ((current: number) => number)) {
+    const resolvedPage = typeof nextPage === 'function' ? nextPage(page) : nextPage;
+    setPagination({ page: resolvedPage, pageSize });
+  }
   const [searchDraft, setSearchDraft] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  const [formScrollRequest, setFormScrollRequest] = useState(0);
+  const formContainerRef = useRef<HTMLDivElement>(null);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -57,7 +67,8 @@ export default function CustomersPage() {
         }
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (!active) return;
-        if (authError || !user) { router.replace('/login/'); return; }
+        if (authError) { setAccessError('Não foi possível validar sua sessão agora. Confira sua conexão e tente novamente.'); return; }
+        if (!user) { router.replace('/login/'); return; }
         setEmail(user.email ?? 'E-mail não informado');
         const { data: membership, error: membershipError } = await supabase
           .from('company_members').select('company_id, companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
@@ -89,16 +100,21 @@ export default function CustomersPage() {
       setListLoading(true);
       setListError('');
       try {
-        const filter = buildCustomerSearchFilter(searchTerm);
         let request = supabaseClient.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
-          .eq('company_id', companyId).order('name', { ascending: true })
-          .range(page * CUSTOMER_PAGE_SIZE, (page + 1) * CUSTOMER_PAGE_SIZE - 1);
-        if (filter) request = request.or(filter);
+          .eq('company_id', companyId).order('name', { ascending: true });
+        if (!searchTerm) request = request.range(page * pageSize, (page + 1) * pageSize - 1);
         const { data, error, count } = await request;
         if (!active) return;
         if (error) { setListError('Não foi possível carregar os clientes. Tente novamente.'); return; }
-        setCustomers((data ?? []) as CustomerRecord[]);
-        setTotalCount(count ?? 0);
+        const records = (data ?? []) as CustomerRecord[];
+        if (searchTerm) {
+          const matches = records.filter((customer) => matchesCustomerSearch(customer, searchTerm));
+          setTotalCount(matches.length);
+          setCustomers(matches.slice(page * pageSize, (page + 1) * pageSize));
+        } else {
+          setCustomers(records);
+          setTotalCount(count ?? 0);
+        }
       } catch {
         if (active) setListError('Ocorreu um erro ao carregar os clientes. Confira sua conexão.');
       } finally {
@@ -107,10 +123,12 @@ export default function CustomersPage() {
     }
     void loadCustomers();
     return () => { active = false; };
-  }, [companyId, page, searchTerm, refreshIndex]);
+  }, [companyId, page, pageSize, searchTerm, refreshIndex]);
 
-  function openNewCustomer() { setEditingCustomer(null); setFormError(''); setFormOpen(true); setNotice(''); }
-  function openEditCustomer(customer: CustomerRecord) { setEditingCustomer(customer); setFormError(''); setFormOpen(true); setNotice(''); }
+  useScrollIntoViewOnChange(formContainerRef, formOpen ? `${editingCustomer?.id ?? 'new'}-${formScrollRequest}` : null);
+
+  function openNewCustomer() { setEditingCustomer(null); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
+  function openEditCustomer(customer: CustomerRecord) { setEditingCustomer(customer); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
   function closeForm() { if (saving) return; setFormOpen(false); setEditingCustomer(null); setFormError(''); }
 
   async function saveCustomer(values: CustomerFormValues) {
@@ -181,7 +199,7 @@ export default function CustomersPage() {
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
         {formOpen && (
-          <div className="mb-6 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7">
+          <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7">
             <CustomerForm key={editingCustomer?.id ?? 'new-customer'} initialValues={editingCustomer ? {
               name: editingCustomer.name, phone: editingCustomer.phone ?? '', email: editingCustomer.email ?? '',
               cpf: editingCustomer.cpf ?? '', rg: editingCustomer.rg ?? '', zip: editingCustomer.zip ?? '',
@@ -204,7 +222,7 @@ export default function CustomersPage() {
           <p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button>
         </div>}
         <CustomerList customers={customers} loading={listLoading} totalCount={totalCount} page={page}
-          pageSize={CUSTOMER_PAGE_SIZE} onPageChange={changePage} onEdit={openEditCustomer} />
+          pageSize={pageSize} onPageChange={changePage} onEdit={openEditCustomer} />
       </section>
     </AppShell>
   );

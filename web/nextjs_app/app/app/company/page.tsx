@@ -31,7 +31,11 @@ export default function CompanySetupPage() {
           error: authError,
         } = await supabase.auth.getUser();
 
-        if (authError || !user) {
+        if (authError) {
+          setMessage('Não foi possível validar sua sessão agora. Confira sua conexão e tente novamente.');
+          return;
+        }
+        if (!user) {
           window.location.replace(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/login/`);
           return;
         }

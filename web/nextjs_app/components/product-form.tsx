@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { FieldFeedback, FormFeedback } from './form-feedback';
 import { EMPTY_PRODUCT, normalizeProduct, validateProduct, type ProductFieldErrors, type ProductFormValues } from '../lib/products';
@@ -9,13 +9,19 @@ type ProductFormProps = {
   saving: boolean;
   error: string;
   onCancel: () => void;
-  onSubmit: (values: ProductFormValues) => Promise<void>;
+  initialImageUrl?: string | null;
+  onSubmit: (values: ProductFormValues, imageFile: File | null, removeImage: boolean) => Promise<void>;
 };
 const inputClass = 'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100 disabled:bg-gray-50';
 const labelClass = 'block text-sm font-medium text-gray-700';
-export function ProductForm({ initialValues = EMPTY_PRODUCT, saving, error, onCancel, onSubmit }: ProductFormProps) {
+export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = null, saving, error, onCancel, onSubmit }: ProductFormProps) {
   const [values, setValues] = useState<ProductFormValues>({ ...initialValues });
   const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   function updateField(field: keyof ProductFormValues, value: string | boolean) {
     setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
@@ -25,23 +31,25 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, saving, error, onCa
     const errors = validateProduct(values);
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
-    await onSubmit(normalizeProduct(values));
+    if (imageError) return;
+    await onSubmit(normalizeProduct(values), imageFile, removeImage);
   }
   return (
     <form noValidate onSubmit={submit} className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-gray-900">{initialValues.name ? 'Editar item' : 'Novo item do catálogo'}</h2>
-        <p className="mt-1 text-sm text-gray-500">Cadastre brinquedos e serviços em um só catálogo.</p>
+        <p className="mt-1 text-sm text-gray-500">Cadastre brinquedos, máquinas e serviços em um só catálogo.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass} htmlFor="product-item-type">Tipo de item
           <select id="product-item-type" value={values.item_type} disabled={saving || Boolean(initialValues.name)}
             onChange={(event) => {
               const item_type = event.target.value as ProductFormValues['item_type'];
-              setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1' }));
+              setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1', price_mode: item_type === 'service' ? 'event' : 'daily' }));
               setFieldErrors({});
             }} className={inputClass}>
             <option value="toy">Brinquedo</option>
+            <option value="machine">Máquina</option>
             <option value="service">Serviço</option>
           </select>
           {initialValues.name && <span className="mt-1 block text-xs text-gray-400">O tipo não pode ser alterado após o cadastro para preservar o histórico.</span>}
@@ -56,11 +64,16 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, saving, error, onCa
         {fieldErrors.description && <FieldFeedback id="product-description-error">{fieldErrors.description}</FieldFeedback>}
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="product-price">{values.item_type === 'toy' ? 'Preço por dia (R$) *' : 'Preço por evento (R$) *'}
+        <label className={labelClass} htmlFor="product-price">{values.item_type === 'toy' ? 'Preço por dia (R$) *' : values.item_type === 'service' || values.price_mode === 'event' ? 'Preço por evento (R$) *' : 'Preço por diária (R$) *'}
           <input id="product-price" inputMode="decimal" value={values.price} disabled={saving} onChange={(event) => updateField('price', event.target.value)} placeholder="0,00" className={inputClass} aria-invalid={Boolean(fieldErrors.price)} aria-describedby={fieldErrors.price ? 'product-price-error' : undefined} />
           {fieldErrors.price && <FieldFeedback id="product-price-error">{fieldErrors.price}</FieldFeedback>}
         </label>
-        {values.item_type === 'toy' && <>
+        {values.item_type === 'machine' && <label className={labelClass} htmlFor="product-price-mode">Cobrança
+          <select id="product-price-mode" value={values.price_mode} disabled={saving} onChange={(event) => updateField('price_mode', event.target.value)} className={inputClass}>
+            <option value="daily">Por diária</option><option value="event">Por evento</option>
+          </select>
+        </label>}
+        {values.item_type !== 'service' && <>
           <label className={labelClass} htmlFor="product-inventory-mode">Controle de estoque
             <select id="product-inventory-mode" value={values.inventory_mode} disabled={saving} onChange={(event) => updateField('inventory_mode', event.target.value)} className={inputClass}>
               <option value="quantity">Por quantidade</option>
@@ -72,6 +85,25 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, saving, error, onCa
             {fieldErrors.total_quantity && <FieldFeedback id="product-quantity-error">{fieldErrors.total_quantity}</FieldFeedback>}
           </label>
         </>}
+      </div>
+      <div className="space-y-2">
+        <label className={labelClass} htmlFor="product-image">Foto principal (opcional)</label>
+        <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center">
+          {(previewUrl || (!removeImage && initialImageUrl)) ? <div role="img" aria-label="Prévia da foto principal" className="size-24 shrink-0 rounded-xl border border-gray-200 bg-white bg-cover bg-center" style={{ backgroundImage: `url("${previewUrl ?? initialImageUrl}")` }} /> : <div aria-hidden="true" className="grid size-24 shrink-0 place-items-center rounded-xl border border-dashed border-gray-300 bg-white text-3xl text-gray-300">📷</div>}
+          <div className="min-w-0 flex-1">
+            <input id="product-image" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              if (!file) return;
+              if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setImageError('Escolha uma imagem JPG, PNG ou WebP.'); setImageFile(null); setPreviewUrl(null); return; }
+              if (file.size > 8 * 1024 * 1024) { setImageError('A imagem deve ter no máximo 8 MB.'); setImageFile(null); setPreviewUrl(null); return; }
+              setImageError(''); setImageFile(file); setPreviewUrl(URL.createObjectURL(file)); setRemoveImage(false);
+            }} className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#6840bd] hover:file:bg-purple-200" />
+            <p className="mt-2 text-xs text-gray-500">JPG, PNG ou WebP · até 8 MB. Uma foto por item.</p>
+            {(imageFile || (!removeImage && initialImageUrl)) && <button type="button" disabled={saving} onClick={() => { if (imageFile) { setImageFile(null); setPreviewUrl(null); } else setRemoveImage(true); setImageError(''); const input = document.getElementById('product-image') as HTMLInputElement | null; if (input) input.value = ''; }} className="mt-2 text-xs font-semibold text-red-600 underline">{imageFile ? 'Cancelar nova foto' : 'Remover foto atual'}</button>}
+            {removeImage && <div className="mt-2 flex items-center gap-2"><p className="text-xs text-amber-700">A foto atual será removida ao salvar.</p><button type="button" disabled={saving} onClick={() => setRemoveImage(false)} className="text-xs font-semibold text-[#6840bd] underline">Manter foto atual</button></div>}
+            {imageError && <p role="alert" className="mt-2 text-xs text-red-600">{imageError}</p>}
+          </div>
+        </div>
       </div>
       <label className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
         <input type="checkbox" checked={values.active} disabled={saving} onChange={(event) => updateField('active', event.target.checked)} className="size-4 accent-[#8054d8]" />

@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { useScrollIntoViewOnChange } from '../lib/use-scroll-into-view';
 
 type ProductUnit = {
   id: string;
@@ -16,16 +17,25 @@ type ProductUnitManagerProps = {
   companyId: string;
   totalQuantity: number;
   onClose: () => void;
+  scrollRequest: number;
 };
 
-export function ProductUnitManager({ productId, productName, companyId, totalQuantity, onClose }: ProductUnitManagerProps) {
+export function ProductUnitManager({ productId, productName, companyId, totalQuantity, onClose, scrollRequest }: ProductUnitManagerProps) {
   const [units, setUnits] = useState<ProductUnit[]>([]);
   const [assetCode, setAssetCode] = useState('');
   const [description, setDescription] = useState('');
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
+  const [editAssetCode, setEditAssetCode] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editStatus, setEditStatus] = useState<ProductUnit['status']>('available');
+  const [editError, setEditError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const panelRef = useRef<HTMLElement>(null);
+
+  useScrollIntoViewOnChange(panelRef, `${productId}-${scrollRequest}`);
 
   const loadUnits = useCallback(async () => {
     if (!supabase) return;
@@ -66,7 +76,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
   async function addUnit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || saving) return;
-    if (units.length >= totalQuantity) { setError('Todas as unidades previstas já foram cadastradas. Ajuste a quantidade no cadastro do brinquedo se necessário.'); return; }
+    if (units.length >= totalQuantity) { setError('Todas as unidades previstas já foram cadastradas. Ajuste a quantidade no cadastro da máquina se necessário.'); return; }
     const code = assetCode.trim();
     if (!code) { setError('Informe o código de identificação da unidade.'); return; }
     setSaving(true); setError(''); setNotice('');
@@ -92,32 +102,44 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
     } finally { setSaving(false); }
   }
 
-  async function updateUnit(unit: ProductUnit, field: 'asset_code' | 'description' | 'status', value: string) {
+  function startEditing(unit: ProductUnit) {
+    setEditingUnitId(unit.id);
+    setEditError('');
+    setEditAssetCode(unit.asset_code ?? '');
+    setEditDescription(unit.description ?? '');
+    setEditStatus(unit.status);
+    setError('');
+    setNotice('');
+  }
+
+  async function saveUnit(unit: ProductUnit) {
     if (!supabase || saving) return;
-    const normalized = value.trim();
-    if (field === 'asset_code' && !normalized) { setError('O código de identificação não pode ficar vazio.'); return; }
-    setSaving(true); setError(''); setNotice('');
+    const code = editAssetCode.trim();
+    if (!code) { setEditError('O código de identificação não pode ficar vazio.'); return; }
+    setSaving(true); setEditError(''); setNotice('');
     try {
-      if (field === 'asset_code') {
+      if (code !== (unit.asset_code ?? '')) {
         const { data: duplicate, error: duplicateError } = await supabase
           .from('product_units').select('id')
-          .eq('company_id', companyId).eq('asset_code', normalized).neq('id', unit.id).limit(1);
-        if (duplicateError) { setError('Não foi possível validar o código. Tente novamente.'); return; }
-        if (duplicate?.length) { setError('Esse código já está sendo usado por outra unidade da empresa.'); return; }
+          .eq('company_id', companyId).eq('asset_code', code).neq('id', unit.id).limit(1);
+        if (duplicateError) { setEditError('Não foi possível validar o código. Tente novamente.'); return; }
+        if (duplicate?.length) { setEditError('Esse código já está sendo usado por outra unidade da empresa.'); return; }
       }
       const { error: updateError } = await supabase.from('product_units')
-        .update({ [field]: field === 'description' ? normalized || null : normalized })
+        .update({ asset_code: code, description: editDescription.trim() || null, status: editStatus })
         .eq('id', unit.id).eq('company_id', companyId).eq('product_id', productId);
-      if (updateError) { setError('Não foi possível atualizar a unidade. Tente novamente.'); return; }
+      if (updateError) { setEditError('Não foi possível atualizar a unidade. Tente novamente.'); return; }
+      setEditingUnitId(null);
+      setEditError('');
       setNotice('Unidade atualizada com sucesso.');
       await loadUnits();
     } catch {
-      setError('Ocorreu um erro ao atualizar a unidade. Confira sua conexão.');
+      setEditError('Ocorreu um erro ao atualizar a unidade. Confira sua conexão.');
     } finally { setSaving(false); }
   }
 
   return (
-    <section className="mb-6 rounded-2xl border border-purple-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="product-units-title">
+    <section ref={panelRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="product-units-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Controle individual</p>
@@ -150,20 +172,40 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
         ) : (
           <ul className="mt-3 space-y-3">
             {units.map((unit) => (
-              <li key={unit.id} className="grid gap-3 rounded-xl border border-gray-100 p-4 sm:grid-cols-[1fr_1fr_180px]">
-                <label className="text-xs font-semibold text-gray-500">Código
-                  <input key={unit.id + unit.asset_code} defaultValue={unit.asset_code ?? ''} maxLength={80} disabled={saving} onBlur={(event) => { if (event.target.value !== (unit.asset_code ?? '')) void updateUnit(unit, 'asset_code', event.target.value); }} className="mt-1 block w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900" />
-                </label>
-                <label className="text-xs font-semibold text-gray-500">Descrição
-                  <input key={unit.id + unit.description} defaultValue={unit.description ?? ''} maxLength={500} disabled={saving} onBlur={(event) => { if (event.target.value !== (unit.description ?? '')) void updateUnit(unit, 'description', event.target.value); }} className="mt-1 block w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900" />
-                </label>
-                <label className="text-xs font-semibold text-gray-500">Situação
-                  <select value={unit.status} disabled={saving} onChange={(event) => void updateUnit(unit, 'status', event.target.value)} className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900">
-                    <option value="available">Disponível</option>
-                    <option value="maintenance">Em manutenção</option>
-                    <option value="inactive">Inativa</option>
-                  </select>
-                </label>
+              <li key={unit.id} className="grid gap-3 rounded-xl border border-gray-100 p-4">
+                {editingUnitId === unit.id ? (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <label className="text-xs font-semibold text-gray-500">Código da unidade *
+                        <input value={editAssetCode} onChange={(event) => setEditAssetCode(event.target.value)} maxLength={80} disabled={saving} className="mt-1 block w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900" />
+                      </label>
+                      <label className="text-xs font-semibold text-gray-500">Descrição
+                        <input value={editDescription} onChange={(event) => setEditDescription(event.target.value)} maxLength={500} disabled={saving} className="mt-1 block w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900" />
+                      </label>
+                      <label className="text-xs font-semibold text-gray-500">Situação
+                        <select value={editStatus} onChange={(event) => setEditStatus(event.target.value as ProductUnit['status'])} disabled={saving} className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900">
+                          <option value="available">Disponível</option>
+                          <option value="maintenance">Em manutenção</option>
+                          <option value="inactive">Inativa</option>
+                        </select>
+                      </label>
+                    </div>
+                    {editError && <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">{editError}</p>}
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button type="button" disabled={saving} onClick={() => setEditingUnitId(null)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancelar</button>
+                      <button type="button" disabled={saving} onClick={() => void saveUnit(unit)} className="rounded-lg bg-[#8054d8] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar alterações'}</button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="grid flex-1 gap-3 sm:grid-cols-3">
+                      <div><p className="text-xs font-semibold text-gray-500">Código</p><p className="mt-1 break-words text-sm font-semibold text-gray-900">{unit.asset_code || '—'}</p></div>
+                      <div><p className="text-xs font-semibold text-gray-500">Descrição</p><p className="mt-1 break-words text-sm text-gray-700">{unit.description || '—'}</p></div>
+                      <div><p className="text-xs font-semibold text-gray-500">Situação</p><p className="mt-1 text-sm font-semibold text-gray-900">{unit.status === 'available' ? 'Disponível' : unit.status === 'maintenance' ? 'Em manutenção' : 'Inativa'}</p></div>
+                    </div>
+                    <button type="button" disabled={saving || editingUnitId !== null} onClick={() => startEditing(unit)} className="shrink-0 rounded-lg border border-purple-200 px-4 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50">Editar unidade</button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

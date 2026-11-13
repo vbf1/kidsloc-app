@@ -1,7 +1,7 @@
 name: Web - test and deploy GitHub Pages
 on:
   push:
-    branches: [main, feature/v0.1-auth-company-onboarding]
+    branches: [main, feature/v0.1-auth-company-onboarding, feature/ui-organized-customer-catalog]
     paths: ['web/nextjs_app/**', '.github/workflows/web-pages.yml']
   pull_request:
     paths: ['web/nextjs_app/**', '.github/workflows/web-pages.yml']

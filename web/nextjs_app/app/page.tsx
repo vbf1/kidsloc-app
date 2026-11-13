@@ -1,6 +1,36 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function HomePage() {
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function checkSession() {
+      try {
+        if (supabase) {
+          const { data, error } = await supabase.auth.getSession();
+          if (active && !error && data.session?.user) {
+            window.location.replace(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/`);
+            return;
+          }
+        }
+      } catch {
+        // A temporary connection issue must not be treated as a signed-out session.
+      }
+      if (active) setCheckingSession(false);
+    }
+    void checkSession();
+    return () => { active = false; };
+  }, []);
+
+  if (checkingSession) {
+    return <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5"><p role="status" className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600 shadow-sm">Verificando sua sessão...</p></main>;
+  }
+
   return (
     <main className="min-h-screen px-5 py-10 md:px-12">
       <div className="mx-auto max-w-6xl">

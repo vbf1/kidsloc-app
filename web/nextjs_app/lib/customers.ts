@@ -61,3 +61,17 @@ export function buildCustomerSearchFilter(search: string): string | null {
   }
   return filters.join(',');
 }
+
+export function normalizeCustomerSearchText(value: string): string {
+  return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
+}
+export function matchesCustomerSearch(customer: CustomerRecord, search: string): boolean {
+  const term = normalizeCustomerSearchText(search.trim());
+  if (!term) return true;
+  const textFields = [customer.name, customer.phone, customer.email, customer.cpf, customer.rg,
+    customer.address, customer.neighborhood, customer.city_state, customer.zip, customer.notes];
+  if (textFields.some((value) => value !== null && normalizeCustomerSearchText(value).includes(term))) return true;
+  const numericTerm = onlyDigits(search);
+  return Boolean(numericTerm) && [customer.phone, customer.cpf, customer.zip]
+    .some((value) => value !== null && onlyDigits(value).includes(numericTerm));
+}

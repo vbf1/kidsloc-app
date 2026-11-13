@@ -13,6 +13,9 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
@@ -25,6 +28,7 @@ export default function SignupPage() {
       name: validateName(name),
       email: validateEmail(email),
       password: validatePassword(password),
+      confirmPassword: confirmPassword !== password ? 'As senhas não coincidem.' : '',
     };
     setFieldErrors(Object.entries(errors).reduce<Record<string, string>>((result, [field, error]) => {
       if (error) result[field] = error;
@@ -77,9 +81,20 @@ export default function SignupPage() {
           </div>
           <div className="space-y-1">
             <label htmlFor="signup-password" className="block text-sm font-medium">Senha</label>
-            <input id="signup-password" className={`${fieldClass} block`} type="password" autoComplete="new-password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? 'signup-password-error' : undefined} value={password} onChange={e => setPassword(e.target.value)} />
+            <div className="relative">
+              <input id="signup-password" className={`${fieldClass} block pr-20`} type={showPassword ? 'text' : 'password'} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? 'signup-password-error' : undefined} value={password} onChange={e => setPassword(e.target.value)} />
+              <button type="button" className="absolute inset-y-0 right-3 text-sm font-medium text-[#8054d8]" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? 'Ocultar' : 'Mostrar'}</button>
+            </div>
             {fieldErrors.password && <FieldFeedback id="signup-password-error">{fieldErrors.password}</FieldFeedback>}
             <span className="block text-xs text-gray-500">Use pelo menos 8 caracteres.</span>
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="signup-confirm-password" className="block text-sm font-medium">Confirmar senha</label>
+            <div className="relative">
+              <input id="signup-confirm-password" className={`${fieldClass} block pr-20`} type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.confirmPassword)} aria-describedby={fieldErrors.confirmPassword ? 'signup-confirm-password-error' : undefined} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              <button type="button" className="absolute inset-y-0 right-3 text-sm font-medium text-[#8054d8]" aria-label={showConfirmPassword ? 'Ocultar confirmação da senha' : 'Mostrar confirmação da senha'} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword(value => !value)}>{showConfirmPassword ? 'Ocultar' : 'Mostrar'}</button>
+            </div>
+            {fieldErrors.confirmPassword && <FieldFeedback id="signup-confirm-password-error">{fieldErrors.confirmPassword}</FieldFeedback>}
           </div>
           {message && <FormFeedback>{message}</FormFeedback>}
           <button className={primaryButtonClass} disabled={busy}>{busy ? 'Criando conta...' : 'Criar conta'}</button>
