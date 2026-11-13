@@ -85,7 +85,11 @@ export default function PlatformAdminPage() {
     setConversationsLoading(false);
   }, [selectedCompanyId]);
 
-  useEffect(() => { void loadConversations(); }, [loadConversations]);
+  useEffect(() => {
+    // The async loader synchronizes the selected company with Supabase.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadConversations();
+  }, [loadConversations]);
 
   const loadMessages = useCallback(async () => {
     if (!supabase || !selectedConversationId) {
@@ -106,7 +110,11 @@ export default function PlatformAdminPage() {
     setMessagesLoading(false);
   }, [selectedConversationId]);
 
-  useEffect(() => { void loadMessages(); }, [loadMessages]);
+  useEffect(() => {
+    // The async loader synchronizes the selected conversation with Supabase.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadMessages();
+  }, [loadMessages]);
 
   async function refreshAll() {
     if (refreshing) return;

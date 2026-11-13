@@ -31,7 +31,7 @@ export default function CompanySetupPage() {
           return;
         }
         if (!user) {
-          window.location.replace(\`\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/login/\`);
+          window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/login/');
           return;
         }
         if (!active) return;
@@ -44,7 +44,7 @@ export default function CompanySetupPage() {
           return;
         }
         if (isPlatformOwner === true) {
-          window.location.replace(\`\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/admin/\`);
+          window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/admin/');
           return;
         }
 
@@ -55,7 +55,7 @@ export default function CompanySetupPage() {
           setMessage('Não foi possível consultar o vínculo da empresa. Tente novamente.');
           return;
         }
-        if (memberships?.length) window.location.replace(\`\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/\`);
+        if (memberships?.length) window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/');
       } catch (error) {
         if (active) setMessage(getAuthErrorMessage(error, 'company'));
       } finally {
@@ -88,7 +88,7 @@ export default function CompanySetupPage() {
         setMessage(error.code === '23505' ? 'Esta conta já está vinculada a uma empresa.' : getAuthErrorMessage(error, 'company'));
         return;
       }
-      window.location.assign(\`\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/\`);
+      window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/');
     } catch (error) {
       setMessage(getAuthErrorMessage(error, 'company'));
     } finally {

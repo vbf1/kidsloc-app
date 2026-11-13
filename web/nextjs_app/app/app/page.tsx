@@ -33,7 +33,6 @@ export default function AppHomePage() {
         router.replace('/login/');
         return;
       }
-
       const { data: isPlatformOwner, error: ownerError } = await supabase.rpc('is_platform_owner_for_company');
       if (ownerError) {
         setMessage('Não foi possível confirmar as permissões da conta. Tente novamente.');
@@ -43,7 +42,6 @@ export default function AppHomePage() {
         router.replace('/app/admin/');
         return;
       }
-
       const { data, error } = await supabase.from('company_members')
         .select('companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
       if (error) {
@@ -68,6 +66,8 @@ export default function AppHomePage() {
   }, [router]);
 
   useEffect(() => {
+    // Load the authenticated workspace after the component mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadWorkspace(false);
   }, [loadWorkspace]);
 
@@ -112,11 +112,7 @@ export default function AppHomePage() {
         </div>
         <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Sua empresa</p>
-              <h2 className="mt-1 text-xl font-bold">{workspace.companyName}</h2>
-              <p className="mt-2 break-all text-sm text-gray-500">{workspace.email}</p>
-            </div>
+            <div><p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Sua empresa</p><h2 className="mt-1 text-xl font-bold">{workspace.companyName}</h2><p className="mt-2 break-all text-sm text-gray-500">{workspace.email}</p></div>
             <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700"><span aria-hidden="true" className="size-2 rounded-full bg-green-500" />Acesso ativo</span>
           </div>
         </div>

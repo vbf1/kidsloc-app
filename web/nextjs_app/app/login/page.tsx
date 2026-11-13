@@ -24,7 +24,7 @@ export default function LoginPage() {
         if (supabase) {
           const { data, error } = await supabase.auth.getSession();
           if (active && !error && data.session?.user) {
-            window.location.replace(\`\${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/\`);
+            window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/');
             return;
           }
         }
