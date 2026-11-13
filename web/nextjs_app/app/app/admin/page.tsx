@@ -2,7 +2,7 @@
 
 // This workspace is reserved for the KidsLoc platform owner and is read-only for conversations.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import { CustomerForm } from '../../../components/customer-form';
@@ -43,6 +43,10 @@ export default function PlatformAdminPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const overviewRequest = useRef(0);
+  const customersRequest = useRef(0);
+  const conversationsRequest = useRef(0);
+  const messagesRequest = useRef(0);
 
   const loadCompanies = useCallback(async () => {
     if (!supabase) {
@@ -109,9 +113,11 @@ export default function PlatformAdminPage() {
   }
 
   const loadCompanyOverview = useCallback(async () => {
+    const requestId = ++overviewRequest.current;
     if (!supabase || !selectedCompanyId) {
       setCompanyOverview(null);
       setOverviewError('');
+      setOverviewLoading(false);
       return;
     }
     setOverviewLoading(true);
@@ -124,6 +130,7 @@ export default function PlatformAdminPage() {
       companyFilter('rentals'),
       companyFilter('financial_transactions'),
     ]);
+    if (requestId !== overviewRequest.current) return;
     const failed = results.find((result) => result.error);
     if (failed?.error) {
       setCompanyOverview(null);
@@ -148,15 +155,18 @@ export default function PlatformAdminPage() {
   }, [loadCompanyOverview]);
 
   const loadCompanyCustomers = useCallback(async () => {
+    const requestId = ++customersRequest.current;
     if (!supabase || !selectedCompanyId) {
       setCompanyCustomers([]);
       setCustomersError('');
+      setCustomersLoading(false);
       return;
     }
     setCustomersLoading(true);
     const { data, error: queryError } = await supabase.from('customers')
       .select('id,company_id,name,phone,email,city_state,created_at,address,notes,cpf,rg,zip,neighborhood')
       .eq('company_id', selectedCompanyId).order('created_at', { ascending: false }).limit(500);
+    if (requestId !== customersRequest.current) return;
     if (queryError) {
       setCompanyCustomers([]);
       setCustomersError('Não foi possível carregar os clientes desta empresa.');
@@ -194,15 +204,18 @@ export default function PlatformAdminPage() {
   }
 
   const loadConversations = useCallback(async () => {
+    const requestId = ++conversationsRequest.current;
     if (!supabase || !selectedCompanyId) {
       setConversations([]);
       setSelectedConversationId('');
+      setConversationsLoading(false);
       return;
     }
     setConversationsLoading(true);
     const { data, error: queryError } = await supabase.from('team_conversations')
       .select('id,company_id,conversation_type,title,created_by,created_at')
       .eq('company_id', selectedCompanyId).order('created_at', { ascending: false });
+    if (requestId !== conversationsRequest.current) return;
     if (queryError) {
       setError('Não foi possível carregar as conversas desta empresa.');
       setConversations([]);
@@ -223,14 +236,17 @@ export default function PlatformAdminPage() {
   }, [loadConversations]);
 
   const loadMessages = useCallback(async () => {
+    const requestId = ++messagesRequest.current;
     if (!supabase || !selectedConversationId) {
       setMessages([]);
+      setMessagesLoading(false);
       return;
     }
     setMessagesLoading(true);
     const { data, error: queryError } = await supabase.from('team_messages')
       .select('id,conversation_id,sender_id,body,created_at')
       .eq('conversation_id', selectedConversationId).order('created_at', { ascending: false }).limit(300);
+    if (requestId !== messagesRequest.current) return;
     if (queryError) {
       setError('Não foi possível carregar as mensagens desta conversa.');
       setMessages([]);
