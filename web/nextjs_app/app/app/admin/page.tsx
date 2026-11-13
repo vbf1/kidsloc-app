@@ -75,7 +75,8 @@ export default function PlatformAdminPage() {
       return;
     }
     setOverviewLoading(true);
-    const companyFilter = (table: string) => supabase.from(table).select('id', { count: 'exact', head: true }).eq('company_id', selectedCompanyId);
+    const client = supabase;
+    const companyFilter = (table: string) => client.from(table).select('id', { count: 'exact', head: true }).eq('company_id', selectedCompanyId);
     const results = await Promise.all([
       companyFilter('company_members'),
       companyFilter('customers'),
