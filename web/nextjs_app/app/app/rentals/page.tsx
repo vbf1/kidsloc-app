@@ -6,7 +6,7 @@ import { AppShell } from '../../../components/app-shell';
 import { RentalForm } from '../../../components/rental-form';
 import { RentalList } from '../../../components/rental-list';
 import {
-  EMPTY_RENTAL, formatRentalDate, matchesRentalSearch, normalizeRentalSearch,
+  EMPTY_RENTAL, matchesRentalSearch,
   parseRentalPrice, type RentalCustomer, type RentalFormValues, type RentalItemRecord,
   type RentalMember, type RentalProduct, type RentalRecord, type RentalStatus,
 } from '../../../lib/rentals';
@@ -156,6 +156,7 @@ export default function RentalsPage() {
           customer_name: customerById.get(rental.customer_id)?.name ?? 'Cliente não disponível',
           items: itemsByRental.get(rental.id) ?? [],
           responsible_names: responsibleNamesByRental.get(rental.id) ?? [],
+          responsible_user_ids: (responsibleResult.data ?? []).filter((responsible) => responsible.rental_id === rental.id && responsible.user_id).map((responsible) => responsible.user_id as string),
         })) as RentalRecord[]);
         setCustomers((customerResult.data ?? []) as RentalCustomer[]);
         setProducts((productResult.data ?? []) as RentalProduct[]);
@@ -304,7 +305,7 @@ export default function RentalsPage() {
             status: editingRental.status, delivery_method: editingRental.delivery_method,
             delivery_address: editingRental.delivery_address ?? '',
             total_amount: String(editingRental.total_amount).replace('.', ','),
-            responsible_user_ids: [], items: editingRental.items.map((item) => ({
+            responsible_user_ids: editingRental.responsible_user_ids, items: editingRental.items.map((item) => ({
               product_id: item.product_id, quantity: String(item.quantity),
               unit_price: String(item.unit_price).replace('.', ','),
             })),
