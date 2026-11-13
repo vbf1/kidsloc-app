@@ -8,9 +8,11 @@ export function AppNavigation({ basePath }: AppNavigationProps) {
   const dashboardHref = basePath + '/app/';
   const customersHref = basePath + '/app/customers/';
   const productsHref = basePath + '/app/products/';
+  const rentalsHref = basePath + '/app/rentals/';
   const isCustomers = pathname.endsWith('/app/customers') || pathname.endsWith('/app/customers/');
   const isProducts = pathname.endsWith('/app/products') || pathname.endsWith('/app/products/');
-  const isDashboard = !isCustomers && !isProducts;
+  const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
+  const isDashboard = !isCustomers && !isProducts && !isRentals;
   const linkClass = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition';
   const activeClass = linkClass + ' bg-purple-50 text-[#6840bd]';
   const inactiveClass = linkClass + ' text-gray-700 hover:bg-purple-50 hover:text-[#6840bd]';
@@ -31,6 +33,9 @@ export function AppNavigation({ basePath }: AppNavigationProps) {
           </a>
           <a href={productsHref} aria-current={isProducts ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isProducts ? activeClass : inactiveClass}>
             <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">🧸</span>Brinquedos e serviços
+          </a>
+          <a href={rentalsHref} aria-current={isRentals ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isRentals ? activeClass : inactiveClass}>
+            <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">📅</span>Locações
           </a>
         </div>
       </div>
