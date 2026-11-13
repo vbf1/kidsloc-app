@@ -75,6 +75,7 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
 
@@ -161,6 +162,27 @@ export default function ProductsPage() {
       setFormError('Ocorreu um erro ao salvar o item. Confira sua conexão e tente novamente.');
     } finally { setSaving(false); }
   }
+  async function deleteProduct(product: ProductRecord) {
+    if (!supabase || !companyId || deletingProductId) return;
+    const confirmed = window.confirm(`Tem certeza de que deseja excluir "${product.name}"? Essa ação não poderá ser desfeita.`);
+    if (!confirmed) return;
+    setDeletingProductId(product.id); setListError(''); setNotice('');
+    try {
+      const { error } = await supabase.from('products').delete()
+        .eq('id', product.id).eq('company_id', companyId);
+      if (error) {
+        setListError(error.code === '23503'
+          ? 'Não é possível excluir este item porque ele possui histórico de locações, estoque ou manutenção. Você pode deixá-lo inativo.'
+          : 'Não foi possível excluir o item. Verifique se sua conta tem permissão de administrador ou proprietário.');
+        return;
+      }
+      setNotice('Item excluído com sucesso.');
+      if (products.length === 1 && page > 0) setPage((current) => current - 1);
+      setRefreshIndex((current) => current + 1);
+    } catch {
+      setListError('Ocorreu um erro ao excluir o item. Confira sua conexão e tente novamente.');
+    } finally { setDeletingProductId(null); }
+  }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim()); setListLoading(true); setNotice('');
     setRefreshIndex((current) => current + 1);
@@ -222,7 +244,7 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
-        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={PRODUCT_PAGE_SIZE} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
+        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={PRODUCT_PAGE_SIZE} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={deleteProduct} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
       </section>
     </AppShell>
   );
