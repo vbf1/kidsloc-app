@@ -1,8 +1,18 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(7);
+select plan(9);
 select has_table('public', 'customers', 'customers table exists');
 select ok((select relrowsecurity from pg_class where oid = 'public.customers'::regclass), 'RLS is enabled on customers');
+select ok(
+  exists (
+    select 1 from pg_policy
+    where polrelid = 'public.customers'::regclass
+      and polname = 'customers_prevent_delete_authenticated'
+      and not polpermissive
+      and polcmd = 'd'
+  ),
+  'authenticated customer DELETE is blocked by a restrictive policy'
+);
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
   ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'customers-owner@example.test', '', now(), now()),
@@ -37,5 +47,11 @@ where id = '40000000-0000-4000-8000-000000000001';
 reset role;
 select is((select name from public.customers where id = '40000000-0000-4000-8000-000000000001'),
   'Cliente da empresa dona', 'another company cannot update this company customer');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
+delete from public.customers where id = '40000000-0000-4000-8000-000000000001';
+reset role;
+select is((select count(*)::int from public.customers where id = '40000000-0000-4000-8000-000000000001'),
+  1, 'company owner cannot delete a customer even through direct SQL/API access');
 select * from finish();
 rollback;
