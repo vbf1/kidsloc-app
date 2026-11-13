@@ -6,7 +6,7 @@ import { AppShell } from '../../../components/app-shell';
 import { ProductForm } from '../../../components/product-form';
 import { ProductList } from '../../../components/product-list';
 import { ProductUnitManager } from '../../../components/product-unit-manager';
-import { buildProductSearchFilter, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
+import { matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
@@ -129,18 +129,23 @@ export default function ProductsPage() {
       setListLoading(true);
       setListError('');
       try {
-        const filter = buildProductSearchFilter(searchTerm);
         let request = client.from('products').select(PRODUCT_COLUMNS, { count: 'exact' })
-          .eq('company_id', companyId).order('name', { ascending: true })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-        if (filter) request = request.or(filter);
+          .eq('company_id', companyId).order('name', { ascending: true });
         if (typeFilter !== 'all') request = request.eq('item_type', typeFilter);
         if (statusFilter !== 'all') request = request.eq('active', statusFilter === 'active');
+        if (!searchTerm) request = request.range(page * pageSize, (page + 1) * pageSize - 1);
         const { data, error, count } = await request;
         if (!active) return;
         if (error) { setListError('Não foi possível carregar o catálogo. Tente novamente.'); return; }
-        setProducts((data ?? []) as ProductRecord[]);
-        setTotalCount(count ?? 0);
+        const records = (data ?? []) as ProductRecord[];
+        if (searchTerm) {
+          const matches = records.filter((product) => matchesProductSearch(product, searchTerm));
+          setTotalCount(matches.length);
+          setProducts(matches.slice(page * pageSize, (page + 1) * pageSize));
+        } else {
+          setProducts(records);
+          setTotalCount(count ?? 0);
+        }
       } catch {
         if (active) setListError('Ocorreu um erro ao carregar o catálogo. Confira sua conexão.');
       } finally { if (active) setListLoading(false); }
