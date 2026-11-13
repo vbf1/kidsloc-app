@@ -35,6 +35,7 @@ export function RentalForm({
       ? [...initialValues.responsible_user_ids] : (!isEditing && currentUserId ? [currentUserId] : []),
     items: initialValues.items.map((item) => ({ ...item })),
   }));
+  const [pricingMode, setPricingMode] = useState<'individual' | 'combo'>(() => initialValues.items.length > 0 && initialValues.items.every((item) => parseRentalPrice(item.unit_price) === 0) && (parseRentalPrice(initialValues.total_amount) ?? 0) > 0 ? 'combo' : 'individual');
   const [fieldErrors, setFieldErrors] = useState<RentalFieldErrors>({});
   const [productToAdd, setProductToAdd] = useState('');
   const availableProducts = useMemo(() => products.filter((product) => product.item_type !== 'service' && !values.items.some((item) => item.product_id === product.id)), [products, values.items]);
@@ -47,30 +48,39 @@ export function RentalForm({
     if (!product || values.items.some((item) => item.product_id === product.id)) return;
     const nextItems = [...values.items, {
       product_id: product.id, quantity: '1',
-      unit_price: moneyInput(defaultRentalUnitPrice(product, values.start_date, values.end_date)),
+      unit_price: pricingMode === 'combo' ? '0,00' : moneyInput(defaultRentalUnitPrice(product, values.start_date, values.end_date)),
     }];
-    setValues((current) => ({ ...current, items: nextItems, total_amount: moneyInput(rentalItemsTotal(nextItems)) }));
+    setValues((current) => ({ ...current, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
     setFieldErrors((current) => ({ ...current, items: undefined }));
     setProductToAdd('');
   }
   function updateItem(index: number, field: 'quantity' | 'unit_price', value: string) {
     const nextItems = values.items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
-    setValues((current) => ({ ...current, items: nextItems, total_amount: moneyInput(rentalItemsTotal(nextItems)) }));
+    setValues((current) => ({ ...current, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
     setFieldErrors((current) => ({ ...current, items: undefined }));
   }
   function removeItem(index: number) {
     const nextItems = values.items.filter((_, itemIndex) => itemIndex !== index);
-    setValues((current) => ({ ...current, items: nextItems, total_amount: moneyInput(rentalItemsTotal(nextItems)) }));
+    setValues((current) => ({ ...current, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
   }
   function updateDate(field: 'start_date' | 'end_date', value: string) {
     const next = { ...values, [field]: value };
     const nextItems = values.items.map((item) => {
       const product = products.find((candidate) => candidate.id === item.product_id);
-      if (!product || product.item_type !== 'toy') return item;
+      if (pricingMode === 'combo' || !product || product.item_type !== 'toy') return item;
       return { ...item, unit_price: moneyInput(defaultRentalUnitPrice(product, next.start_date, next.end_date)) };
     });
-    setValues((current) => ({ ...current, [field]: value, items: nextItems, total_amount: moneyInput(rentalItemsTotal(nextItems)) }));
+    setValues((current) => ({ ...current, [field]: value, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
     setFieldErrors((current) => ({ ...current, [field]: undefined, end_date: undefined }));
+  }
+  function changePricingMode(mode: 'individual' | 'combo') {
+    setPricingMode(mode);
+    const nextItems = values.items.map((item) => {
+      if (mode === 'combo') return { ...item, unit_price: '0,00' };
+      const product = products.find((candidate) => candidate.id === item.product_id);
+      return product ? { ...item, unit_price: moneyInput(defaultRentalUnitPrice(product, values.start_date, values.end_date)) } : item;
+    });
+    setValues((current) => ({ ...current, items: nextItems, total_amount: mode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
   }
   function toggleResponsible(userId: string, checked: boolean) {
     const next = checked
@@ -153,6 +163,19 @@ export function RentalForm({
       </section>
       <section aria-labelledby="rental-items-heading">
         <h3 id="rental-items-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Itens da locação</h3>
+        <fieldset className="mb-4 rounded-xl border border-gray-200 p-3">
+          <legend className="px-1 text-sm font-semibold text-gray-800">Forma de cobrança</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className={'flex cursor-pointer items-start gap-3 rounded-lg border p-3 ' + (pricingMode === 'individual' ? 'border-purple-300 bg-purple-50' : 'border-gray-200')}>
+              <input type="radio" name="rental-pricing-mode" checked={pricingMode === 'individual'} onChange={() => changePricingMode('individual')} disabled={saving} className="mt-1 accent-[#8054d8]" />
+              <span><strong className="block text-sm text-gray-900">Preço por equipamento</strong><span className="text-xs text-gray-500">Cada item tem seu preço individual.</span></span>
+            </label>
+            <label className={'flex cursor-pointer items-start gap-3 rounded-lg border p-3 ' + (pricingMode === 'combo' ? 'border-purple-300 bg-purple-50' : 'border-gray-200')}>
+              <input type="radio" name="rental-pricing-mode" checked={pricingMode === 'combo'} onChange={() => changePricingMode('combo')} disabled={saving} className="mt-1 accent-[#8054d8]" />
+              <span><strong className="block text-sm text-gray-900">Combo / pacote fechado</strong><span className="text-xs text-gray-500">Um único valor para todos os equipamentos selecionados.</span></span>
+            </label>
+          </div>
+        </fieldset>
         <div className="flex flex-col gap-2 sm:flex-row">
           <label className="sr-only" htmlFor="rental-product-to-add">Adicionar item</label>
           <select id="rental-product-to-add" value={productToAdd} onChange={(event) => setProductToAdd(event.target.value)} className={inputClass + ' mt-0 min-w-0 flex-1'} disabled={saving || !availableProducts.length}>
@@ -167,16 +190,16 @@ export function RentalForm({
             {values.items.map((item, index) => {
               const product = products.find((candidate) => candidate.id === item.product_id);
               return (
-                <div key={item.product_id} className="grid gap-3 rounded-xl border border-gray-200 p-3 sm:grid-cols-[minmax(0,1fr)_100px_150px_auto] sm:items-end">
+                <div key={item.product_id} className={'grid gap-3 rounded-xl border border-gray-200 p-3 sm:items-end ' + (pricingMode === 'combo' ? 'sm:grid-cols-[minmax(0,1fr)_100px_auto]' : 'sm:grid-cols-[minmax(0,1fr)_100px_150px_auto]')}>
                   <div className="min-w-0"><p className="text-sm font-semibold text-gray-900">{product?.name ?? 'Item do catálogo'}</p><p className="mt-1 text-xs text-gray-500">{product?.item_type === 'toy' ? 'Preço por dia × período' : 'Preço por evento'}</p></div>
                   <label className={labelClass}>Quantidade
                     <input type="number" min="1" max="1000000" step="1" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} className={inputClass} disabled={saving} />
                   </label>
-                  <label className={labelClass}>Preço unitário (R$)
+                  {pricingMode === 'individual' ? <label className={labelClass}>Preço unitário (R$)
                     <input inputMode="decimal" value={item.unit_price} onChange={(event) => updateItem(index, 'unit_price', event.target.value)} className={inputClass} disabled={saving} />
-                  </label>
+                  </label> : <p className="self-center text-sm font-medium text-purple-700">Incluído no combo</p>}
                   <button type="button" onClick={() => removeItem(index)} disabled={saving} className="rounded-xl border border-red-100 px-3 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button>
-                  <p className="text-xs text-gray-500 sm:col-span-4">Subtotal: <strong className="text-gray-800">{formatRentalPrice((Number(item.quantity) || 0) * (parseRentalPrice(item.unit_price) ?? 0))}</strong></p>
+                  <p className={'text-xs text-gray-500 ' + (pricingMode === 'combo' ? 'sm:col-span-3' : 'sm:col-span-4')}>{pricingMode === 'combo' ? 'Equipamento incluído no valor fechado do pacote.' : <>Subtotal: <strong className="text-gray-800">{formatRentalPrice((Number(item.quantity) || 0) * (parseRentalPrice(item.unit_price) ?? 0))}</strong></>}</p>
                 </div>
               );
             })}
@@ -185,8 +208,9 @@ export function RentalForm({
       </section>
       <section aria-labelledby="rental-total-heading">
         <h3 id="rental-total-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Valor</h3>
-        <label className={labelClass}>Valor total da locação (R$) *
+        <label className={labelClass}>{pricingMode === 'combo' ? 'Valor total do combo (R$) *' : 'Valor total da locação (R$) *' }
           <input inputMode="decimal" value={values.total_amount} onChange={(event) => updateField('total_amount', event.target.value)} className={inputClass} disabled={saving} />
+          {pricingMode === 'combo' && <span className="mt-1 block text-xs font-normal text-gray-500">Informe o preço combinado para todos os equipamentos do pacote.</span>}
           {fieldErrors.total_amount && <FieldFeedback id="rental-total-error">{fieldErrors.total_amount}</FieldFeedback>}
         </label>
       </section>
