@@ -1,5 +1,7 @@
 'use client';
 
+// This workspace is reserved for the KidsLoc platform owner and is read-only for conversations.
+
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
