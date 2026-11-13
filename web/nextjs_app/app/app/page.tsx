@@ -45,6 +45,16 @@ export default function AppHomePage() {
         return;
       }
 
+      const { data: isPlatformOwner, error: ownerError } = await supabase.rpc('is_platform_owner_for_company');
+      if (ownerError) {
+        setMessage('Não foi possível confirmar as permissões da conta. Tente novamente.');
+        return;
+      }
+      if (isPlatformOwner === true) {
+        router.replace('/app/admin/');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('company_members')
         .select('companies(name)')
