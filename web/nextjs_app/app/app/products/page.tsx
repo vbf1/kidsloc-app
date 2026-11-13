@@ -8,6 +8,7 @@ import { ProductList } from '../../../components/product-list';
 import { ProductUnitManager } from '../../../components/product-unit-manager';
 import { buildProductSearchFilter, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
+import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
 
 const PRODUCT_COLUMNS = 'id,company_id,name,description,item_type,inventory_mode,total_quantity,daily_price,event_price,active,notes,created_at,updated_at';
@@ -79,9 +80,11 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  const [formScrollRequest, setFormScrollRequest] = useState(0);
   const formContainerRef = useRef<HTMLDivElement>(null);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
+  const [unitsScrollRequest, setUnitsScrollRequest] = useState(0);
   const [saving, setSaving] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [productToDelete, setProductToDelete] = useState<ProductRecord | null>(null);
@@ -115,9 +118,7 @@ export default function ProductsPage() {
     return () => { active = false; };
   }, [router]);
 
-  useEffect(() => {
-    if (formOpen) formContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [formOpen, editingProduct?.id]);
+  useScrollIntoViewOnChange(formContainerRef, formOpen ? `${editingProduct?.id ?? 'new'}-${formScrollRequest}` : null);
 
   useEffect(() => {
     if (!companyId || !supabase) return;
@@ -147,8 +148,8 @@ export default function ProductsPage() {
     return () => { active = false; };
   }, [companyId, page, pageSize, searchTerm, typeFilter, statusFilter, refreshIndex]);
 
-  function openNewProduct() { setEditingProduct(null); setFormError(''); setFormOpen(true); setNotice(''); }
-  function openEditProduct(product: ProductRecord) { setEditingProduct(product); setFormError(''); setFormOpen(true); setNotice(''); }
+  function openNewProduct() { setEditingProduct(null); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
+  function openEditProduct(product: ProductRecord) { setEditingProduct(product); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
   function closeForm() { if (saving) return; setFormOpen(false); setEditingProduct(null); setFormError(''); }
   async function saveProduct(values: ProductFormValues) {
     if (!supabase || !companyId || saving) return;
@@ -238,7 +239,7 @@ export default function ProductsPage() {
           </section>
         </div>}
         {formOpen && <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
-        {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
+        {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} scrollRequest={unitsScrollRequest} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
           <input id="product-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por nome, descrição ou observações" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
@@ -262,7 +263,7 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
-        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
+        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setUnitsScrollRequest((current) => current + 1); setFormOpen(false); setEditingProduct(null); }} />
       </section>
     </AppShell>
   );
