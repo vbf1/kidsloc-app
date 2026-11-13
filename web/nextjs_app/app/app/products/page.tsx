@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
@@ -71,6 +71,7 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  const formContainerRef = useRef<HTMLDivElement>(null);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
   const [saving, setSaving] = useState(false);
@@ -103,6 +104,10 @@ export default function ProductsPage() {
     void loadAccess();
     return () => { active = false; };
   }, [router]);
+
+  useEffect(() => {
+    if (formOpen) formContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [formOpen, editingProduct?.id]);
 
   useEffect(() => {
     if (!companyId || !supabase) return;
@@ -192,7 +197,7 @@ export default function ProductsPage() {
           {!formOpen && <button type="button" onClick={openNewProduct} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Novo item</button>}
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
-        {formOpen && <div className="mb-6 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
+        {formOpen && <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
         {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
