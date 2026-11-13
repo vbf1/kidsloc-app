@@ -147,12 +147,14 @@ export default function PlatformAdminPage() {
     if (!supabase || !selectedCompanyId || !editingCustomer) return;
     setCustomerSaving(true);
     setCustomerFormError('');
-    const { error: updateError } = await supabase.from('customers')
+    const { data: updatedCustomer, error: updateError } = await supabase.from('customers')
       .update({ ...values, updated_at: new Date().toISOString() })
       .eq('id', editingCustomer.id)
-      .eq('company_id', selectedCompanyId);
-    if (updateError) {
-      setCustomerFormError('Não foi possível salvar as alterações. Confira os dados e tente novamente.');
+      .eq('company_id', selectedCompanyId)
+      .select('id')
+      .maybeSingle();
+    if (updateError || !updatedCustomer) {
+      setCustomerFormError('Não foi possível confirmar a atualização. Confira os dados e tente novamente.');
       setCustomerSaving(false);
       return;
     }
