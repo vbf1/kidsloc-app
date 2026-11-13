@@ -1,4 +1,4 @@
-export type ProductType = 'toy' | 'service';
+export type ProductType = 'toy' | 'machine' | 'service';
 export type InventoryMode = 'quantity' | 'individual';
 export type ProductRecord = {
   id: string; company_id: string; name: string; description: string | null;
@@ -8,12 +8,12 @@ export type ProductRecord = {
 };
 export type ProductFormValues = {
   name: string; description: string; item_type: ProductType; inventory_mode: InventoryMode;
-  total_quantity: string; price: string; active: boolean; notes: string;
+  total_quantity: string; price: string; price_mode: 'daily' | 'event'; active: boolean; notes: string;
 };
 export type ProductFieldErrors = Partial<Record<keyof ProductFormValues, string>>;
 export const EMPTY_PRODUCT: ProductFormValues = {
   name: '', description: '', item_type: 'toy', inventory_mode: 'quantity',
-  total_quantity: '1', price: '', active: true, notes: '',
+  total_quantity: '1', price: '', price_mode: 'daily', active: true, notes: '',
 };
 export const PRODUCT_PAGE_SIZE = 20;
 export function parsePrice(value: string): number | null {
@@ -44,7 +44,7 @@ export function validateProduct(values: ProductFormValues): ProductFieldErrors {
   if (normalized.name.length < 2 || normalized.name.length > 160) errors.name = 'Informe um nome entre 2 e 160 caracteres.';
   if (normalized.description.length > 1000) errors.description = 'A descrição deve ter no máximo 1.000 caracteres.';
   if (normalized.notes.length > 2000) errors.notes = 'As observações devem ter no máximo 2.000 caracteres.';
-  if (values.item_type === 'toy' && (!/^\d+$/.test(values.total_quantity.trim()) || Number(values.total_quantity) < 0 || Number(values.total_quantity) > 1000000)) {
+  if (values.item_type !== 'service' && (!/^\d+$/.test(values.total_quantity.trim()) || Number(values.total_quantity) < 0 || Number(values.total_quantity) > 1000000)) {
     errors.total_quantity = 'Informe uma quantidade inteira entre 0 e 1.000.000.';
   }
   if (parsePrice(values.price) === null) errors.price = 'Informe um preço válido, com até duas casas decimais.';
