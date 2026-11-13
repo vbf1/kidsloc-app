@@ -35,7 +35,7 @@ export function RentalForm({
       ? [...initialValues.responsible_user_ids] : (!isEditing && currentUserId ? [currentUserId] : []),
     items: initialValues.items.map((item) => ({ ...item })),
   }));
-  const [pricingMode, setPricingMode] = useState<'individual' | 'combo'>(() => initialValues.items.length > 0 && initialValues.items.every((item) => parseRentalPrice(item.unit_price) === 0) && (parseRentalPrice(initialValues.total_amount) ?? 0) > 0 ? 'combo' : 'individual');
+  const [pricingMode, setPricingMode] = useState<'individual' | 'combo'>(() => initialValues.items.length > 0 && initialValues.items.every((item) => parseRentalPrice(item.unit_price) === 0) ? 'combo' : 'individual');
   const [fieldErrors, setFieldErrors] = useState<RentalFieldErrors>({});
   const [productToAdd, setProductToAdd] = useState('');
   const availableProducts = useMemo(() => products.filter((product) => product.item_type !== 'service' && !values.items.some((item) => item.product_id === product.id)), [products, values.items]);
@@ -155,7 +155,7 @@ export function RentalForm({
               <option value="customer_pickup">Retirada pelo cliente</option><option value="delivery">Entrega no endereço</option>
             </select>
           </label>
-          {values.delivery_method === 'delivery' && <label className={labelClass + ' sm:col-span-2'}>Endereço de entrega *
+          {values.delivery_method === 'delivery' && <label className={labelClass + ' sm:col-span-2'}>Endereço de entrega (opcional)
             <textarea rows={2} maxLength={500} value={values.delivery_address} onChange={(event) => updateField('delivery_address', event.target.value)} className={inputClass} placeholder="Rua, número, bairro, cidade" disabled={saving} />
             {fieldErrors.delivery_address && <FieldFeedback id="rental-address-error">{fieldErrors.delivery_address}</FieldFeedback>}
           </label>}
