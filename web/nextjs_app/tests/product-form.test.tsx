@@ -19,6 +19,19 @@ describe('ProductForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Cama Elástica', item_type: 'toy', price: '80,00' }), null, false));
   });
+  it('submits a toy using individual-unit inventory and preserves its quantity', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<ProductForm saving={false} error="" onCancel={vi.fn()} onSubmit={onSubmit} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Controle de estoque' }));
+    fireEvent.click(screen.getByRole('option', { name: /Unidades individuais/ }));
+    fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Cama elástica' } });
+    fireEvent.change(screen.getByLabelText('Preço por dia (R$) *'), { target: { value: '120,00' } });
+    fireEvent.change(screen.getByLabelText('Quantidade total *'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Cama elástica', item_type: 'toy', inventory_mode: 'individual', total_quantity: '3', price: '120,00',
+    }), null, false));
+  });
   it('switches to service fields and submits event price without stock', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<ProductForm saving={false} error="" onCancel={vi.fn()} onSubmit={onSubmit} />);
@@ -45,5 +58,4 @@ describe('ProductForm', () => {
       name: 'Máquina de pipoca', item_type: 'machine', price_mode: 'event', total_quantity: '1',
     }), null, false));
   });
-
 });
