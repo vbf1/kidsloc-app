@@ -10,6 +10,7 @@ type Company = { id: string; name: string; created_at: string };
 type CompanyOverview = { members: number; customers: number; products: number; rentals: number; financialTransactions: number };
 type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
+type CompanyCustomer = { id: string; name: string; phone: string | null; email: string | null; city_state: string | null; created_at: string };
 const panelClass = 'rounded-2xl border border-purple-100 bg-white p-5 shadow-sm';
 const buttonClass = 'rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50';
 
@@ -21,6 +22,10 @@ export default function PlatformAdminPage() {
   const [companyOverview, setCompanyOverview] = useState<CompanyOverview | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState('');
+  const [companyCustomers, setCompanyCustomers] = useState<CompanyCustomer[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customersError, setCustomersError] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -107,6 +112,32 @@ export default function PlatformAdminPage() {
     void loadCompanyOverview();
   }, [loadCompanyOverview]);
 
+  const loadCompanyCustomers = useCallback(async () => {
+    if (!supabase || !selectedCompanyId) {
+      setCompanyCustomers([]);
+      setCustomersError('');
+      return;
+    }
+    setCustomersLoading(true);
+    const { data, error: queryError } = await supabase.from('customers')
+      .select('id,name,phone,email,city_state,created_at')
+      .eq('company_id', selectedCompanyId).order('created_at', { ascending: false }).limit(500);
+    if (queryError) {
+      setCompanyCustomers([]);
+      setCustomersError('Não foi possível carregar os clientes desta empresa.');
+    } else {
+      setCompanyCustomers((data ?? []) as CompanyCustomer[]);
+      setCustomersError('');
+    }
+    setCustomersLoading(false);
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    // Load only records belonging to the selected company.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadCompanyCustomers();
+  }, [loadCompanyCustomers]);
+
   const loadConversations = useCallback(async () => {
     if (!supabase || !selectedCompanyId) {
       setConversations([]);
@@ -166,6 +197,7 @@ export default function PlatformAdminPage() {
     setRefreshing(true);
     await loadCompanies();
     await loadCompanyOverview();
+    await loadCompanyCustomers();
     await loadConversations();
     await loadMessages();
     setRefreshing(false);
@@ -226,6 +258,25 @@ export default function PlatformAdminPage() {
             </div>
           )}
           <p className="mt-3 text-xs text-gray-400">Este resumo não permite editar, cadastrar ou excluir informações da empresa.</p>
+        </section>
+        <section className={panelClass}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><h2 className="text-lg font-bold">Clientes da empresa</h2><p className="text-sm text-gray-500">Consulta dos cadastros de {selectedCompany?.name ?? 'empresa selecionada'}</p></div>
+            <label className="text-sm font-medium">Buscar cliente
+              <input value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Nome, telefone ou e-mail" className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 font-normal sm:w-64" />
+            </label>
+          </div>
+          {customersError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{customersError}</p>}
+          {customersLoading ? <p className="mt-4 text-sm text-gray-500">Carregando clientes...</p> : (() => {
+            const term = customerSearch.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
+            const filtered = companyCustomers.filter((customer) => [customer.name, customer.phone ?? '', customer.email ?? '', customer.city_state ?? '']
+              .some((value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(term)));
+            return filtered.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[600px] text-left text-sm">
+              <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Nome</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Cidade / UF</th></tr></thead>
+              <tbody>{filtered.map((customer) => <tr key={customer.id} className="border-b border-gray-50"><td className="px-3 py-3 font-semibold">{customer.name}</td><td className="px-3 py-3">{customer.phone || '—'}</td><td className="px-3 py-3">{customer.email || '—'}</td><td className="px-3 py-3">{customer.city_state || '—'}</td></tr>)}</tbody>
+            </table><p className="mt-3 text-xs text-gray-400">Exibindo {filtered.length} de até 500 clientes carregados. Consulta somente leitura.</p></div>
+            : <p className="mt-4 text-sm text-gray-500">Nenhum cliente encontrado.</p>;
+          })()}
         </section>
         <section className="grid gap-6 lg:grid-cols-[minmax(260px,.8fr)_minmax(0,1.5fr)]">
           <div className={panelClass}>
