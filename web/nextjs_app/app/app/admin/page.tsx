@@ -1,0 +1,187 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../../lib/supabase';
+
+type Company = { id: string; name: string; created_at: string };
+type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
+type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
+
+const panelClass = 'rounded-2xl border border-purple-100 bg-white p-5 shadow-sm';
+const buttonClass = 'rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50';
+
+export default function PlatformAdminPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadCompanies = useCallback(async () => {
+    if (!supabase) {
+      setError('O acesso ainda não está configurado.');
+      return;
+    }
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      router.replace('/login/');
+      return;
+    }
+    setEmail(user.email ?? '');
+    const { data: isOwner, error: ownerError } = await supabase.rpc('is_platform_owner_for_company');
+    if (ownerError || isOwner !== true) {
+      router.replace('/app/');
+      return;
+    }
+    const { data, error: companiesError } = await supabase.from('companies')
+      .select('id,name,created_at').order('created_at', { ascending: false });
+    if (companiesError) {
+      setError('Não foi possível carregar as empresas cadastradas.');
+      return;
+    }
+    const rows = (data ?? []) as Company[];
+    setCompanies(rows);
+    setSelectedCompanyId((current) => current && rows.some((company) => company.id === current) ? current : rows[0]?.id ?? '');
+    setError('');
+  }, [router]);
+
+  useEffect(() => {
+    let active = true;
+    async function initialize() {
+      await loadCompanies();
+      if (active) setLoading(false);
+    }
+    void initialize();
+    return () => { active = false; };
+  }, [loadCompanies]);
+
+  const loadConversations = useCallback(async () => {
+    if (!supabase || !selectedCompanyId) {
+      setConversations([]);
+      setSelectedConversationId('');
+      return;
+    }
+    setConversationsLoading(true);
+    const { data, error: queryError } = await supabase.from('team_conversations')
+      .select('id,company_id,conversation_type,title,created_by,created_at')
+      .eq('company_id', selectedCompanyId).order('created_at', { ascending: false });
+    if (queryError) {
+      setError('Não foi possível carregar as conversas desta empresa.');
+      setConversations([]);
+      setSelectedConversationId('');
+    } else {
+      const rows = (data ?? []) as Conversation[];
+      setConversations(rows);
+      setSelectedConversationId((current) => current && rows.some((item) => item.id === current) ? current : rows[0]?.id ?? '');
+      setError('');
+    }
+    setConversationsLoading(false);
+  }, [selectedCompanyId]);
+
+  useEffect(() => { void loadConversations(); }, [loadConversations]);
+
+  const loadMessages = useCallback(async () => {
+    if (!supabase || !selectedConversationId) {
+      setMessages([]);
+      return;
+    }
+    setMessagesLoading(true);
+    const { data, error: queryError } = await supabase.from('team_messages')
+      .select('id,conversation_id,sender_id,body,created_at')
+      .eq('conversation_id', selectedConversationId).order('created_at', { ascending: true }).limit(300);
+    if (queryError) {
+      setError('Não foi possível carregar as mensagens desta conversa.');
+      setMessages([]);
+    } else {
+      setMessages((data ?? []) as Message[]);
+      setError('');
+    }
+    setMessagesLoading(false);
+  }, [selectedConversationId]);
+
+  useEffect(() => { void loadMessages(); }, [loadMessages]);
+
+  async function refreshAll() {
+    if (refreshing) return;
+    setRefreshing(true);
+    await loadCompanies();
+    await loadConversations();
+    await loadMessages();
+    setRefreshing(false);
+  }
+
+  async function signOut() {
+    if (!supabase) return;
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (!signOutError) router.push('/login/');
+    else setError('Não foi possível encerrar sua sessão. Tente novamente.');
+  }
+
+  const selectedCompany = companies.find((company) => company.id === selectedCompanyId);
+  const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
+
+  if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso administrativo...</p></main>;
+
+  return (
+    <main className="min-h-screen bg-[#f8f7fc] text-gray-900">
+      <header className="border-b border-purple-100 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
+            <div><p className="text-xl font-bold">KidsLoc <span className="text-[#8054d8]">Admin</span></p><p className="text-xs text-gray-500">Proprietário da plataforma</p></div>
+          </div>
+          <button type="button" onClick={() => void signOut()} className={buttonClass}>Sair</button>
+        </div>
+      </header>
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <section className="flex flex-wrap items-end justify-between gap-4">
+          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Administração global</p><h1 className="mt-2 text-3xl font-bold">Painel do proprietário</h1><p className="mt-2 text-sm text-gray-500">Acompanhamento das empresas e das conversas internas. {email}</p></div>
+          <button type="button" onClick={() => void refreshAll()} disabled={refreshing} className={buttonClass}>{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
+        </section>
+        {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        <section className={panelClass}>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Empresas cadastradas</h2><p className="text-sm text-gray-500">{companies.length} empresa(s) encontradas</p></div>
+            <label className="min-w-64 text-sm font-semibold">Selecionar empresa
+              <select value={selectedCompanyId} onChange={(event) => { setSelectedCompanyId(event.target.value); setSelectedConversationId(''); setMessages([]); }} className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 font-normal">
+                {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+              </select>
+            </label>
+          </div>
+          {!companies.length && <p className="mt-4 text-sm text-gray-500">Ainda não há empresas cadastradas.</p>}
+        </section>
+        <section className="grid gap-6 lg:grid-cols-[minmax(260px,.8fr)_minmax(0,1.5fr)]">
+          <div className={panelClass}>
+            <h2 className="text-lg font-bold">Conversas</h2>
+            <p className="mb-4 text-sm text-gray-500">{selectedCompany?.name ?? 'Selecione uma empresa'}</p>
+            {conversationsLoading ? <p className="text-sm text-gray-500">Carregando conversas...</p> : conversations.length ? (
+              <ul className="space-y-2">{conversations.map((conversation) => <li key={conversation.id}>
+                <button type="button" onClick={() => setSelectedConversationId(conversation.id)} className={'w-full rounded-xl border p-3 text-left transition ' + (selectedConversationId === conversation.id ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:bg-gray-50')}>
+                  <span className="block font-semibold">{conversation.title?.trim() || (conversation.conversation_type === 'direct' ? 'Conversa direta' : 'Conversa da equipe')}</span>
+                  <span className="mt-1 block text-xs text-gray-500">{new Date(conversation.created_at).toLocaleString('pt-BR')}</span>
+                </button>
+              </li>)}</ul>
+            ) : <p className="text-sm text-gray-500">Nenhuma conversa cadastrada para esta empresa.</p>}
+          </div>
+          <div className={panelClass}>
+            <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-lg font-bold">Mensagens</h2><p className="text-sm text-gray-500">{selectedConversation?.title || 'Visualização somente leitura'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-[#6840bd]">Somente leitura</span></div>
+            <div className="mt-4 max-h-[65vh] space-y-3 overflow-y-auto rounded-xl bg-gray-50 p-3">
+              {messagesLoading ? <p className="p-3 text-sm text-gray-500">Carregando mensagens...</p> : messages.length ? messages.map((message) => <article key={message.id} className="rounded-xl border border-gray-100 bg-white p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-semibold text-gray-500">Remetente · {message.sender_id.slice(0, 8)}</span><time className="text-xs text-gray-400">{new Date(message.created_at).toLocaleString('pt-BR')}</time></div>
+                <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">{message.body}</p>
+              </article>) : <p className="p-3 text-sm text-gray-500">{selectedConversationId ? 'Esta conversa ainda não possui mensagens.' : 'Selecione uma conversa para visualizar as mensagens.'}</p>}
+            </div>
+            <p className="mt-3 text-xs text-gray-400">O painel não oferece ações para enviar, editar ou excluir mensagens. São exibidas até as 300 mensagens mais antigas da conversa selecionada.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
