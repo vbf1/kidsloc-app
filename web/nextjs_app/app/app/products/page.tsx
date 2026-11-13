@@ -66,10 +66,10 @@ export default function ProductsPage() {
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(0);
   const pageSize = useResponsivePageSize();
-
-  useEffect(() => { setPage(0); }, [pageSize]);
+  const [pagination, setPagination] = useState({ page: 0, pageSize: 6 });
+  const page = pagination.pageSize === pageSize ? pagination.page : 0;
+  function setPage(nextPage: number) { setPagination({ page: nextPage, pageSize }); }
   const [searchDraft, setSearchDraft] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | ProductType>('all');
