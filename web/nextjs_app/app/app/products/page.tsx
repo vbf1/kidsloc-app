@@ -142,6 +142,7 @@ export default function ProductsPage() {
           const { data: signedImage } = await client.storage.from('product-images').createSignedUrl(product.image_path, 3600);
           return { ...product, image_url: signedImage?.signedUrl ?? null };
         }));
+        if (!active) return;
         if (searchTerm) {
           const matches = records.filter((product) => matchesProductSearch(product, searchTerm));
           setTotalCount(matches.length);
