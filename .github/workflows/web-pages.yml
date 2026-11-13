@@ -49,3 +49,4 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v4
 # Trigger Pages deployment for the validated password-reset error messages.
+# Keep PR validation path-triggered; this comment intentionally records the CI revalidation trigger.
