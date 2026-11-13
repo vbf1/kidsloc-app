@@ -357,14 +357,18 @@ export default function PlatformAdminPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><h2 className="text-lg font-bold">Clientes da empresa</h2><p className="text-sm text-gray-500">Consulta dos cadastros de {selectedCompany?.name ?? 'empresa selecionada'}</p></div>
             <label className="text-sm font-medium">Buscar cliente
-              <input value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Nome, telefone ou e-mail" className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 font-normal sm:w-64" />
+              <input value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Nome, telefone, CPF, endereço..." className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 font-normal sm:w-64" />
             </label>
           </div>
           {customersError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{customersError}</p>}
           {customersLoading ? <p className="mt-4 text-sm text-gray-500">Carregando clientes...</p> : (() => {
             const term = customerSearch.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
-            const filtered = companyCustomers.filter((customer) => [customer.name, customer.phone ?? '', customer.email ?? '', customer.city_state ?? '']
-              .some((value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(term)));
+            const filtered = companyCustomers.filter((customer) => [
+              customer.name, customer.phone, customer.email, customer.city_state,
+              customer.cpf, customer.rg, customer.address, customer.neighborhood,
+              customer.zip, customer.notes,
+            ].some((value) => value !== null && value !== undefined
+              && value.normalize('NFD').replace(/\\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(term)));
             return filtered.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[600px] text-left text-sm">
               <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Nome</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Cidade / UF</th><th className="px-3 py-3 text-right">Ações</th></tr></thead>
               <tbody>{filtered.map((customer) => <tr key={customer.id} className="border-b border-gray-50"><td className="px-3 py-3 font-semibold">{customer.name}</td><td className="px-3 py-3">{customer.phone || '—'}</td><td className="px-3 py-3">{customer.email || '—'}</td><td className="px-3 py-3">{customer.city_state || '—'}</td><td className="px-3 py-3 text-right"><button type="button" onClick={() => { setEditingCustomer(customer); setCustomerFormError(''); }} className={buttonClass}>Editar</button></td></tr>)}</tbody>
