@@ -147,7 +147,7 @@ export default function RentalsPage() {
         const responsibleNamesByRental = new Map<string, string[]>();
         for (const responsible of responsibleResult.data ?? []) {
           const next = responsibleNamesByRental.get(responsible.rental_id) ?? [];
-          next.push(responsible.employee_name_snapshot || profileById.get(responsible.user_id) || 'Funcionário');
+          next.push(responsible.employee_name_snapshot || (responsible.user_id ? profileById.get(responsible.user_id) : undefined) || 'Funcionário');
           responsibleNamesByRental.set(responsible.rental_id, next);
         }
         setRentals(baseRentals.map((rental) => ({
