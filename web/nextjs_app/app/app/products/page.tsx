@@ -76,6 +76,7 @@ export default function ProductsPage() {
   const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<ProductRecord | null>(null);
   const [formError, setFormError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
 
@@ -164,8 +165,6 @@ export default function ProductsPage() {
   }
   async function deleteProduct(product: ProductRecord) {
     if (!supabase || !companyId || deletingProductId) return;
-    const confirmed = window.confirm(`Tem certeza de que deseja excluir "${product.name}"? Essa ação não poderá ser desfeita.`);
-    if (!confirmed) return;
     setDeletingProductId(product.id); setListError(''); setNotice('');
     try {
       const { data: deleted, error } = await supabase.from('products').delete()
@@ -181,7 +180,7 @@ export default function ProductsPage() {
       setRefreshIndex((current) => current + 1);
     } catch {
       setListError('Ocorreu um erro ao excluir o item. Confira sua conexão e tente novamente.');
-    } finally { setDeletingProductId(null); }
+    } finally { setDeletingProductId(null); setProductToDelete(null); }
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim()); setListLoading(true); setNotice('');
@@ -219,6 +218,17 @@ export default function ProductsPage() {
           {!formOpen && <button type="button" onClick={openNewProduct} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Novo item</button>}
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
+        {productToDelete && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingProductId) setProductToDelete(null); }}>
+          <section role="alertdialog" aria-modal="true" aria-labelledby="delete-product-title" aria-describedby="delete-product-description" className="w-full max-w-md rounded-2xl border border-purple-100 bg-white p-6 shadow-2xl sm:p-7">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-xl text-red-600" aria-hidden="true">!</div>
+            <h2 id="delete-product-title" className="text-xl font-bold tracking-tight text-gray-900">Excluir item?</h2>
+            <p id="delete-product-description" className="mt-2 text-sm leading-6 text-gray-600">Tem certeza de que deseja excluir <strong className="font-semibold text-gray-900">{productToDelete.name}</strong>? Essa ação não poderá ser desfeita.</p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" disabled={Boolean(deletingProductId)} onClick={() => setProductToDelete(null)} className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60">Cancelar</button>
+              <button type="button" disabled={Boolean(deletingProductId)} onClick={() => { if (productToDelete) void deleteProduct(productToDelete); }} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">{deletingProductId ? 'Excluindo...' : 'Sim, excluir'}</button>
+            </div>
+          </section>
+        </div>}
         {formOpen && <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
         {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
