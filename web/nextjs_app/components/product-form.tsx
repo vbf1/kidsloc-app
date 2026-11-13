@@ -57,7 +57,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, saving, error, onCa
         {fieldErrors.description && <FieldFeedback id="product-description-error">{fieldErrors.description}</FieldFeedback>}
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="product-price">{values.item_type === 'service' || (values.item_type === 'machine' && values.price_mode === 'event') ? 'Preço por evento (R$) *' : 'Preço por diária (R$) *'}
+        <label className={labelClass} htmlFor="product-price">{values.item_type === 'toy' ? 'Preço por dia (R$) *' : values.item_type === 'service' || values.price_mode === 'event' ? 'Preço por evento (R$) *' : 'Preço por diária (R$) *'}
           <input id="product-price" inputMode="decimal" value={values.price} disabled={saving} onChange={(event) => updateField('price', event.target.value)} placeholder="0,00" className={inputClass} aria-invalid={Boolean(fieldErrors.price)} aria-describedby={fieldErrors.price ? 'product-price-error' : undefined} />
           {fieldErrors.price && <FieldFeedback id="product-price-error">{fieldErrors.price}</FieldFeedback>}
         </label>
