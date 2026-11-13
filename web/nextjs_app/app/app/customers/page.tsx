@@ -80,8 +80,8 @@ export default function CustomersPage() {
   }, [router]);
 
   useEffect(() => {
-    const supabaseClient = supabase;
-    if (!companyId || !supabaseClient) return;
+    if (!companyId || !supabase) return;
+    const supabaseClient = supabase!;
     let active = true;
     async function loadCustomers() {
       await Promise.resolve();
