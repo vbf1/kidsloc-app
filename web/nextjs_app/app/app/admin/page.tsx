@@ -34,7 +34,12 @@ export default function PlatformAdminPage() {
   const [customersError, setCustomersError] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const customerPageSize = useResponsivePageSize();
-  const [customerPage, setCustomerPage] = useState(0);
+  const [customerPagination, setCustomerPagination] = useState({ page: 0, pageSize: 6 });
+  const customerPage = customerPagination.pageSize === customerPageSize ? customerPagination.page : 0;
+  function setCustomerPage(nextPage: number | ((current: number) => number)) {
+    const resolvedPage = typeof nextPage === 'function' ? nextPage(customerPage) : nextPage;
+    setCustomerPagination({ page: resolvedPage, pageSize: customerPageSize });
+  }
   const [editingCustomer, setEditingCustomer] = useState<CompanyCustomer | null>(null);
   const [customerSaving, setCustomerSaving] = useState(false);
   const [customerFormError, setCustomerFormError] = useState('');
