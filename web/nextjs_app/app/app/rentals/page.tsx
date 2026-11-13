@@ -153,7 +153,7 @@ export default function RentalsPage() {
         setRentals(baseRentals.map((rental) => ({
           ...rental,
           rental_number: Number(rental.rental_number),
-          customer_name: customerById.get(rental.customer_id)?.name ?? 'Cliente não disponível',
+          customer_name: rental.customer_id ? (customerById.get(rental.customer_id)?.name ?? 'Cliente não disponível') : 'Cliente não disponível',
           items: itemsByRental.get(rental.id) ?? [],
           responsible_names: responsibleNamesByRental.get(rental.id) ?? [],
           responsible_user_ids: (responsibleResult.data ?? []).filter((responsible) => responsible.rental_id === rental.id && responsible.user_id).map((responsible) => responsible.user_id as string),
