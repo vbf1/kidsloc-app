@@ -64,7 +64,7 @@ export default function PlatformAdminPage() {
     }
     const rows = (data ?? []) as Company[];
     setCompanies(rows);
-    setSelectedCompanyId((current) => current && rows.some((company) => company.id === current) ? current : rows[0]?.id ?? '');
+    setSelectedCompanyId((current) => current && rows.some((company) => company.id === current) ? current : '');
     setError('');
   }, [router]);
 
@@ -257,7 +257,7 @@ export default function PlatformAdminPage() {
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Empresas cadastradas</h2><p className="text-sm text-gray-500">{companies.length} empresa(s) encontradas</p></div>
             <label className="min-w-64 text-sm font-semibold">Selecionar empresa
               <select value={selectedCompanyId} onChange={(event) => { setSelectedCompanyId(event.target.value); setSelectedConversationId(''); setMessages([]); }} className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 font-normal">
-                {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+                <option value="">Selecione uma empresa</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
               </select>
             </label>
           </div>
