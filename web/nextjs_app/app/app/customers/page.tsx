@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { CustomerForm } from '../../../components/customer-form';
 import { CustomerList } from '../../../components/customer-list';
-import { buildCustomerSearchFilter, CUSTOMER_PAGE_SIZE, normalizeCustomer, type CustomerFormValues, type CustomerRecord } from '../../../lib/customers';
+import { buildCustomerSearchFilter, normalizeCustomer, type CustomerFormValues, type CustomerRecord } from '../../../lib/customers';
+import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { supabase } from '../../../lib/supabase';
 
 const CUSTOMER_COLUMNS = 'id,company_id,name,phone,email,address,notes,created_at,updated_at,cpf,rg,zip,neighborhood,city_state';
@@ -37,6 +38,9 @@ export default function CustomersPage() {
   const [notice, setNotice] = useState('');
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
+  const pageSize = useResponsivePageSize();
+
+  useEffect(() => { setPage(0); }, [pageSize]);
   const [searchDraft, setSearchDraft] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
@@ -92,7 +96,7 @@ export default function CustomersPage() {
         const filter = buildCustomerSearchFilter(searchTerm);
         let request = supabaseClient.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
           .eq('company_id', companyId).order('name', { ascending: true })
-          .range(page * CUSTOMER_PAGE_SIZE, (page + 1) * CUSTOMER_PAGE_SIZE - 1);
+          .range(page * pageSize, (page + 1) * pageSize - 1);
         if (filter) request = request.or(filter);
         const { data, error, count } = await request;
         if (!active) return;
@@ -107,7 +111,7 @@ export default function CustomersPage() {
     }
     void loadCustomers();
     return () => { active = false; };
-  }, [companyId, page, searchTerm, refreshIndex]);
+  }, [companyId, page, pageSize, searchTerm, refreshIndex]);
 
   function openNewCustomer() { setEditingCustomer(null); setFormError(''); setFormOpen(true); setNotice(''); }
   function openEditCustomer(customer: CustomerRecord) { setEditingCustomer(customer); setFormError(''); setFormOpen(true); setNotice(''); }
@@ -204,7 +208,7 @@ export default function CustomersPage() {
           <p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button>
         </div>}
         <CustomerList customers={customers} loading={listLoading} totalCount={totalCount} page={page}
-          pageSize={CUSTOMER_PAGE_SIZE} onPageChange={changePage} onEdit={openEditCustomer} />
+          pageSize={pageSize} onPageChange={changePage} onEdit={openEditCustomer} />
       </section>
     </AppShell>
   );
