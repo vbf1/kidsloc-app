@@ -29,7 +29,7 @@ export function ProductList({ products, loading, totalCount, page, pageSize, onP
     <div className="rounded-2xl border border-dashed border-purple-200 bg-white p-8 text-center">
       <div aria-hidden="true" className="mx-auto grid size-12 place-items-center rounded-2xl bg-purple-50 text-2xl">🧸</div>
       <h2 className="mt-4 text-lg font-bold text-gray-900">Nenhum item encontrado</h2>
-      <p className="mt-2 text-sm text-gray-500">Cadastre um brinquedo ou serviço, ou ajuste os filtros.</p>
+      <p className="mt-2 text-sm text-gray-500">Cadastre um brinquedo, máquina ou serviço, ou ajuste os filtros.</p>
     </div>
   );
   return (
