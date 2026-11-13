@@ -23,7 +23,7 @@ describe('ProductForm', () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<ProductForm saving={false} error="" onCancel={vi.fn()} onSubmit={onSubmit} />);
     fireEvent.click(screen.getByRole('button', { name: 'Tipo de item' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Serviço' }));
+    fireEvent.click(screen.getByRole('option', { name: /Serviço/ }));
     fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Recreação' } });
     fireEvent.change(screen.getByLabelText('Preço por evento (R$) *'), { target: { value: '150,00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
@@ -33,11 +33,11 @@ describe('ProductForm', () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<ProductForm saving={false} error="" onCancel={vi.fn()} onSubmit={onSubmit} />);
     fireEvent.click(screen.getByRole('button', { name: 'Tipo de item' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Máquina' }));
+    fireEvent.click(screen.getByRole('option', { name: /Máquina/ }));
     expect(screen.getByText('Controle de estoque')).toBeTruthy();
     expect(screen.getByLabelText('Quantidade total *')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cobrança' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Por evento' }));
+    fireEvent.click(screen.getByRole('option', { name: /Por evento/ }));
     fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Máquina de pipoca' } });
     fireEvent.change(screen.getByLabelText('Preço por evento (R$) *'), { target: { value: '300,00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
