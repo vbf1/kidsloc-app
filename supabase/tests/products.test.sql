@@ -77,7 +77,7 @@ select lives_ok(
      values ('31000000-0000-4000-8000-000000000001', 'Piscina de bolinhas', 'toy', 'quantity', 1, 65.00) $$,
   'company member can create a product for their own company'
 );
-select is((select count(*)::int from public.products where company_id = '31000000-0000-4000-8000-000000000001'), 3,
+select is((select count(*)::int from public.products where company_id = '31000000-0000-4000-8000-000000000001'), 4,
   'company member can read products from their own company');
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000002', true);
 select is((select count(*)::int from public.products where company_id = '31000000-0000-4000-8000-000000000001'), 0,
