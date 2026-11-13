@@ -51,7 +51,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
             setFieldErrors({});
           }} /></div>
           {initialValues.name && <span className="mt-1 block text-xs text-gray-400">O tipo não pode ser alterado após o cadastro para preservar o histórico.</span>}
-        </label>
+        </div>
         <label className={labelClass} htmlFor="product-name">Nome *
           <input id="product-name" value={values.name} maxLength={160} disabled={saving} onChange={(event) => updateField('name', event.target.value)} placeholder="Ex.: Cama elástica" className={inputClass} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? 'product-name-error' : undefined} />
           {fieldErrors.name && <FieldFeedback id="product-name-error">{fieldErrors.name}</FieldFeedback>}
