@@ -101,8 +101,8 @@ describe('RentalForm', () => {
       />,
     );
 
-    expect(screen.getByRole('radio', { name: /Combo \/ pacote fechado/ })).toBeChecked();
-    expect(screen.getByLabelText('Valor total do combo (R$) *')).toHaveValue('450,00');
+    expect((screen.getByRole('radio', { name: /Combo \/ pacote fechado/ }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText('Valor total do combo (R$) *') as HTMLInputElement).value).toBe('450,00');
     expect(screen.getAllByText('Incluído no combo')).toHaveLength(2);
   });
 });
