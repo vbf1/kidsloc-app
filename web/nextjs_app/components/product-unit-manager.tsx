@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 
 type ProductUnit = {
@@ -13,10 +14,11 @@ type ProductUnitManagerProps = {
   productId: string;
   productName: string;
   companyId: string;
+  totalQuantity: number;
   onClose: () => void;
 };
 
-export function ProductUnitManager({ productId, productName, companyId, onClose }: ProductUnitManagerProps) {
+export function ProductUnitManager({ productId, productName, companyId, totalQuantity, onClose }: ProductUnitManagerProps) {
   const [units, setUnits] = useState<ProductUnit[]>([]);
   const [assetCode, setAssetCode] = useState('');
   const [description, setDescription] = useState('');
@@ -42,9 +44,10 @@ export function ProductUnitManager({ productId, productName, companyId, onClose 
 
   useEffect(() => { void loadUnits(); }, [loadUnits]);
 
-  async function addUnit(event: React.FormEvent<HTMLFormElement>) {
+  async function addUnit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || saving) return;
+    if (units.length >= totalQuantity) { setError('Todas as unidades previstas já foram cadastradas. Ajuste a quantidade no cadastro do brinquedo se necessário.'); return; }
     const code = assetCode.trim();
     if (!code) { setError('Informe o código de identificação da unidade.'); return; }
     setSaving(true); setError(''); setNotice('');
@@ -105,7 +108,7 @@ export function ProductUnitManager({ productId, productName, companyId, onClose 
         <button type="button" onClick={onClose} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Fechar</button>
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-sm">
-        <span className="rounded-full bg-purple-50 px-3 py-1 font-semibold text-purple-800">{units.length} cadastradas</span>
+        <span className="rounded-full bg-purple-50 px-3 py-1 font-semibold text-purple-800">{units.length} de {totalQuantity} previstas</span>
         <span className="rounded-full bg-green-50 px-3 py-1 text-green-800">{units.filter((unit) => unit.status === 'available').length} disponíveis</span>
         <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{units.filter((unit) => unit.status === 'maintenance').length} em manutenção</span>
         <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">{units.filter((unit) => unit.status === 'inactive').length} inativas</span>
@@ -119,7 +122,7 @@ export function ProductUnitManager({ productId, productName, companyId, onClose 
         <label className="text-sm font-medium text-gray-700">Descrição (opcional)
           <input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} disabled={saving} placeholder="Ex.: lona azul" className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm" />
         </label>
-        <button type="submit" disabled={saving} className="self-end rounded-lg bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Adicionar unidade'}</button>
+        <button type="submit" disabled={saving || units.length >= totalQuantity} className="self-end rounded-lg bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Adicionar unidade'}</button>
       </form>
       <div className="mt-5">
         <h3 className="text-sm font-bold text-gray-900">Unidades cadastradas</h3>
