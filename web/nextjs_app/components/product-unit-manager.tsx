@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { formatProductInventoryError } from '../lib/products';
 import { supabase } from '../lib/supabase';
 import { SearchablePicker } from './searchable-picker';
 import { useScrollIntoViewOnChange } from '../lib/use-scroll-into-view';
@@ -94,7 +95,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
         description: description.trim() || null,
         status: 'available',
       });
-      if (insertError) { setError('Não foi possível cadastrar a unidade. Confira os dados e tente novamente.'); return; }
+      if (insertError) { setError(formatProductInventoryError(insertError.message, 'Não foi possível cadastrar a unidade. Confira os dados e tente novamente.')); return; }
       setAssetCode(''); setDescription('');
       setNotice('Unidade cadastrada com sucesso.');
       await loadUnits();
@@ -129,7 +130,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
       const { error: updateError } = await supabase.from('product_units')
         .update({ asset_code: code, description: editDescription.trim() || null, status: editStatus })
         .eq('id', unit.id).eq('company_id', companyId).eq('product_id', productId);
-      if (updateError) { setEditError('Não foi possível atualizar a unidade. Tente novamente.'); return; }
+      if (updateError) { setEditError(formatProductInventoryError(updateError.message, 'Não foi possível atualizar a unidade. Tente novamente.')); return; }
       setEditingUnitId(null);
       setEditError('');
       setNotice('Unidade atualizada com sucesso.');

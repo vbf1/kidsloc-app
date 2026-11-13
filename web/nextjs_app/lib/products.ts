@@ -67,3 +67,13 @@ export function matchesProductSearch(product: Pick<ProductRecord, 'name' | 'desc
   return [product.name, product.description, product.notes]
     .some((value) => value !== null && normalizeProductSearchText(value).includes(term));
 }
+
+export function formatProductInventoryError(message: string | undefined, fallback: string): string {
+  if (!message) return fallback;
+  const known = [
+    'reservada em uma locação ativa',
+    'unidades físicas previstas já foram cadastradas',
+    'quantidade total não pode ser menor que o número de unidades físicas já cadastradas',
+  ];
+  return known.some((phrase) => message.toLocaleLowerCase('pt-BR').includes(phrase)) ? message : fallback;
+}
