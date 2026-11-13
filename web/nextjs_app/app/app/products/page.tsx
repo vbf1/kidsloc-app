@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { ProductForm } from '../../../components/product-form';
 import { ProductList } from '../../../components/product-list';
+import { ProductUnitManager } from '../../../components/product-unit-manager';
 import { buildProductSearchFilter, parsePrice, PRODUCT_PAGE_SIZE, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { supabase } from '../../../lib/supabase';
 
@@ -71,6 +72,7 @@ export default function ProductsPage() {
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
+  const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
@@ -191,6 +193,7 @@ export default function ProductsPage() {
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
         {formOpen && <div className="mb-6 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
+        {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} onClose={() => setManagingUnitsProduct(null)} />}
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
           <input id="product-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por nome, descrição ou observações" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
@@ -202,7 +205,7 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
-        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={PRODUCT_PAGE_SIZE} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} />
+        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={PRODUCT_PAGE_SIZE} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
       </section>
     </AppShell>
   );
