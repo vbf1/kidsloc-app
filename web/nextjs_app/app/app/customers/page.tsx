@@ -80,7 +80,8 @@ export default function CustomersPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!companyId || !supabase) return;
+    const supabaseClient = supabase;
+    if (!companyId || !supabaseClient) return;
     let active = true;
     async function loadCustomers() {
       await Promise.resolve();
@@ -89,7 +90,7 @@ export default function CustomersPage() {
       setListError('');
       try {
         const filter = buildCustomerSearchFilter(searchTerm);
-        let request = supabase.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
+        let request = supabaseClient.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
           .eq('company_id', companyId).order('name', { ascending: true })
           .range(page * CUSTOMER_PAGE_SIZE, (page + 1) * CUSTOMER_PAGE_SIZE - 1);
         if (filter) request = request.or(filter);
