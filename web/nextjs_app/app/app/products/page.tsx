@@ -6,6 +6,7 @@ import { AppShell } from '../../../components/app-shell';
 import { ProductForm } from '../../../components/product-form';
 import { ProductList } from '../../../components/product-list';
 import { ProductUnitManager } from '../../../components/product-unit-manager';
+import { SearchablePicker } from '../../../components/searchable-picker';
 import { matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
@@ -301,7 +302,11 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <label className="text-xs font-semibold text-gray-500">Situação<select value={statusFilter} onChange={(event) => changeFilter('status', event.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-800"><option value="all">Todas</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label>
+              <div className="text-xs font-semibold text-gray-500">Situação
+                <div className="mt-1"><SearchablePicker title="Filtrar produtos por situação" value={statusFilter} options={[
+                  { value: 'all', label: 'Todas' }, { value: 'active', label: 'Ativos' }, { value: 'inactive', label: 'Inativos' },
+                ]} placeholder="Todas" searchPlaceholder="Buscar situação..." emptyText="Nenhuma situação encontrada." onChange={(value) => changeFilter('status', value)} /></div>
+              </div>
               <button type="submit" className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-700">Pesquisar</button>
               <button type="button" onClick={clearFilters} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Limpar</button>
             </div>
