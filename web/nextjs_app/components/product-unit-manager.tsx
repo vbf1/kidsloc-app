@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { SearchablePicker } from './searchable-picker';
 import { useScrollIntoViewOnChange } from '../lib/use-scroll-into-view';
 
 type ProductUnit = {
@@ -182,13 +183,11 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
                       <label className="text-xs font-semibold text-gray-500">Descrição
                         <input value={editDescription} onChange={(event) => setEditDescription(event.target.value)} maxLength={500} disabled={saving} className="mt-1 block w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900" />
                       </label>
-                      <label className="text-xs font-semibold text-gray-500">Situação
-                        <select value={editStatus} onChange={(event) => setEditStatus(event.target.value as ProductUnit['status'])} disabled={saving} className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900">
-                          <option value="available">Disponível</option>
-                          <option value="maintenance">Em manutenção</option>
-                          <option value="inactive">Inativa</option>
-                        </select>
-                      </label>
+                      <div className="text-xs font-semibold text-gray-500">Situação
+                        <div className="mt-1"><SearchablePicker title="Situação da unidade" value={editStatus} options={[
+                          { value: 'available', label: 'Disponível' }, { value: 'maintenance', label: 'Em manutenção' }, { value: 'inactive', label: 'Inativa' },
+                        ]} placeholder="Selecione a situação" searchPlaceholder="Buscar situação..." emptyText="Nenhuma situação encontrada." disabled={saving} onChange={(value) => setEditStatus(value as ProductUnit['status'])} /></div>
+                      </div>
                     </div>
                     {editError && <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">{editError}</p>}
                     <div className="flex flex-wrap justify-end gap-2">
