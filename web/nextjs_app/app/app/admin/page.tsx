@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 
 type Company = { id: string; name: string; created_at: string };
+type CompanyOverview = { members: number; customers: number; products: number; rentals: number; financialTransactions: number };
 type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
 const panelClass = 'rounded-2xl border border-purple-100 bg-white p-5 shadow-sm';
@@ -17,6 +18,9 @@ export default function PlatformAdminPage() {
   const [email, setEmail] = useState('');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [companyOverview, setCompanyOverview] = useState<CompanyOverview | null>(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [overviewError, setOverviewError] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -63,6 +67,44 @@ export default function PlatformAdminPage() {
     void initialize();
     return () => { active = false; };
   }, [loadCompanies]);
+
+  const loadCompanyOverview = useCallback(async () => {
+    if (!supabase || !selectedCompanyId) {
+      setCompanyOverview(null);
+      setOverviewError('');
+      return;
+    }
+    setOverviewLoading(true);
+    const companyFilter = (table: string) => supabase.from(table).select('id', { count: 'exact', head: true }).eq('company_id', selectedCompanyId);
+    const results = await Promise.all([
+      companyFilter('company_members'),
+      companyFilter('customers'),
+      companyFilter('products'),
+      companyFilter('rentals'),
+      companyFilter('financial_transactions'),
+    ]);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      setCompanyOverview(null);
+      setOverviewError('Não foi possível carregar o resumo desta empresa.');
+    } else {
+      setCompanyOverview({
+        members: results[0].count ?? 0,
+        customers: results[1].count ?? 0,
+        products: results[2].count ?? 0,
+        rentals: results[3].count ?? 0,
+        financialTransactions: results[4].count ?? 0,
+      });
+      setOverviewError('');
+    }
+    setOverviewLoading(false);
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    // Load the selected company's read-only summary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadCompanyOverview();
+  }, [loadCompanyOverview]);
 
   const loadConversations = useCallback(async () => {
     if (!supabase || !selectedCompanyId) {
@@ -122,6 +164,7 @@ export default function PlatformAdminPage() {
     if (refreshing) return;
     setRefreshing(true);
     await loadCompanies();
+    await loadCompanyOverview();
     await loadConversations();
     await loadMessages();
     setRefreshing(false);
@@ -161,6 +204,27 @@ export default function PlatformAdminPage() {
             </label>
           </div>
           {!companies.length && <p className="mt-4 text-sm text-gray-500">Ainda não há empresas cadastradas.</p>}
+        </section>
+        <section className={panelClass}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><h2 className="text-lg font-bold">Resumo da empresa</h2><p className="text-sm text-gray-500">{selectedCompany?.name ?? 'Selecione uma empresa'}</p></div>
+            <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-[#6840bd]">Consulta somente leitura</span>
+          </div>
+          {overviewError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{overviewError}</p>}
+          {overviewLoading ? <p className="mt-4 text-sm text-gray-500">Carregando dados da empresa...</p> : companyOverview && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {[
+                ['Usuários', companyOverview.members],
+                ['Clientes', companyOverview.customers],
+                ['Itens do catálogo', companyOverview.products],
+                ['Locações', companyOverview.rentals],
+                ['Lançamentos financeiros', companyOverview.financialTransactions],
+              ].map(([label, value]) => <div key={label} className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                <p className="text-xs font-medium text-gray-500">{label}</p><p className="mt-1 text-2xl font-bold text-[#6840bd]">{value}</p>
+              </div>)}
+            </div>
+          )}
+          <p className="mt-3 text-xs text-gray-400">Este resumo não permite editar, cadastrar ou excluir informações da empresa.</p>
         </section>
         <section className="grid gap-6 lg:grid-cols-[minmax(260px,.8fr)_minmax(0,1.5fr)]">
           <div className={panelClass}>
