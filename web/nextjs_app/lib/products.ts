@@ -4,7 +4,7 @@ export type ProductRecord = {
   id: string; company_id: string; name: string; description: string | null;
   item_type: ProductType; inventory_mode: InventoryMode; total_quantity: number;
   daily_price: number | string; event_price: number | string | null;
-  active: boolean; notes: string | null; created_at: string; updated_at: string;
+  active: boolean; notes: string | null; image_path: string | null; image_url?: string | null; created_at: string; updated_at: string;
 };
 export type ProductFormValues = {
   name: string; description: string; item_type: ProductType; inventory_mode: InventoryMode;
