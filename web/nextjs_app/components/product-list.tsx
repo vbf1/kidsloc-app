@@ -9,12 +9,13 @@ type ProductListProps = {
   pageSize: number;
   onPageChange: (page: number) => void;
   onEdit: (product: ProductRecord) => void;
+  onManageUnits: (product: ProductRecord) => void;
 };
 function formatDate(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(date);
 }
-export function ProductList({ products, loading, totalCount, page, pageSize, onPageChange, onEdit }: ProductListProps) {
+export function ProductList({ products, loading, totalCount, page, pageSize, onPageChange, onEdit, onManageUnits }: ProductListProps) {
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
   if (loading) return <p role="status" className="rounded-2xl border border-purple-100 bg-white p-6 text-sm text-gray-500">Carregando catálogo...</p>;
   if (products.length === 0) return (
@@ -41,7 +42,7 @@ export function ProductList({ products, loading, totalCount, page, pageSize, onP
                 {product.item_type === 'toy' && <p className="mt-1 text-xs text-gray-500">{product.inventory_mode === 'individual' ? 'Controle por unidades individuais' : 'Controle por quantidade'} · {product.total_quantity} {product.total_quantity === 1 ? 'unidade' : 'unidades'}</p>}
                 <p className="mt-2 text-xs text-gray-400">Cadastrado em {formatDate(product.created_at)}</p>
               </div>
-              <button type="button" onClick={() => onEdit(product)} className="rounded-lg border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50">Editar</button>
+              <div className="flex flex-wrap gap-2"><button type="button" onClick={() => onEdit(product)} className="rounded-lg border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50">Editar</button>{product.item_type === 'toy' && product.inventory_mode === 'individual' && <button type="button" onClick={() => onManageUnits(product)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Gerenciar unidades</button>}</div>
             </div>
           </li>
         ))}
