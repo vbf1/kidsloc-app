@@ -37,7 +37,7 @@ export function RentalForm({
   }));
   const [fieldErrors, setFieldErrors] = useState<RentalFieldErrors>({});
   const [productToAdd, setProductToAdd] = useState('');
-  const availableProducts = useMemo(() => products.filter((product) => !values.items.some((item) => item.product_id === product.id)), [products, values.items]);
+  const availableProducts = useMemo(() => products.filter((product) => product.item_type !== 'service' && !values.items.some((item) => item.product_id === product.id)), [products, values.items]);
   function updateField<K extends keyof RentalFormValues>(field: K, value: RentalFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
@@ -156,8 +156,8 @@ export function RentalForm({
         <div className="flex flex-col gap-2 sm:flex-row">
           <label className="sr-only" htmlFor="rental-product-to-add">Adicionar item</label>
           <select id="rental-product-to-add" value={productToAdd} onChange={(event) => setProductToAdd(event.target.value)} className={inputClass + ' mt-0 min-w-0 flex-1'} disabled={saving || !availableProducts.length}>
-            <option value="">Selecione um brinquedo, máquina ou serviço</option>
-            {availableProducts.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.item_type === 'toy' ? 'Brinquedo' : product.item_type === 'machine' ? 'Máquina' : 'Serviço'}</option>)}
+            <option value="">Selecione um brinquedo ou máquina</option>
+            {availableProducts.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.item_type === 'toy' ? 'Brinquedo' : 'Máquina'}</option>)}
           </select>
           <button type="button" onClick={addItem} disabled={saving || !productToAdd} className="rounded-xl border border-purple-200 px-4 py-3 text-sm font-semibold text-[#6840bd] hover:bg-purple-50 disabled:opacity-50">Adicionar item</button>
         </div>
