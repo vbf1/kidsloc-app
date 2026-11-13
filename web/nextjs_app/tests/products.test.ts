@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildProductSearchFilter, formatPrice, normalizeProduct, parsePrice, validateProduct, type ProductFormValues } from '../lib/products';
+import { buildProductSearchFilter, formatPrice, matchesProductSearch, normalizeProduct, parsePrice, validateProduct, type ProductFormValues } from '../lib/products';
 const toy: ProductFormValues = { name: '  Cama   Elástica ', description: ' Brinquedo ', item_type: 'toy', inventory_mode: 'individual', total_quantity: '3', price: '85,50', price_mode: 'daily', active: true, notes: '' };
 const service: ProductFormValues = { ...toy, name: 'Recreação', item_type: 'service', total_quantity: '0', price: '150,00', price_mode: 'event' };
 const machine: ProductFormValues = { ...toy, name: 'Máquina de pipoca', item_type: 'machine', total_quantity: '2', price: '300,00', price_mode: 'event' };
@@ -35,4 +35,13 @@ describe('product search filter', () => {
   });
   it('escapes wildcard and quote delimiters', () => { expect(buildProductSearchFilter('a%_b"c')).toContain('a\\%\\_b\\"c'); });
   it('returns null for empty search', () => { expect(buildProductSearchFilter('  ')).toBeNull(); });
+});
+
+describe('product accent-insensitive search', () => {
+  const product = { name: 'Máquina de Pipoca', description: 'Açúcar refinado', notes: 'Manutenção preventiva' };
+  it('finds product text fields regardless of accents or letter case', () => {
+    for (const term of ['maquina', 'PIPOCA', 'acucar refinado', 'manutencao']) {
+      expect(matchesProductSearch(product, term), term).toBe(true);
+    }
+  });
 });
