@@ -21,7 +21,7 @@ export type RentalRecord = {
   delivery_fee: number | string; discount: number | string; total_amount: number | string;
   deposit_amount: number | string; notes: string | null; created_by: string | null;
   created_at: string; updated_at: string;
-  customer_name: string; items: RentalItemRecord[]; responsible_names: string[];
+  customer_name: string; items: RentalItemRecord[]; responsible_names: string[]; responsible_user_ids: string[];
 };
 export type RentalItemRecord = {
   id: string; rental_id: string; product_id: string; quantity: number;
