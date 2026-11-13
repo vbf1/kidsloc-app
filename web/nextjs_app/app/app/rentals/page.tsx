@@ -263,7 +263,6 @@ export default function RentalsPage() {
     event.preventDefault();
     setPage(0);
     setSearchTerm(searchDraft.trim());
-    setListLoading(true);
     setNotice('');
   }
   function clearFilters() {
