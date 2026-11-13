@@ -54,9 +54,15 @@ describe('rental validation', () => {
     expect(validateRental({ ...valid, end_date: '2026-11-19' }).end_date).toBeTruthy();
     expect(validateRental({ ...valid, start_date: '2026-11-20', end_date: '2026-11-20', start_time: '18:00', end_time: '09:00' }).end_time).toBeTruthy();
   });
-  it('requires a delivery address only for delivery', () => {
-    expect(validateRental({ ...valid, delivery_method: 'delivery' }).delivery_address).toBeTruthy();
+  it('allows delivery without an address and accepts an optional address when provided', () => {
+    expect(validateRental({ ...valid, delivery_method: 'delivery', delivery_address: '' })).toEqual({});
     expect(validateRental({ ...valid, delivery_method: 'delivery', delivery_address: 'Rua A, 10' })).toEqual({});
+  });
+  it('accepts a fixed-price combo with zero individual item prices', () => {
+    expect(validateRental({ ...valid, total_amount: '500,00', items: [
+      { product_id: 'toy-1', quantity: '1', unit_price: '0,00' },
+      { product_id: 'machine-1', quantity: '1', unit_price: '0,00' },
+    ] })).toEqual({});
   });
   it('rejects duplicate products and invalid quantities', () => {
     expect(validateRental({ ...valid, items: [...valid.items, ...valid.items] }).items).toBeTruthy();
