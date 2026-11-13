@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import { CustomerForm } from '../../../components/customer-form';
+import { SearchablePicker } from '../../../components/searchable-picker';
 import type { CustomerFormValues, CustomerRecord } from '../../../lib/customers';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 
@@ -309,9 +310,11 @@ export default function PlatformAdminPage() {
         {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <section className={panelClass}>
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Empresas cadastradas</h2><p className="text-sm text-gray-500">{companies.length} empresa(s) encontradas</p></div>
-            <label className="min-w-64 text-sm font-semibold">Selecionar empresa
-              <select value={selectedCompanyId} disabled={companySaving || customerSaving} onChange={(event) => {
-                setSelectedCompanyId(event.target.value);
+            <div className="min-w-64 text-sm font-semibold">Selecionar empresa
+              <div className="mt-1"><SearchablePicker title="Selecionar empresa" value={selectedCompanyId} options={[
+                { value: '', label: 'Selecione uma empresa' }, ...companies.map((company) => ({ value: company.id, label: company.name })),
+              ]} placeholder="Selecione uma empresa" searchPlaceholder="Buscar empresa..." emptyText="Nenhuma empresa encontrada." disabled={companySaving || customerSaving} onChange={(value) => {
+                setSelectedCompanyId(value);
                 setSelectedConversationId('');
                 setMessages([]);
                 setEditingCompany(false);
@@ -321,10 +324,8 @@ export default function PlatformAdminPage() {
                 setCustomerFormError('');
                 setCustomerSearch('');
                 setCustomerPage(0);
-              }} className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 font-normal">
-                <option value="">Selecione uma empresa</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-              </select>
-            </label>
+              }} /></div>
+            </div>
           </div>
           {!companies.length && <p className="mt-4 text-sm text-gray-500">Ainda não há empresas cadastradas.</p>}
           {selectedCompany && !editingCompany && <div className="mt-4">

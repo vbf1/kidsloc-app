@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { FieldFeedback, FormFeedback } from './form-feedback';
+import { SearchablePicker } from './searchable-picker';
 import { EMPTY_PRODUCT, normalizeProduct, validateProduct, type ProductFieldErrors, type ProductFormValues } from '../lib/products';
 
 type ProductFormProps = {
@@ -41,17 +42,14 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
         <p className="mt-1 text-sm text-gray-500">Cadastre brinquedos, máquinas e serviços em um só catálogo.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className={labelClass} htmlFor="product-item-type">Tipo de item
-          <select id="product-item-type" value={values.item_type} disabled={saving || Boolean(initialValues.name)}
-            onChange={(event) => {
-              const item_type = event.target.value as ProductFormValues['item_type'];
-              setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1', price_mode: item_type === 'service' ? 'event' : 'daily' }));
-              setFieldErrors({});
-            }} className={inputClass}>
-            <option value="toy">Brinquedo</option>
-            <option value="machine">Máquina</option>
-            <option value="service">Serviço</option>
-          </select>
+        <label className={labelClass}>Tipo de item
+          <div className="mt-1"><SearchablePicker title="Tipo de item" value={values.item_type} options={[
+            { value: 'toy', label: 'Brinquedo' }, { value: 'machine', label: 'Máquina' }, { value: 'service', label: 'Serviço' },
+          ]} placeholder="Selecione o tipo" searchPlaceholder="Buscar tipo..." emptyText="Nenhum tipo encontrado." disabled={saving || Boolean(initialValues.name)} onChange={(value) => {
+            const item_type = value as ProductFormValues['item_type'];
+            setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1', price_mode: item_type === 'service' ? 'event' : 'daily' }));
+            setFieldErrors({});
+          }} /></div>
           {initialValues.name && <span className="mt-1 block text-xs text-gray-400">O tipo não pode ser alterado após o cadastro para preservar o histórico.</span>}
         </label>
         <label className={labelClass} htmlFor="product-name">Nome *
@@ -68,17 +66,16 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
           <input id="product-price" inputMode="decimal" value={values.price} disabled={saving} onChange={(event) => updateField('price', event.target.value)} placeholder="0,00" className={inputClass} aria-invalid={Boolean(fieldErrors.price)} aria-describedby={fieldErrors.price ? 'product-price-error' : undefined} />
           {fieldErrors.price && <FieldFeedback id="product-price-error">{fieldErrors.price}</FieldFeedback>}
         </label>
-        {values.item_type === 'machine' && <label className={labelClass} htmlFor="product-price-mode">Cobrança
-          <select id="product-price-mode" value={values.price_mode} disabled={saving} onChange={(event) => updateField('price_mode', event.target.value)} className={inputClass}>
-            <option value="daily">Por diária</option><option value="event">Por evento</option>
-          </select>
+        {values.item_type === 'machine' && <label className={labelClass}>Cobrança
+          <div className="mt-1"><SearchablePicker title="Forma de cobrança" value={values.price_mode} options={[
+            { value: 'daily', label: 'Por diária' }, { value: 'event', label: 'Por evento' },
+          ]} placeholder="Selecione a cobrança" searchPlaceholder="Buscar cobrança..." emptyText="Nenhuma opção encontrada." disabled={saving} onChange={(value) => updateField('price_mode', value as ProductFormValues['price_mode'])} /></div>
         </label>}
         {values.item_type !== 'service' && <>
-          <label className={labelClass} htmlFor="product-inventory-mode">Controle de estoque
-            <select id="product-inventory-mode" value={values.inventory_mode} disabled={saving} onChange={(event) => updateField('inventory_mode', event.target.value)} className={inputClass}>
-              <option value="quantity">Por quantidade</option>
-              <option value="individual">Unidades individuais</option>
-            </select>
+          <label className={labelClass}>Controle de estoque
+            <div className="mt-1"><SearchablePicker title="Controle de estoque" value={values.inventory_mode} options={[
+              { value: 'quantity', label: 'Por quantidade' }, { value: 'individual', label: 'Unidades individuais' },
+            ]} placeholder="Selecione o controle" searchPlaceholder="Buscar controle..." emptyText="Nenhuma opção encontrada." disabled={saving} onChange={(value) => updateField('inventory_mode', value as ProductFormValues['inventory_mode'])} /></div>
           </label>
           <label className={labelClass} htmlFor="product-quantity">Quantidade total *
             <input id="product-quantity" type="number" min="0" max="1000000" step="1" value={values.total_quantity} disabled={saving} onChange={(event) => updateField('total_quantity', event.target.value)} className={inputClass} aria-invalid={Boolean(fieldErrors.total_quantity)} aria-describedby={fieldErrors.total_quantity ? 'product-quantity-error' : undefined} />

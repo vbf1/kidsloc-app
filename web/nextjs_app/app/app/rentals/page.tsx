@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { RentalForm } from '../../../components/rental-form';
 import { RentalList } from '../../../components/rental-list';
+import { SearchablePicker } from '../../../components/searchable-picker';
 import {
   EMPTY_RENTAL, matchesRentalSearch,
   parseRentalPrice, type RentalCustomer, type RentalFormValues, type RentalItemRecord,
@@ -316,11 +317,12 @@ export default function RentalsPage() {
           <label htmlFor="rental-search" className="sr-only">Pesquisar locações</label>
           <input id="rental-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por número, cliente, item ou responsável" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
           <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-end sm:justify-between">
-            <label className="text-xs font-semibold text-gray-500">Situação
-              <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as 'all' | RentalStatus); setPage(0); }} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-800 sm:min-w-48">
-                <option value="all">Todas</option><option value="pending">Pendentes</option><option value="confirmed">Confirmadas</option><option value="ongoing">Em andamento</option><option value="completed">Concluídas</option><option value="cancelled">Canceladas</option>
-              </select>
-            </label>
+            <div className="min-w-48 text-xs font-semibold text-gray-500">Situação
+              <div className="mt-1"><SearchablePicker title="Filtrar por situação" value={statusFilter} options={[
+                { value: 'all', label: 'Todas' }, { value: 'pending', label: 'Pendentes' }, { value: 'confirmed', label: 'Confirmadas' },
+                { value: 'ongoing', label: 'Em andamento' }, { value: 'completed', label: 'Concluídas' }, { value: 'cancelled', label: 'Canceladas' },
+              ]} placeholder="Todas" searchPlaceholder="Buscar situação..." emptyText="Nenhuma situação encontrada." onChange={(value) => { setStatusFilter(value as 'all' | RentalStatus); setPage(0); }} /></div>
+            </div>
             <div className="flex gap-2">
               <button type="submit" className="flex-1 rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-700 sm:flex-none">Pesquisar</button>
               <button type="button" onClick={clearFilters} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Limpar</button>

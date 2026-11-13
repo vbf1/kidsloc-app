@@ -68,14 +68,14 @@ export function SearchablePicker({
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
           onMouseDown={(event) => { if (event.target === event.currentTarget) { setOpen(false); setSearch(''); } }}
         >
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="searchable-picker-title"
-            className="flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-purple-100 bg-white shadow-2xl sm:rounded-2xl"
+            className="flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-2xl"
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <div>
@@ -109,7 +109,7 @@ export function SearchablePicker({
                 );
               }) : <p className="px-4 py-10 text-center text-sm text-gray-500">{emptyText}</p>}
             </div>
-            <div className="border-t border-gray-100 p-3 sm:hidden">
+            <div className="border-t border-gray-100 p-3">
               <button type="button" onClick={() => { setOpen(false); setSearch(''); }} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Fechar</button>
             </div>
           </section>
