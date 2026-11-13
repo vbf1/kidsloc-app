@@ -10,18 +10,19 @@ type ProductListProps = {
   onPageChange: (page: number) => void;
   onEdit: (product: ProductRecord) => void;
   onManageUnits: (product: ProductRecord) => void;
+  onDelete: (product: ProductRecord) => void;
 };
 function formatDate(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(date);
 }
-function ProductActions({ product, onEdit, onManageUnits }: { product: ProductRecord; onEdit: () => void; onManageUnits: () => void }) {
-  return <div className="flex flex-wrap gap-2"><button type="button" onClick={onEdit} className="rounded-lg border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50">Editar</button>{product.item_type === 'toy' && product.inventory_mode === 'individual' && <button type="button" onClick={onManageUnits} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Unidades</button>}</div>;
+function ProductActions({ product, onEdit, onManageUnits, onDelete }: { product: ProductRecord; onEdit: () => void; onManageUnits: () => void; onDelete: () => void }) {
+  return <div className="flex flex-wrap gap-2"><button type="button" onClick={onEdit} className="rounded-lg border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50">Editar</button>{product.item_type === 'toy' && product.inventory_mode === 'individual' && <button type="button" onClick={onManageUnits} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Unidades</button>}<button type="button" onClick={onDelete} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50">Excluir</button></div>;
 }
 function ProductStatus({ active }: { active: boolean }) {
   return <span className={active ? 'inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700' : 'inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600'}>{active ? 'Ativo' : 'Inativo'}</span>;
 }
-export function ProductList({ products, loading, totalCount, page, pageSize, onPageChange, onEdit, onManageUnits }: ProductListProps) {
+export function ProductList({ products, loading, totalCount, page, pageSize, onPageChange, onEdit, onManageUnits, onDelete }: ProductListProps) {
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
   if (loading) return <p role="status" className="rounded-2xl border border-purple-100 bg-white p-6 text-sm text-gray-500">Carregando catálogo...</p>;
   if (products.length === 0) return (
@@ -43,7 +44,7 @@ export function ProductList({ products, loading, totalCount, page, pageSize, onP
             <td className="px-4 py-4 font-semibold text-gray-900">{formatPrice(product.item_type === 'toy' ? product.daily_price : product.event_price)}<p className="mt-1 text-xs font-normal text-gray-500">{product.item_type === 'toy' ? 'por diária' : 'por evento'}</p></td>
             <td className="px-4 py-4 text-gray-600">{product.item_type === 'service' ? 'Não se aplica' : product.inventory_mode === 'individual' ? 'Unidades individuais' : product.total_quantity + (product.total_quantity === 1 ? ' unidade' : ' unidades')}</td>
             <td className="px-4 py-4"><ProductStatus active={product.active} /></td>
-            <td className="px-5 py-4"><div className="flex justify-end"><ProductActions product={product} onEdit={() => onEdit(product)} onManageUnits={() => onManageUnits(product)} /></div></td>
+            <td className="px-5 py-4"><div className="flex justify-end"><ProductActions product={product} onEdit={() => onEdit(product)} onManageUnits={() => onManageUnits(product)} onDelete={() => onDelete(product)} /></div></td>
           </tr>)}</tbody>
         </table></div>
       </div>
