@@ -64,7 +64,7 @@ export default function LoginPage() {
         setMessage(getAuthErrorMessage(error, 'login'));
         return;
       }
-      window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/company/');
+      window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/');
     } catch (error) {
       setMessage(getAuthErrorMessage(error, 'login'));
     } finally {
