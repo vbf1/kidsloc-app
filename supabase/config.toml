@@ -1,3 +1,4 @@
+#:schema https://supabase.com/schemas/config/v1.json
 project_id = "kidsloc-app"
 
 [api]
@@ -8,7 +9,7 @@ max_rows = 1000
 
 [db]
 port = 54322
-major_version = 15
+major_version = 17
 
 [studio]
 enabled = true
@@ -16,9 +17,21 @@ port = 54323
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/**", "http://localhost:8080/**"]
+site_url = "https://vbf1.github.io/kidsloc-app/"
+additional_redirect_urls = [
+  "https://vbf1.github.io/kidsloc-app/**",
+  "http://localhost:3000/**",
+  "http://localhost:8080/**"
+]
 enable_signup = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1s"
+
+[local_smtp]
+enabled = true
+port = 54324
 
 [storage]
 enabled = true

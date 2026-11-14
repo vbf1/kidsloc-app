@@ -1,7 +1,9 @@
 name: Web - test and deploy GitHub Pages
 on:
   push:
-    branches: [main]
+    branches: [main, feature/v0.1-auth-company-onboarding, feature/ui-organized-customer-catalog]
+    paths: ['web/nextjs_app/**', '.github/workflows/web-pages.yml']
+  pull_request:
     paths: ['web/nextjs_app/**', '.github/workflows/web-pages.yml']
   workflow_dispatch:
 permissions:
@@ -9,7 +11,7 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name }}
   cancel-in-progress: true
 jobs:
   build:
@@ -22,19 +24,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm install
+      - run: npm ci
+      - name: Audit dependency tree
+        run: npm audit --audit-level=low
       - run: npm test
+      - run: npm run lint
       - run: npm run build
         env:
-          NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH || '/kidsloc-app' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://wfwohnssvftegnhwdzmt.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/nextjs_app/out
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -43,3 +48,5 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+# Trigger Pages deployment for the validated password-reset error messages.
+# Keep PR validation path-triggered; this comment intentionally records the CI revalidation trigger.
