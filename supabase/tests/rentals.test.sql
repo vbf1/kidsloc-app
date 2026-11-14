@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(19);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values ('92000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'rental-reservation-qa@example.test', '', now(), now());
@@ -90,12 +90,53 @@ select is(
 );
 
 select lives_ok(
-  $$ select public.create_rental_with_items(
+  $ insert into rental_reservation_qa_ids
+     select 'individual_completed', public.create_rental_with_items(
+       '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
+       date '2035-04-10', date '2035-04-10', 'pending', 'customer_pickup', 100,
+       '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
+       null, array[]::uuid[], time '19:00', time '20:00'
+     ) $,
+  'individual inventory accepts a reservation that will be completed'
+);
+
+select lives_ok(
+  $ select public.update_rental_with_items(
+       '93000000-0000-4000-8000-000000000001',
+       (select rental_id from rental_reservation_qa_ids where kind = 'individual_completed'),
+       '94000000-0000-4000-8000-000000000001',
+       date '2035-04-10', date '2035-04-10', 'completed', 'customer_pickup', 100,
+       '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
+       null, array[]::uuid[], time '19:00', time '20:00'
+     ) $,
+  'completing an individual-unit rental succeeds'
+);
+
+select is(
+  (select count(*)::integer from public.rental_item_units riu
+   join public.rental_items ri on ri.id = riu.rental_item_id
+   where ri.rental_id = (select rental_id from rental_reservation_qa_ids where kind = 'individual_completed')),
+  0,
+  'completing an individual-unit rental releases its physical-unit assignment'
+);
+
+select lives_ok(
+  $ select public.create_rental_with_items(
+       '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
+       date '2035-04-10', date '2035-04-10', 'pending', 'customer_pickup', 100,
+       '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
+       null, array[]::uuid[], time '19:00', time '20:00'
+     ) $,
+  'completing an individual-unit rental releases the unit for the same period'
+);
+
+select lives_ok(
+  $ select public.create_rental_with_items(
        '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
        date '2035-04-10', date '2035-04-10', 'pending', 'customer_pickup', 100,
        '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '10:00', time '11:00'
-     ) $$,
+     ) $,
   'a released physical unit can be reserved again for the same period'
 );
 
