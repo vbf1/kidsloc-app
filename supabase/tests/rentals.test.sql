@@ -90,25 +90,25 @@ select is(
 );
 
 select lives_ok(
-  $ insert into rental_reservation_qa_ids
+  $$ insert into rental_reservation_qa_ids
      select 'individual_completed', public.create_rental_with_items(
        '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
        date '2035-04-10', date '2035-04-10', 'pending', 'customer_pickup', 100,
        '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '19:00', time '20:00'
-     ) $,
+     ) $$,
   'individual inventory accepts a reservation that will be completed'
 );
 
 select lives_ok(
-  $ select public.update_rental_with_items(
+  $$ select public.update_rental_with_items(
        '93000000-0000-4000-8000-000000000001',
        (select rental_id from rental_reservation_qa_ids where kind = 'individual_completed'),
        '94000000-0000-4000-8000-000000000001',
        date '2035-04-10', date '2035-04-10', 'completed', 'customer_pickup', 100,
        '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '19:00', time '20:00'
-     ) $,
+     ) $$,
   'completing an individual-unit rental succeeds'
 );
 
@@ -121,22 +121,22 @@ select is(
 );
 
 select lives_ok(
-  $ select public.create_rental_with_items(
+  $$ select public.create_rental_with_items(
        '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
        date '2035-04-10', date '2035-04-10', 'pending', 'customer_pickup', 100,
        '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '19:00', time '20:00'
-     ) $,
+     ) $$,
   'completing an individual-unit rental releases the unit for the same period'
 );
 
 select lives_ok(
-  $ select public.create_rental_with_items(
+  $$ select public.create_rental_with_items(
        '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001',
        date '2035-04-10', date '2035-04-10', 'pending', 'customer_pickup', 100,
        '[{"product_id":"95000000-0000-4000-8000-000000000001","quantity":1,"unit_price":100}]'::jsonb,
        null, array[]::uuid[], time '10:00', time '11:00'
-     ) $,
+     ) $$,
   'a released physical unit can be reserved again for the same period'
 );
 
