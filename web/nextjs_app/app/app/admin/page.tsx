@@ -11,6 +11,16 @@ import type { CustomerFormValues, CustomerRecord } from '../../../lib/customers'
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 
 type Company = { id: string; name: string; created_at: string };
+
+function formatRoleLabel(role: string) {
+  const labels: Record<string, string> = {
+    owner: 'Proprietário',
+    staff: 'Equipe',
+    admin: 'Administrador',
+    manager: 'Gerente',
+  };
+  return labels[role.toLowerCase()] ?? role;
+}
 type PlatformUser = { id: string; name: string; email: string; phone: string; role: string; company: string; registered_at: string; last_sign_in_at: string | null; email_confirmed_at: string | null; memberships: { company: string; role: string }[] };
 type CompanyOverview = { members: number; customers: number; products: number; rentals: number; financialTransactions: number };
 type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
@@ -397,7 +407,7 @@ export default function PlatformAdminPage() {
                   <td className="px-3 py-3 font-semibold">{user.name || 'Nome não informado'}<span className="mt-1 block text-xs font-normal text-gray-400">{user.email_confirmed_at ? 'E-mail confirmado' : 'E-mail não confirmado'}</span></td>
                   <td className="px-3 py-3">{user.email || '—'}</td>
                   <td className="px-3 py-3">{user.phone || '—'}</td>
-                  <td className="px-3 py-3">{user.memberships.length ? <div className="space-y-1">{user.memberships.map((membership, index) => <div key={membership.company + membership.role + index}><span className="font-medium">{membership.company}</span><span className="ml-2 text-xs text-gray-500">{membership.role}</span></div>)}</div> : <span className="text-gray-400">{user.company || 'Sem empresa vinculada'}</span>}</td>
+                  <td className="px-3 py-3">{user.memberships.length ? <div className="space-y-1">{user.memberships.map((membership, index) => <div key={membership.company + membership.role + index}><span className="font-medium">{membership.company}</span><span className="ml-2 text-xs text-gray-500">{formatRoleLabel(membership.role)}</span></div>)}</div> : <span className="text-gray-400">{user.company || 'Sem empresa vinculada'}</span>}</td>
                   <td className="px-3 py-3 whitespace-nowrap">{user.registered_at ? new Date(user.registered_at).toLocaleDateString('pt-BR') : '—'}</td>
                   <td className="px-3 py-3 whitespace-nowrap">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca acessou'}</td>
                 </tr>)}</tbody>
