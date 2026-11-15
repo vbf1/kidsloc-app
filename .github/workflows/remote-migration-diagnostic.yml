@@ -1,0 +1,68 @@
+name: Remote migration read-only diagnostic
+
+on:
+  push:
+    branches:
+      - feature/v0.1-auth-company-onboarding
+    paths:
+      - .github/workflows/remote-migration-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-migration-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    name: Inspect remote migration history and public schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v0.1-auth-company-onboarding
+
+      - name: Install pinned Supabase CLI
+        uses: supabase/setup-cli@v3.2.0
+        with:
+          version: 3.1.0
+
+      - name: Link project without changing remote state
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          supabase link --project-ref wfwohnssvftegnhwdzmt --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Capture remote migration history
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase migration list --linked > remote-migration-history.txt
+          echo "Remote migration history captured."
+
+      - name: Capture public schema only (no table data)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase db dump --linked --schema public --file remote-public-schema.sql
+          test -s remote-public-schema.sql
+          echo "Public schema dump captured; no table rows were requested."
+
+      - name: Upload diagnostic files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-remote-migration-diagnostic
+          path: |
+            remote-migration-history.txt
+            remote-public-schema.sql
+          if-no-files-found: warn
+          retention-days: 1
