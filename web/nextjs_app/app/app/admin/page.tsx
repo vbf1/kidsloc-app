@@ -326,9 +326,9 @@ export default function PlatformAdminPage() {
   }
 
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId);
-  const normalizedUserSearch = userSearch.normalize('NFD').replace(/\\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
+  const normalizedUserSearch = userSearch.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
   const filteredPlatformUsers = platformUsers.filter((user) => [user.name, user.email, user.phone, user.company, user.role, ...user.memberships.map((membership) => membership.company + ' ' + membership.role)]
-    .some((value) => value.normalize('NFD').replace(/\\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(normalizedUserSearch)));
+    .some((value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(normalizedUserSearch)));
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso administrativo...</p></main>;
 
