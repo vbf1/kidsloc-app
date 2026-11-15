@@ -11,6 +11,7 @@ import type { CustomerFormValues, CustomerRecord } from '../../../lib/customers'
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 
 type Company = { id: string; name: string; created_at: string };
+type PlatformUser = { id: string; name: string; email: string; phone: string; role: string; company: string; registered_at: string; last_sign_in_at: string | null; email_confirmed_at: string | null; memberships: { company: string; role: string }[] };
 type CompanyOverview = { members: number; customers: number; products: number; rentals: number; financialTransactions: number };
 type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
@@ -22,6 +23,11 @@ export default function PlatformAdminPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [platformUsers, setPlatformUsers] = useState<PlatformUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const usersRequest = useRef(0);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [editingCompany, setEditingCompany] = useState(false);
   const [companyNameDraft, setCompanyNameDraft] = useState('');
@@ -94,6 +100,34 @@ export default function PlatformAdminPage() {
     void initialize();
     return () => { active = false; };
   }, [loadCompanies]);
+
+  const loadPlatformUsers = useCallback(async () => {
+    const requestId = ++usersRequest.current;
+    if (!supabase) {
+      setPlatformUsers([]);
+      setUsersError('O acesso ainda não está configurado.');
+      return;
+    }
+    setUsersLoading(true);
+    const { data, error: invokeError } = await supabase.functions.invoke('manage-employees', {
+      body: { action: 'list_users' },
+    });
+    if (requestId !== usersRequest.current) return;
+    if (invokeError || data?.error) {
+      setPlatformUsers([]);
+      setUsersError(data?.error || 'Não foi possível carregar os usuários cadastrados.');
+    } else {
+      setPlatformUsers((data?.users ?? []) as PlatformUser[]);
+      setUsersError('');
+    }
+    setUsersLoading(false);
+  }, []);
+
+  useEffect(() => {
+    // The global user directory is restricted by the Edge Function to the platform owner.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadPlatformUsers();
+  }, [loadPlatformUsers]);
 
   async function saveCompanyName() {
     if (!supabase || !selectedCompanyId) return;
@@ -276,6 +310,7 @@ export default function PlatformAdminPage() {
     if (refreshing) return;
     setRefreshing(true);
     await loadCompanies();
+    await loadPlatformUsers();
     await loadCompanyOverview();
     await loadCompanyCustomers();
     await loadConversations();
@@ -291,6 +326,9 @@ export default function PlatformAdminPage() {
   }
 
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId);
+  const normalizedUserSearch = userSearch.normalize('NFD').replace(/\\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
+  const filteredPlatformUsers = platformUsers.filter((user) => [user.name, user.email, user.phone, user.company, user.role, ...user.memberships.map((membership) => membership.company + ' ' + membership.role)]
+    .some((value) => value.normalize('NFD').replace(/\\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(normalizedUserSearch)));
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso administrativo...</p></main>;
 
@@ -341,6 +379,32 @@ export default function PlatformAdminPage() {
               <button type="button" disabled={companySaving} onClick={() => { setEditingCompany(false); setCompanyFormError(''); }} className={buttonClass}>Cancelar</button>
             </div>
           </form>}
+        </section>
+        <section className={panelClass}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><h2 className="text-lg font-bold">Usuários cadastrados</h2><p className="text-sm text-gray-500">{platformUsers.length} conta(s) cadastrada(s) em toda a plataforma</p></div>
+            <label className="text-sm font-medium">Buscar usuário
+              <input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Nome, e-mail, telefone ou empresa..." className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 font-normal sm:w-80" />
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-gray-400">Consulta global somente leitura. Nenhum dado de acesso, senha ou token é exibido.</p>
+          {usersError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{usersError}</p>}
+          {usersLoading ? <p className="mt-4 text-sm text-gray-500">Carregando usuários cadastrados...</p> : filteredPlatformUsers.length ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Usuário</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">Empresa / perfil</th><th className="px-3 py-3">Cadastro</th><th className="px-3 py-3">Último acesso</th></tr></thead>
+                <tbody>{filteredPlatformUsers.map((user) => <tr key={user.id} className="border-b border-gray-50 align-top">
+                  <td className="px-3 py-3 font-semibold">{user.name || 'Nome não informado'}<span className="mt-1 block text-xs font-normal text-gray-400">{user.email_confirmed_at ? 'E-mail confirmado' : 'E-mail não confirmado'}</span></td>
+                  <td className="px-3 py-3">{user.email || '—'}</td>
+                  <td className="px-3 py-3">{user.phone || '—'}</td>
+                  <td className="px-3 py-3">{user.memberships.length ? <div className="space-y-1">{user.memberships.map((membership, index) => <div key={membership.company + membership.role + index}><span className="font-medium">{membership.company}</span><span className="ml-2 text-xs text-gray-500">{membership.role}</span></div>)}</div> : <span className="text-gray-400">{user.company || 'Sem empresa vinculada'}</span>}</td>
+                  <td className="px-3 py-3 whitespace-nowrap">{user.registered_at ? new Date(user.registered_at).toLocaleDateString('pt-BR') : '—'}</td>
+                  <td className="px-3 py-3 whitespace-nowrap">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca acessou'}</td>
+                </tr>)}</tbody>
+              </table>
+              <p className="mt-3 text-xs text-gray-400">Exibindo {filteredPlatformUsers.length} usuário(s). Os dados são carregados diretamente do cadastro de autenticação e dos vínculos com empresas.</p>
+            </div>
+          ) : <p className="mt-4 text-sm text-gray-500">{platformUsers.length ? 'Nenhum usuário corresponde à busca.' : 'Nenhum usuário cadastrado foi encontrado.'}</p>}
         </section>
         <section className={panelClass}>
           <div className="flex flex-wrap items-center justify-between gap-3">
