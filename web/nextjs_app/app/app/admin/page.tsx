@@ -14,8 +14,8 @@ type Company = { id: string; name: string; created_at: string };
 
 function formatRoleLabel(role: string) {
   const labels: Record<string, string> = {
-    owner: 'Proprietário',
-    staff: 'Equipe',
+    owner: 'Proprietário da empresa',
+    staff: 'Funcionário',
     admin: 'Administrador',
     manager: 'Gerente',
   };
@@ -407,7 +407,7 @@ export default function PlatformAdminPage() {
                   <td className="px-3 py-3 font-semibold">{user.name || 'Nome não informado'}<span className="mt-1 block text-xs font-normal text-gray-400">{user.email_confirmed_at ? 'E-mail confirmado' : 'E-mail não confirmado'}</span></td>
                   <td className="px-3 py-3">{user.email || '—'}</td>
                   <td className="px-3 py-3">{user.phone || '—'}</td>
-                  <td className="px-3 py-3">{user.memberships.length ? <div className="space-y-1">{user.memberships.map((membership, index) => <div key={membership.company + membership.role + index}><span className="font-medium">{membership.company}</span><span className="ml-2 text-xs text-gray-500">{formatRoleLabel(membership.role)}</span></div>)}</div> : <span className="text-gray-400">{user.company || 'Sem empresa vinculada'}</span>}</td>
+                  <td className="px-3 py-3"><div className="space-y-1">{user.role === 'owner' && <div className="font-semibold text-[#6840bd]">Proprietário da plataforma</div>}{user.memberships.length ? user.memberships.map((membership, index) => <div key={membership.company + membership.role + index}><span className="font-medium">{membership.company}</span><span className="ml-2 text-xs text-gray-500">{formatRoleLabel(membership.role)}</span></div>) : user.role !== 'owner' ? <span className="text-gray-400">{user.company || 'Sem empresa vinculada'}</span> : null}</div></td>
                   <td className="px-3 py-3 whitespace-nowrap">{user.registered_at ? new Date(user.registered_at).toLocaleDateString('pt-BR') : '—'}</td>
                   <td className="px-3 py-3 whitespace-nowrap">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca acessou'}</td>
                 </tr>)}</tbody>
