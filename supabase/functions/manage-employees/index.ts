@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
           id: user.id,
           name: profile?.full_name || user.user_metadata?.full_name || "",
           email: user.email || "",
-          phone: profile?.phone || "",
+          phone: profile?.phone || user.phone || "",
           role: isCurrentPlatformOwner ? "owner" : selectedMembership?.role || "none",
           company: isCurrentPlatformOwner
             ? "Proprietário global"
