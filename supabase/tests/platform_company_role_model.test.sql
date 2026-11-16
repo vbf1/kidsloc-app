@@ -48,14 +48,33 @@ select is(
   'company owner is represented by the admin role'
 );
 
+select throws_ok(
+  $ insert into public.company_members (company_id, user_id, role)
+     values ('c2000000-0000-4000-8000-000000000001',
+             'c1000000-0000-4000-8000-000000000005', 'owner') $,
+  '23514',
+  null,
+  'company membership cannot use the platform owner role'
+);
+
+select throws_ok(
+  $ insert into public.company_members (company_id, user_id, role)
+     values ('c2000000-0000-4000-8000-000000000001',
+             'c1000000-0000-4000-8000-000000000005', 'manager') $,
+  '23514',
+  null,
+  'company membership is limited to admin and staff roles'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000002', true);
+
 select is(
   (select public.is_platform_owner_for_company()),
   false,
   'company administrator is not the platform owner'
 );
 
-set local role authenticated;
-select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000002', true);
 
 select lives_ok(
   $$ select public.add_company_member(
@@ -116,24 +135,6 @@ select is(
      and user_id = 'c1000000-0000-4000-8000-000000000007'),
   'admin',
   'new company creator receives the admin role'
-);
-
-select throws_ok(
-  $$ insert into public.company_members (company_id, user_id, role)
-     values ('c2000000-0000-4000-8000-000000000001',
-             'c1000000-0000-4000-8000-000000000005', 'owner') $$,
-  '23514',
-  null,
-  'company membership cannot use the platform owner role'
-);
-
-select throws_ok(
-  $$ insert into public.company_members (company_id, user_id, role)
-     values ('c2000000-0000-4000-8000-000000000001',
-             'c1000000-0000-4000-8000-000000000005', 'manager') $$,
-  '23514',
-  null,
-  'company membership is limited to admin and staff roles'
 );
 
 reset role;
