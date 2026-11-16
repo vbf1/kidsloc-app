@@ -6,7 +6,7 @@ select has_column('public', 'products', 'event_price', 'event price column exist
 select col_default_is('public', 'products', 'item_type', 'toy', 'existing and new products default to toy');
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
- ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'products-owner@example.test', '', now(), now()),
+ ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'products-admin@example.test', '', now(), now()),
  ('20000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'products-outsider@example.test', '', now(), now());
 insert into public.companies (id, name, created_by)
 values
@@ -14,8 +14,8 @@ values
  ('31000000-0000-4000-8000-000000000002', 'Outra empresa', '20000000-0000-4000-8000-000000000002');
 insert into public.company_members (company_id, user_id, role)
 values
- ('31000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'owner'),
- ('31000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 'owner');
+ ('31000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'admin'),
+ ('31000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 'admin');
 select lives_ok(
   $$ insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price, event_price)
      values ('41000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000001', 'Recreação', 'service', 'quantity', 0, 0, 150.00) $$,
