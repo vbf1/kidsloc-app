@@ -60,9 +60,9 @@ select lives_ok(
 
 select is(
   (select count(*)::int from public.company_members
-   where user_id = '10000000-0000-4000-8000-000000000001' and role = 'owner'),
+   where user_id = '10000000-0000-4000-8000-000000000001' and role = 'admin'),
   1,
-  'company creator becomes owner'
+  'company creator becomes company admin'
 );
 
 select is(
@@ -76,12 +76,12 @@ select throws_ok(
      values ('Bypass attempt', auth.uid()) $$,
   '42501',
   'new row violates row-level security policy for table "companies"',
-  'authenticated owner cannot bypass company onboarding RPC'
+  'authenticated user cannot bypass company onboarding RPC'
 );
 
 select throws_ok(
   $$ insert into public.company_members (company_id, user_id, role)
-     select id, auth.uid(), 'owner'
+     select id, auth.uid(), 'admin'
      from public.companies
      where created_by = auth.uid() $$,
   '42501',
