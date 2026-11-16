@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(13);
 
 -- Isolated fixtures: one platform owner and two independent company owners.
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -27,6 +27,18 @@ values
   ('b3000000-0000-4000-8000-000000000001', 'b2000000-0000-4000-8000-000000000001', 'Produto privado A', 'toy', 'quantity', 1, 50),
   ('b3000000-0000-4000-8000-000000000002', 'b2000000-0000-4000-8000-000000000002', 'Produto B para editar', 'toy', 'quantity', 1, 50),
   ('b3000000-0000-4000-8000-000000000003', 'b2000000-0000-4000-8000-000000000002', 'Produto B para excluir', 'toy', 'quantity', 1, 50);
+
+select is(
+  (select count(*)::integer
+   from pg_policies
+   where schemaname = 'public'
+     and policyname = 'platform_owner_all'
+     and cmd = 'ALL'
+     and qual = 'is_platform_owner()'
+     and with_check = 'is_platform_owner()'),
+  20,
+  'all 20 company data tables retain full platform-owner policies'
+);
 
 -- The platform owner must be able to see and manage records across both companies.
 set local role authenticated;
