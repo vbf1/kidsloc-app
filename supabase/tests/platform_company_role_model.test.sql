@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(13);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -129,10 +129,17 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000007', true);
 
+select lives_ok(
+  $ select public.create_company('Empresa criada pelo onboarding') $,
+  'new company creator can complete onboarding'
+);
+
 select is(
-  (select role from public.company_members
-   where company_id = public.create_company('Empresa criada pelo onboarding')
-     and user_id = 'c1000000-0000-4000-8000-000000000007'),
+  (select cm.role
+   from public.company_members cm
+   join public.companies co on co.id = cm.company_id
+   where co.name = 'Empresa criada pelo onboarding'
+     and cm.user_id = 'c1000000-0000-4000-8000-000000000007'),
   'admin',
   'new company creator receives the admin role'
 );
