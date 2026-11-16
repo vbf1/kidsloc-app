@@ -213,7 +213,7 @@ const membership = await request(
 assert.equal(membership.response.ok, true, 'Membership query failed');
 assert.equal(membership.data?.length, 1, 'Company creation did not create one membership');
 assert.equal(membership.data[0].company_id, company.data);
-assert.equal(membership.data[0].role, 'owner');
+assert.equal(membership.data[0].role, 'admin');
 
 // 7. A second company must be rejected for the same account.
 const secondCompany = await request('/rest/v1/rpc/create_company', {
