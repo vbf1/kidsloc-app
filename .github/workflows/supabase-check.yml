@@ -11,18 +11,35 @@ jobs:
       - uses: supabase/setup-cli@v3.2.0
         with:
           version: 3.1.0
-      - name: Select an available local database port
+      - name: Start local Supabase database with port fallback
+        shell: bash
         run: |
+          set -uo pipefail
+          log_file="$RUNNER_TEMP/supabase-db-start.log"
+
           for port in $(seq 55432 55532); do
-            if ! ss -H -ltn "sport = :$port" | grep -q .; then
-              sed -i "s/^port = 54322$/port = $port/" supabase/config.toml
-              echo "Using local Supabase database port $port"
+            if ss -H -ltn "sport = :$port" | grep -q .; then
+              continue
+            fi
+
+            sed -i "/^\\[db\\]/,/^\\[/{s/^port = [0-9][0-9]*$/port = $port/;}" supabase/config.toml
+            echo "Trying local Supabase database port $port"
+
+            if supabase db start 2>&1 | tee "$log_file"; then
               exit 0
             fi
+
+            if ! grep -qi "address already in use" "$log_file"; then
+              echo "::error::Supabase database startup failed for a reason other than a port collision."
+              exit 1
+            fi
+
+            echo "Port $port was claimed during startup; trying the next available port."
+            supabase stop --no-backup >/dev/null 2>&1 || true
           done
-          echo "::error::No available database port found in range 55432-55532"
+
+          echo "::error::Could not start the local Supabase database after trying ports 55432-55532."
           exit 1
-      - run: supabase db start
       - run: supabase db reset
       - run: supabase stop
       - run: supabase start
