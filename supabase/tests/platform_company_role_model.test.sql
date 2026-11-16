@@ -49,9 +49,9 @@ select is(
 );
 
 select throws_ok(
-  $ insert into public.company_members (company_id, user_id, role)
+  $sql$ insert into public.company_members (company_id, user_id, role)
      values ('c2000000-0000-4000-8000-000000000001',
-             'c1000000-0000-4000-8000-000000000005', 'owner') $,
+             'c1000000-0000-4000-8000-000000000005', 'owner') $sql$,
   '23514',
   null,
   'company membership cannot use the platform owner role'
@@ -60,7 +60,7 @@ select throws_ok(
 select throws_ok(
   $ insert into public.company_members (company_id, user_id, role)
      values ('c2000000-0000-4000-8000-000000000001',
-             'c1000000-0000-4000-8000-000000000005', 'manager') $,
+             'c1000000-0000-4000-8000-000000000005', 'manager') $sql$,
   '23514',
   null,
   'company membership is limited to admin and staff roles'
