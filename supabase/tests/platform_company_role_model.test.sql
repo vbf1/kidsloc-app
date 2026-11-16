@@ -130,7 +130,7 @@ select throws_ok(
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000007', true);
 
 select lives_ok(
-  $ select public.create_company('Empresa criada pelo onboarding') $,
+  $$ select public.create_company('Empresa criada pelo onboarding') $$,
   'new company creator can complete onboarding'
 );
 
