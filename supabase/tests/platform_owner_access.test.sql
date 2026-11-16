@@ -20,7 +20,7 @@ values
 insert into public.company_members (company_id, user_id, role)
 values
   ('b2000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000002', 'owner'),
-  ('b2000000-0000-4000-8000-000000000003', 'b1000000-0000-4000-8000-000000000003', 'owner');
+  ('b2000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000003', 'owner');
 
 insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price)
 values
