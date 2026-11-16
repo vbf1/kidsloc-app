@@ -1,6 +1,6 @@
 'use client';
 
-// This workspace is reserved for the KidsLoc platform owner and is read-only for conversations.
+// This workspace is reserved exclusively for the KidsLoc platform owner.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,17 +14,14 @@ type Company = { id: string; name: string; created_at: string };
 
 function formatRoleLabel(role: string) {
   const labels: Record<string, string> = {
-    owner: 'Proprietário da empresa',
+    owner: 'Administrador da empresa',
     staff: 'Funcionário',
-    admin: 'Administrador',
-    manager: 'Gerente',
+    admin: 'Administrador da empresa',
   };
   return labels[role.toLowerCase()] ?? role;
 }
 type PlatformUser = { id: string; name: string; email: string; phone: string; role: string; company: string; registered_at: string; last_sign_in_at: string | null; email_confirmed_at: string | null; memberships: { company: string; role: string }[] };
 type CompanyOverview = { members: number; customers: number; products: number; rentals: number; financialTransactions: number };
-type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
-type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
 type CompanyCustomer = Pick<CustomerRecord, 'id' | 'company_id' | 'name' | 'phone' | 'email' | 'city_state' | 'created_at' | 'address' | 'notes' | 'cpf' | 'rg' | 'zip' | 'neighborhood'>;
 const panelClass = 'rounded-2xl border border-purple-100 bg-white p-5 shadow-sm';
 const buttonClass = 'rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50';
@@ -60,18 +57,11 @@ export default function PlatformAdminPage() {
   const [editingCustomer, setEditingCustomer] = useState<CompanyCustomer | null>(null);
   const [customerSaving, setCustomerSaving] = useState(false);
   const [customerFormError, setCustomerFormError] = useState('');
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversationId, setSelectedConversationId] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const [conversationsLoading, setConversationsLoading] = useState(false);
-  const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const overviewRequest = useRef(0);
   const customersRequest = useRef(0);
-  const conversationsRequest = useRef(0);
-  const messagesRequest = useRef(0);
 
   const loadCompanies = useCallback(async () => {
     if (!supabase) {
@@ -256,66 +246,6 @@ export default function PlatformAdminPage() {
     setCustomerSaving(false);
   }
 
-  const loadConversations = useCallback(async () => {
-    const requestId = ++conversationsRequest.current;
-    if (!supabase || !selectedCompanyId) {
-      setConversations([]);
-      setSelectedConversationId('');
-      setConversationsLoading(false);
-      return;
-    }
-    setConversationsLoading(true);
-    const { data, error: queryError } = await supabase.from('team_conversations')
-      .select('id,company_id,conversation_type,title,created_by,created_at')
-      .eq('company_id', selectedCompanyId).order('created_at', { ascending: false });
-    if (requestId !== conversationsRequest.current) return;
-    if (queryError) {
-      setError('Não foi possível carregar as conversas desta empresa.');
-      setConversations([]);
-      setSelectedConversationId('');
-    } else {
-      const rows = (data ?? []) as Conversation[];
-      setConversations(rows);
-      setSelectedConversationId((current) => current && rows.some((item) => item.id === current) ? current : rows[0]?.id ?? '');
-      setError('');
-    }
-    setConversationsLoading(false);
-  }, [selectedCompanyId]);
-
-  useEffect(() => {
-    // The async loader synchronizes the selected company with Supabase.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadConversations();
-  }, [loadConversations]);
-
-  const loadMessages = useCallback(async () => {
-    const requestId = ++messagesRequest.current;
-    if (!supabase || !selectedConversationId) {
-      setMessages([]);
-      setMessagesLoading(false);
-      return;
-    }
-    setMessagesLoading(true);
-    const { data, error: queryError } = await supabase.from('team_messages')
-      .select('id,conversation_id,sender_id,body,created_at')
-      .eq('conversation_id', selectedConversationId).order('created_at', { ascending: false }).limit(300);
-    if (requestId !== messagesRequest.current) return;
-    if (queryError) {
-      setError('Não foi possível carregar as mensagens desta conversa.');
-      setMessages([]);
-    } else {
-      setMessages(((data ?? []) as Message[]).reverse());
-      setError('');
-    }
-    setMessagesLoading(false);
-  }, [selectedConversationId]);
-
-  useEffect(() => {
-    // The async loader synchronizes the selected conversation with Supabase.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadMessages();
-  }, [loadMessages]);
-
   async function refreshAll() {
     if (refreshing) return;
     setRefreshing(true);
@@ -323,8 +253,6 @@ export default function PlatformAdminPage() {
     await loadPlatformUsers();
     await loadCompanyOverview();
     await loadCompanyCustomers();
-    await loadConversations();
-    await loadMessages();
     setRefreshing(false);
   }
 
@@ -339,7 +267,6 @@ export default function PlatformAdminPage() {
   const normalizedUserSearch = userSearch.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
   const filteredPlatformUsers = platformUsers.filter((user) => [user.name, user.email, user.phone, user.company, user.role, ...user.memberships.map((membership) => membership.company + ' ' + membership.role)]
     .some((value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(normalizedUserSearch)));
-  const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso administrativo...</p></main>;
 
   return (
@@ -352,7 +279,7 @@ export default function PlatformAdminPage() {
       </header>
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <section className="flex flex-wrap items-end justify-between gap-4">
-          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Administração global</p><h1 className="mt-2 text-3xl font-bold">Painel do proprietário</h1><p className="mt-2 text-sm text-gray-500">Acompanhamento das empresas e das conversas internas. {email}</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Administração global</p><h1 className="mt-2 text-3xl font-bold">Painel do proprietário</h1><p className="mt-2 text-sm text-gray-500">Acompanhamento das empresas e dos usuários cadastrados. {email}</p></div>
           <button type="button" onClick={() => void refreshAll()} disabled={refreshing || companySaving || customerSaving} className={buttonClass}>{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
         </section>
         {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -363,8 +290,6 @@ export default function PlatformAdminPage() {
                 { value: '', label: 'Selecione uma empresa' }, ...companies.map((company) => ({ value: company.id, label: company.name })),
               ]} placeholder="Selecione uma empresa" searchPlaceholder="Buscar empresa..." emptyText="Nenhuma empresa encontrada." disabled={companySaving || customerSaving} onChange={(value) => {
                 setSelectedCompanyId(value);
-                setSelectedConversationId('');
-                setMessages([]);
                 setEditingCompany(false);
                 setCompanyNameDraft('');
                 setCompanyFormError('');
@@ -490,27 +415,6 @@ export default function PlatformAdminPage() {
               onSubmit={saveCompanyCustomer}
             />
           </div>}
-        </section>
-        <section className="grid gap-6 lg:grid-cols-[minmax(260px,.8fr)_minmax(0,1.5fr)]">
-          <div className={panelClass}>
-            <h2 className="text-lg font-bold">Conversas</h2><p className="mb-4 text-sm text-gray-500">{selectedCompany?.name ?? 'Selecione uma empresa'}</p>
-            {conversationsLoading ? <p className="text-sm text-gray-500">Carregando conversas...</p> : conversations.length ? <ul className="space-y-2">{conversations.map((conversation) => <li key={conversation.id}>
-              <button type="button" onClick={() => setSelectedConversationId(conversation.id)} className={'w-full rounded-xl border p-3 text-left transition ' + (selectedConversationId === conversation.id ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:bg-gray-50')}>
-                <span className="block font-semibold">{conversation.title?.trim() || (conversation.conversation_type === 'direct' ? 'Conversa direta' : 'Conversa da equipe')}</span>
-                <span className="mt-1 block text-xs text-gray-500">{new Date(conversation.created_at).toLocaleString('pt-BR')}</span>
-              </button>
-            </li>)}</ul> : <p className="text-sm text-gray-500">Nenhuma conversa cadastrada para esta empresa.</p>}
-          </div>
-          <div className={panelClass}>
-            <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-lg font-bold">Mensagens</h2><p className="text-sm text-gray-500">{selectedConversation?.title || 'Visualização somente leitura'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-[#6840bd]">Somente leitura</span></div>
-            <div className="mt-4 max-h-[65vh] space-y-3 overflow-y-auto rounded-xl bg-gray-50 p-3">
-              {messagesLoading ? <p className="p-3 text-sm text-gray-500">Carregando mensagens...</p> : messages.length ? messages.map((message) => <article key={message.id} className="rounded-xl border border-gray-100 bg-white p-3">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-semibold text-gray-500">Remetente · {message.sender_id.slice(0, 8)}</span><time className="text-xs text-gray-400">{new Date(message.created_at).toLocaleString('pt-BR')}</time></div>
-                <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">{message.body}</p>
-              </article>) : <p className="p-3 text-sm text-gray-500">{selectedConversationId ? 'Esta conversa ainda não possui mensagens.' : 'Selecione uma conversa para visualizar as mensagens.'}</p>}
-            </div>
-            <p className="mt-3 text-xs text-gray-400">O painel não oferece ações para enviar, editar ou excluir mensagens. São exibidas as 300 mensagens mais recentes da conversa selecionada.</p>
-          </div>
         </section>
       </div>
     </main>
