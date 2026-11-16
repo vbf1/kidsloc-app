@@ -9,7 +9,7 @@ insert into public.companies (id, name, created_by)
 values ('93000000-0000-4000-8000-000000000001', 'Empresa QA reservas', '92000000-0000-4000-8000-000000000001');
 
 insert into public.company_members (company_id, user_id, role)
-values ('93000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', 'owner');
+values ('93000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', 'admin');
 
 insert into public.customers (id, company_id, name)
 values ('94000000-0000-4000-8000-000000000001', '93000000-0000-4000-8000-000000000001', 'Cliente QA reservas');

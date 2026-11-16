@@ -37,14 +37,14 @@ Deno.serve(async (req) => {
 
     const { data: isPlatformOwner, error: ownerCheckError } = await authClient.rpc("is_platform_owner");
     if (ownerCheckError) throw ownerCheckError;
-    let callerRole: string | null = isPlatformOwner ? "owner" : null;
+    let callerRole: string | null = isPlatformOwner ? "platform_owner" : null;
     if (!isPlatformOwner) {
       const { data: caller, error: callerError } = await admin.from("company_members")
         .select("role").eq("company_id", companyId).eq("user_id", authData.user.id).maybeSingle();
       if (callerError) throw callerError;
       callerRole = caller?.role || null;
     }
-    if (!callerRole || !["owner", "admin"].includes(callerRole)) {
+    if (!callerRole || !["platform_owner", "admin"].includes(callerRole)) {
       return reply({ error: "Você não tem permissão para gerenciar funcionários." }, 403);
     }
 
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
           name: profile?.full_name || user.user_metadata?.full_name || "",
           email: user.email || "",
           phone: profile?.phone || user.phone || "",
-          role: isCurrentPlatformOwner ? "owner" : selectedMembership?.role || "none",
+          role: isCurrentPlatformOwner ? "platform_owner" : selectedMembership?.role || "none",
           company: isCurrentPlatformOwner
             ? "Proprietário global"
             : userMemberships.map(member => companyById.get(member.company_id) || "Empresa").join(", "),
@@ -126,8 +126,8 @@ Deno.serve(async (req) => {
       const role = String(body.role || "staff");
       if (name.length < 2 || name.length > 100) return reply({ error: "Informe um nome entre 2 e 100 caracteres." }, 400);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Informe um e-mail válido." }, 400);
-      if (!["staff", "manager", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
-      if (role !== "staff" && callerRole !== "owner") return reply({ error: "Somente o proprietário pode cadastrar gerentes ou administradores." }, 403);
+      if (!["staff", "admin"].includes(role)) return reply({ error: "Perfil solicitado inválido." }, 400);
+      if (role !== "staff" && callerRole !== "platform_owner") return reply({ error: "Somente o proprietário da plataforma pode cadastrar administradores." }, 403);
 
       const [{ data: company, error: companyError }, { data: inviterProfile }] = await Promise.all([
         admin.from("companies").select("name").eq("id", companyId).maybeSingle(),
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
         authData.user.email ||
         "Equipe da empresa"
       ).trim();
-      const roleLabel = role === "admin" ? "Administrador" : role === "manager" ? "Gerente" : "Funcionário";
+      const roleLabel = role === "admin" ? "Administrador" : "Funcionário";
 
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
         data: {
@@ -182,13 +182,12 @@ Deno.serve(async (req) => {
     if (action === "change_role") {
       const targetId = String(body.user_id || "");
       const newRole = String(body.role || "");
-      if (!targetId || !["staff", "manager", "admin"].includes(newRole)) return reply({ error: "Dados de alteração inválidos." }, 400);
+      if (!targetId || !["staff", "admin"].includes(newRole)) return reply({ error: "Dados de alteração inválidos." }, 400);
       if (targetId === authData.user.id) return reply({ error: "Você não pode alterar seu próprio perfil." }, 403);
       const { data: target, error } = await admin.from("company_members").select("id,role")
         .eq("company_id", companyId).eq("user_id", targetId).maybeSingle();
       if (error || !target) return reply({ error: "Funcionário não encontrado nesta empresa." }, 404);
-      if (target.role === "owner") return reply({ error: "O perfil do proprietário não pode ser alterado." }, 403);
-      if (callerRole !== "owner" && (target.role !== "staff" || newRole !== "staff")) {
+      if (callerRole !== "platform_owner" && (target.role !== "staff" || newRole !== "staff")) {
         return reply({ error: "Administradores só podem gerenciar funcionários." }, 403);
       }
       const { error: updateError } = await admin.from("company_members").update({ role: newRole }).eq("id", target.id);
@@ -202,8 +201,7 @@ Deno.serve(async (req) => {
       const { data: target, error } = await admin.from("company_members").select("id,role")
         .eq("company_id", companyId).eq("user_id", targetId).maybeSingle();
       if (error || !target) return reply({ error: "Funcionário não encontrado nesta empresa." }, 404);
-      if (target.role === "owner") return reply({ error: "O proprietário não pode ser removido por esta tela." }, 403);
-      if (callerRole !== "owner" && target.role !== "staff") return reply({ error: "Administradores só podem remover funcionários." }, 403);
+      if (callerRole !== "platform_owner" && target.role !== "staff") return reply({ error: "Administradores só podem remover funcionários." }, 403);
       const { error: deleteError } = await admin.from("company_members").delete().eq("id", target.id);
       if (deleteError) throw deleteError;
       return reply({ message: "Acesso removido desta empresa." });

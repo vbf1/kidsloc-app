@@ -15,7 +15,7 @@ select ok(
 );
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
-  ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'customers-owner@example.test', '', now(), now()),
+  ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'customers-admin@example.test', '', now(), now()),
   ('20000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'customers-outsider@example.test', '', now(), now());
 insert into public.companies (id, name, created_by)
 values
@@ -23,8 +23,8 @@ values
   ('30000000-0000-4000-8000-000000000002', 'Outra empresa', '20000000-0000-4000-8000-000000000002');
 insert into public.company_members (company_id, user_id, role)
 values
-  ('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'owner'),
-  ('30000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 'owner');
+  ('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'admin'),
+  ('30000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 'admin');
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
 select lives_ok(
