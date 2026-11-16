@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
       const { data: target, error } = await admin.from("company_members").select("id,role")
         .eq("company_id", companyId).eq("user_id", targetId).maybeSingle();
       if (error || !target) return reply({ error: "Funcionário não encontrado nesta empresa." }, 404);
-      if (callerRole !== "owner" && target.role !== "staff") return reply({ error: "Administradores só podem remover funcionários." }, 403);
+      if (callerRole !== "platform_owner" && target.role !== "staff") return reply({ error: "Administradores só podem remover funcionários." }, 403);
       const { error: deleteError } = await admin.from("company_members").delete().eq("id", target.id);
       if (deleteError) throw deleteError;
       return reply({ message: "Acesso removido desta empresa." });
