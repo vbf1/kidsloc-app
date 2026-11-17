@@ -11,7 +11,7 @@ const roleLabels: Record<Role, string> = {
   owner: 'Proprietário', admin: 'Administrador', manager: 'Gerente', staff: 'Funcionário',
 };
 
-export default function TeamManagement() {
+export default function TeamManagement() {\n  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   const [sessionReady, setSessionReady] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -145,7 +145,7 @@ export default function TeamManagement() {
     <main className="min-h-screen px-4 py-8 sm:px-8">
       <div className="mx-auto max-w-5xl">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <a href="/" className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><span><strong className="block text-lg">KidsLoc</strong><span className="text-xs text-gray-500">Gestão de equipe</span></span></a>
+          <a href={`${basePath}/`} className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><span><strong className="block text-lg">KidsLoc</strong><span className="text-xs text-gray-500">Gestão de equipe</span></span></a>
           {userEmail && <div className="flex items-center gap-3 text-sm"><span className="max-w-52 truncate text-gray-600">{userEmail}</span><button onClick={signOut} className="rounded-xl border px-3 py-2 hover:bg-gray-50">Sair</button></div>}
         </header>
         {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
