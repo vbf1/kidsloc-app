@@ -31,8 +31,13 @@ Deno.serve(async (req: Request) => {
   const companyId = input.companyId;
   const email = input.email?.trim().toLowerCase();
   const role = input.role ?? 'staff';
-  if (!companyId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email ?? '') || !['admin', 'manager', 'staff'].includes(role)) {
+  if (!companyId || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email ?? '') || !['admin', 'manager', 'staff'].includes(role)) {
     return json({ error: 'Informe empresa, e-mail válido e cargo permitido.' }, 400);
+  }
+
+  // A user cannot add their own account through the invitation flow.
+  if (authData.user.email?.trim().toLowerCase() === email) {
+    return json({ error: 'Você não pode convidar sua própria conta.' }, 409);
   }
 
   const [{ data: isOwner, error: ownerError }, { data: isAdmin, error: adminError }] = await Promise.all([
@@ -57,19 +62,39 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!targetUser) {
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
-    if (error || !data.user) return json({ error: error?.message ?? 'Não foi possível enviar o convite.' }, 400);
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email!);
+    if (error || !data.user) return json({ error: 'Não foi possível enviar o convite. Verifique o endereço e tente novamente.' }, 400);
     targetUser = { id: data.user.id };
     invited = true;
   }
 
-  if (!targetUser) return json({ error: 'Não foi possível criar ou localizar a conta.' }, 500);\n\n  const { error: memberError } = await userClient.rpc('add_company_member', {
-    p_company_id: companyId,
-    p_user_id: targetUser.id,
-    p_role: role,
+  // Friendly duplicate check; the UNIQUE(company_id, user_id) constraint remains
+  // the final race-safe guard when two invitations arrive at the same time.
+  const { data: existingMembership, error: membershipLookupError } = await admin
+    .from('company_members')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('user_id', targetUser.id)
+    .maybeSingle();
+  if (membershipLookupError) {
+    return json({ error: invited ? 'O convite foi enviado, mas não foi possível concluir o vínculo. Peça ao proprietário para revisar a equipe.' : 'Não foi possível verificar o vínculo com esta empresa.' }, 500);
+  }
+  if (existingMembership) {
+    return json({ error: 'Este e-mail já está vinculado à equipe desta empresa.' }, 409);
+  }
+
+  // Insert instead of calling add_company_member: that RPC intentionally upserts
+  // roles for the role-editor, while an invitation must never change an existing role.
+  const { error: memberError } = await admin.from('company_members').insert({
+    company_id: companyId,
+    user_id: targetUser.id,
+    role,
   });
   if (memberError) {
-    return json({ error: invited ? 'O convite foi criado, mas o vínculo não foi concluído. Peça ao proprietário para revisar a equipe.' : memberError.message }, 400);
+    if (memberError.code === '23505') {
+      return json({ error: 'Este e-mail já está vinculado à equipe desta empresa.' }, 409);
+    }
+    return json({ error: invited ? 'O convite foi enviado, mas o vínculo não foi concluído. Peça ao proprietário para revisar a equipe.' : 'Não foi possível adicionar este usuário à equipe.' }, 500);
   }
 
   return json({ ok: true, invited, message: invited ? 'Convite enviado.' : 'Usuário vinculado à empresa.' });
