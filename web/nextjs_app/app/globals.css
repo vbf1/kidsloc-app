@@ -104,3 +104,58 @@ body:has([role="dialog"]), body:has([role="alertdialog"]) { isolation: isolate; 
     padding: 16px;
   }
 }
+
+
+/* KidsLoc Design System — superfícies, campos e controles consistentes. */
+:root {
+  --kl-purple: #7043c5;
+  --kl-purple-deep: #5931a8;
+  --kl-purple-tint: #f3edff;
+  --kl-yellow: #ffd45a;
+  --kl-ink: #211b32;
+  --kl-muted: #777187;
+  --kl-line: #e9e4f1;
+  --kl-canvas: #f8f7fb;
+  --kl-card: #ffffff;
+  --kl-shadow: 0 8px 28px rgb(39 24 70 / 6%);
+}
+body { background: var(--kl-canvas); color: var(--kl-ink); }
+.kl-page { width: 100%; max-width: 1080px; margin-inline: auto; padding: 28px 20px 56px; }
+.kl-page-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
+.kl-eyebrow { color: var(--kl-purple); font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.kl-title { margin-top: 7px; color: var(--kl-ink); font-size: clamp(26px, 4vw, 34px); line-height: 1.12; font-weight: 800; letter-spacing: -.04em; }
+.kl-subtitle { margin-top: 8px; color: var(--kl-muted); font-size: 14px; line-height: 1.65; }
+.kl-card { min-width: 0; border: 1px solid var(--kl-line); border-radius: 22px; background: var(--kl-card); padding: 22px; box-shadow: var(--kl-shadow); }
+.kl-card + .kl-card { margin-top: 16px; }
+.kl-card-title { color: var(--kl-ink); font-size: 16px; font-weight: 750; letter-spacing: -.02em; }
+.kl-field-label { display: block; margin-bottom: 8px; color: #514a61; font-size: 12px; font-weight: 700; }
+.kl-input { display: block; width: 100%; min-width: 0; min-height: 48px; border: 1px solid var(--kl-line); border-radius: 14px; background: #fff; padding: 0 14px; color: var(--kl-ink); font-size: 14px; transition: border-color .18s, box-shadow .18s; }
+.kl-input:hover { border-color: #cdbde9; }
+.kl-input:focus { border-color: var(--kl-purple); outline: none; box-shadow: 0 0 0 4px rgb(112 67 197 / 12%); }
+.kl-button-primary { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: linear-gradient(135deg, #8054d8, #6339b5); padding: 0 20px; color: #fff; font-size: 14px; font-weight: 750; box-shadow: 0 6px 14px rgb(112 67 197 / 20%); transition: transform .18s, box-shadow .18s, opacity .18s; }
+.kl-button-primary:hover { transform: translateY(-1px); box-shadow: 0 9px 18px rgb(112 67 197 / 24%); }
+.kl-button-primary:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+.kl-select-root { position: relative; width: 100%; min-width: 0; }
+.kl-select-trigger { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--kl-line); border-radius: 14px; background: #fff; padding: 0 14px; color: var(--kl-ink); text-align: left; font-size: 14px; font-weight: 650; transition: border-color .18s, box-shadow .18s, background .18s; }
+.kl-select-trigger:hover, .kl-select-trigger[aria-expanded="true"] { border-color: #bda8e4; box-shadow: 0 0 0 4px rgb(112 67 197 / 8%); }
+.kl-select-chevron { width: 19px; height: 19px; flex: none; color: #827a91; transition: transform .18s; }
+.kl-select-chevron.is-open { transform: rotate(180deg); }
+.kl-select-menu { position: absolute; z-index: 60; top: calc(100% + 8px); left: 0; width: 100%; max-height: min(280px, 45vh); overflow-y: auto; border: 1px solid var(--kl-line); border-radius: 16px; background: #fff; padding: 6px; box-shadow: 0 18px 45px rgb(34 22 57 / 16%); }
+.kl-select-option { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: space-between; gap: 12px; border-radius: 11px; padding: 9px 11px; color: #4f485e; text-align: left; font-size: 14px; transition: background .15s, color .15s; }
+.kl-select-option:hover { background: #f8f5ff; color: var(--kl-purple-deep); }
+.kl-select-option.is-selected { background: var(--kl-purple-tint); color: var(--kl-purple-deep); font-weight: 750; }
+.kl-select-check { color: var(--kl-purple); font-weight: 900; }
+.kl-notice { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border: 1px solid; border-radius: 16px; padding: 13px 15px; font-size: 13px; line-height: 1.55; }
+.kl-notice-success { border-color: #bde8d2; background: #f0fbf5; color: #176341; }
+.kl-notice-error { border-color: #f3caca; background: #fff5f5; color: #9f2525; }
+.kl-notice-dismiss { flex: none; border-radius: 8px; padding: 2px 7px; font-size: 18px; line-height: 1.2; opacity: .7; }
+.kl-member-row { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: 17px 22px; }
+.kl-member-row + .kl-member-row { border-top: 1px solid #f0edf4; }
+@media (max-width: 640px) {
+  .kl-page { padding: 20px 16px 40px; }
+  .kl-card { border-radius: 18px; padding: 17px; }
+  .kl-page-heading { align-items: stretch; gap: 14px; margin-bottom: 18px; }
+  .kl-member-row { align-items: stretch; padding: 16px 17px; }
+  .kl-member-row > :last-child { width: 100%; }
+  .kl-member-row .kl-select-root { flex: 1 1 150px; }
+}

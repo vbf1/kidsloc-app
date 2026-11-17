@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '@/lib/supabase';
+import { SelectField } from '@/components/ui/select-field';
 
 type Role = 'owner' | 'admin' | 'manager' | 'staff';
 type Company = { id: string; name: string; role: Role };
@@ -198,16 +199,16 @@ export default function TeamManagement() {
   if (!sessionReady) return <main className="grid min-h-screen place-items-center text-gray-500">Carregando…</main>;
 
   return (
-    <main className="min-h-screen px-4 py-8 sm:px-8">
-      <div className="mx-auto max-w-5xl">
+    <main className="kl-page">
+      <div>
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <a href={`${basePath}/`} className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><span><strong className="block text-lg">KidsLoc</strong><span className="text-xs text-gray-500">Gestão de equipe</span></span></a>
           {userEmail && <div className="flex items-center gap-3 text-sm"><span className="max-w-52 truncate text-gray-600">{userEmail}</span><button onClick={signOut} className="rounded-xl border px-3 py-2 hover:bg-gray-50">Sair</button></div>}
         </header>
-        {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-        {message && <p role="status" className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{message}</p>}
+        {error && <div role="alert" className="kl-notice kl-notice-error mb-5"><span>{error}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setError('')}>×</button></div>}
+        {message && <div role="status" className="kl-notice kl-notice-success mb-5"><span>{message}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setMessage('')}>×</button></div>}
         {!userEmail ? (
-          <section className="mx-auto mt-12 max-w-md rounded-3xl border bg-white p-6 shadow-sm sm:p-8">
+          <section className="kl-card mx-auto mt-12 max-w-md">
             <h1 className="text-2xl font-bold">Entrar no KidsLoc</h1><p className="mt-2 text-sm text-gray-500">Acesse sua conta para gerenciar os funcionários da empresa.</p>
             <form onSubmit={signIn} className="mt-6 space-y-4">
               <label className="block text-sm font-medium">E-mail<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-3" /></label>
@@ -216,22 +217,20 @@ export default function TeamManagement() {
             </form>
           </section>
         ) : companies.length === 0 ? (
-          <section className="rounded-3xl border bg-white p-8"><h1 className="text-xl font-bold">Nenhuma empresa vinculada</h1><p className="mt-2 text-gray-600">Esta conta ainda não possui vínculo com uma empresa do KidsLoc.</p></section>
+          <section className="kl-card"><h1 className="text-xl font-bold">Nenhuma empresa vinculada</h1><p className="mt-2 text-gray-600">Esta conta ainda não possui vínculo com uma empresa do KidsLoc.</p></section>
         ) : (
           <>
-            <section className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#8054d8]">ADMINISTRAÇÃO</p><h1 className="mt-1 text-3xl font-bold">Equipe da empresa</h1><p className="mt-2 text-gray-500">Gerencie os acessos e os cargos dos colaboradores.</p></div>
-              <label className="min-w-56 text-sm font-medium">Empresa<select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="mt-1 w-full rounded-xl border bg-white px-3 py-3">{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
-            </section>
-            <section className="mb-6 rounded-2xl border bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">Seu acesso</h2><p className="mt-1 text-sm text-gray-500">Cargo: {activeCompany ? roleLabels[activeCompany.role] : '—'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-800">{members.length} membro(s)</span></div></section>
-            {canManage && <section className="mb-6 rounded-2xl border bg-white p-5"><h2 className="font-semibold">Adicionar funcionário</h2><p className="mt-1 text-sm text-gray-500">Enviaremos um convite para o e-mail informado. Se a pessoa já tiver conta, ela será vinculada à empresa.</p>
-              <form onSubmit={invite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_190px_auto]"><input required type="email" placeholder="E-mail do funcionário" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="min-w-0 rounded-xl border px-3 py-3" /><select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)} className="rounded-xl border bg-white px-3 py-3"><option value="staff">Funcionário</option>{activeCompany?.role === 'owner' && <><option value="manager">Gerente</option><option value="admin">Administrador</option></>}</select><button disabled={busy} className="rounded-xl bg-[#8054d8] px-5 py-3 font-semibold text-white disabled:opacity-60">Enviar convite</button></form>
+            <section className="kl-page-heading"><div><p className="kl-eyebrow">Administração</p><h1 className="kl-title">Equipe da empresa</h1><p className="kl-subtitle">Gerencie os acessos e os cargos dos colaboradores.</p></div><div className="w-full sm:w-64"><label className="kl-field-label">Empresa</label><SelectField ariaLabel="Empresa" value={companyId} onChange={setCompanyId} options={companies.map((company) => ({ value: company.id, label: company.name }))} /></div></section>
+            <section className="kl-card mb-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">Seu acesso</h2><p className="mt-1 text-sm text-gray-500">Cargo: {activeCompany ? roleLabels[activeCompany.role] : '—'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-800">{members.length} membro(s)</span></div></section>
+            {canManage && <section className="kl-card mb-4"><h2 className="font-semibold">Adicionar funcionário</h2><p className="mt-1 text-sm text-gray-500">Enviaremos um convite para o e-mail informado. Se a pessoa já tiver conta, ela será vinculada à empresa.</p>
+              <form onSubmit={invite} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_190px_auto]"><input required type="email" placeholder="E-mail do funcionário" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="kl-input" /><SelectField ariaLabel="Cargo do novo funcionário" value={inviteRole} onChange={(value) => setInviteRole(value as Role)} options={[{ value: 'staff', label: 'Funcionário' }, ...(activeCompany?.role === 'owner' ? [{ value: 'manager', label: 'Gerente' }, { value: 'admin', label: 'Administrador' }] : [])]} /><button disabled={busy} className="kl-button-primary">Enviar convite</button></form>
             </section>}
-            <section className="overflow-hidden rounded-2xl border bg-white"><div className="border-b px-5 py-4"><h2 className="font-semibold">Membros cadastrados</h2></div>
-              {members.length === 0 ? <p className="p-6 text-sm text-gray-500">Nenhum membro encontrado.</p> : <div className="divide-y">{members.map((member) => <div key={member.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="font-medium">{member.name}</p><p className="mt-1 text-xs text-gray-500">{member.phone || 'Telefone não informado'} · Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}</p></div>
-                <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' || !canManage || (activeCompany?.role === 'admin' && member.role !== 'staff') ? <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span> : <><select aria-label={`Cargo de ${member.name}`} disabled={busy} value={member.role} onChange={(e) => changeRole(member, e.target.value as Role)} className="rounded-xl border bg-white px-3 py-2 text-sm">{activeCompany?.role === 'owner' && <><option value="admin">Administrador</option><option value="manager">Gerente</option></>}<option value="staff">Funcionário</option></select><button disabled={busy} onClick={() => removeMember(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></>}</div>
+            <section className="kl-card overflow-visible !p-0"><div className="border-b border-[#f0edf4] px-5 py-4"><h2 className="kl-card-title">Membros cadastrados</h2><p className="mt-1 text-xs text-gray-500">Pessoas com acesso à empresa</p></div>
+              {members.length === 0 ? <p className="p-6 text-sm text-gray-500">Nenhum membro encontrado.</p> : <div className="divide-y">{members.map((member) => <div key={member.id} className="kl-member-row"><div className="min-w-0"><p className="font-medium">{member.name}</p><p className="mt-1 text-xs text-gray-500">{member.phone || 'Telefone não informado'} · Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}</p></div>
+                <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' || !canManage || (activeCompany?.role === 'admin' && member.role !== 'staff') ? <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span> : <><SelectField ariaLabel={`Cargo de ${member.name}`} value={member.role} onChange={(value) => void changeRole(member, value as Role)} className="min-w-36" options={[...(activeCompany?.role === 'owner' ? [{ value: 'admin', label: 'Administrador' }, { value: 'manager', label: 'Gerente' }] : []), { value: 'staff', label: 'Funcionário' }]} /><button disabled={busy} onClick={() => removeMember(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></>}</div>
               </div>)}</div>}
             </section>
-            <p className="mt-4 text-xs text-gray-400">A remoção é aplicada no banco de dados; as políticas de segurança bloqueiam o acesso do membro removido aos dados da empresa.</p>
+            <p className="mt-4 px-1 text-xs leading-5 text-gray-400">A remoção é aplicada no banco de dados; as políticas de segurança bloqueiam o acesso do membro removido aos dados da empresa.</p>
           </>
         )}
       </div>
