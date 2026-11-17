@@ -123,12 +123,27 @@ export default function TeamManagement() {
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !companyId) return;
+    const normalizedInviteEmail = inviteEmail.trim().toLowerCase();
+    if (normalizedInviteEmail === userEmail.trim().toLowerCase()) {
+      setError('Você não pode convidar sua própria conta.');
+      return;
+    }
     setBusy(true); setError(''); setMessage('');
     try {
       const { data, error: inviteError } = await supabase.functions.invoke('invite-company-member', {
-        body: { companyId, email: inviteEmail.trim(), role: inviteRole },
+        body: { companyId, email: normalizedInviteEmail, role: inviteRole },
       });
-      if (inviteError) throw inviteError;
+      if (inviteError) {
+        let detail = inviteError.message;
+        const response = (inviteError as typeof inviteError & { context?: Response }).context;
+        if (response) {
+          try {
+            const payload = await response.clone().json() as { error?: string };
+            if (payload.error) detail = payload.error;
+          } catch { /* Keep the SDK error when the response has no JSON body. */ }
+        }
+        throw new Error(detail);
+      }
       setMessage(data?.invited ? 'Convite enviado por e-mail.' : 'Usuário adicionado à equipe.');
       setInviteEmail('');
       await loadMembers();
