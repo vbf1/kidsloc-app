@@ -1,54 +1,58 @@
 'use client';
-import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
 type AppNavigationProps = { basePath: string; role?: CompanyRole };
+type NavItem = { label: string; shortLabel: string; href: string; active: boolean; icon: 'home' | 'users' | 'toy' | 'calendar' | 'team' };
+
+function NavIcon({ name }: { name: NavItem['icon'] }) {
+  const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 shrink-0" {...common}>
+    {name === 'home' && <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>}
+    {name === 'users' && <><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h1" /><path d="M16 11a3 3 0 1 0-2.5-4.7M14 14a5 5 0 0 1 6.5 4.8V20h-5" /></>}
+    {name === 'toy' && <><path d="M5 9.5 12 5l7 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5z" /><path d="M9 20v-6h6v6M8 9h.01M16 9h.01" /></>}
+    {name === 'calendar' && <><rect x="3.5" y="5" width="17" height="16" rx="2" /><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h3" /></>}
+    {name === 'team' && <><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h.5M16 13v7M12.5 16.5h7" /><path d="M16 10a2.5 2.5 0 1 0-1.5-4.5" /></>}
+  </svg>;
+}
 
 export function AppNavigation({ basePath, role }: AppNavigationProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname() ?? '';
-  const dashboardHref = basePath + '/app/';
-  const customersHref = basePath + '/app/customers/';
-  const productsHref = basePath + '/app/products/';
-  const rentalsHref = basePath + '/app/rentals/';
-  const teamHref = basePath + '/equipe/';
-  const canManageTeam = role === 'owner' || role === 'admin';
   const isCustomers = pathname.endsWith('/app/customers') || pathname.endsWith('/app/customers/');
   const isProducts = pathname.endsWith('/app/products') || pathname.endsWith('/app/products/');
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
   const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
   const isDashboard = !isCustomers && !isProducts && !isRentals && !isTeam;
-  const linkClass = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition';
-  const activeClass = linkClass + ' bg-purple-50 text-[#6840bd]';
-  const inactiveClass = linkClass + ' text-gray-700 hover:bg-purple-50 hover:text-[#6840bd]';
-
+  const items: NavItem[] = [
+    { label: 'Visão geral', shortLabel: 'Início', href: basePath + '/app/', active: isDashboard, icon: 'home' },
+    { label: 'Clientes', shortLabel: 'Clientes', href: basePath + '/app/customers/', active: isCustomers, icon: 'users' },
+    { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
+    { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
+    ...(role === 'owner' || role === 'admin' ? [{ label: 'Gerenciar equipe', shortLabel: 'Equipe', href: basePath + '/equipe/', active: isTeam, icon: 'team' as const }] : []),
+  ];
   return (
-    <nav aria-label="Navegação principal" className="w-full">
-      <button type="button" aria-expanded={mobileOpen} aria-controls="kidsloc-primary-navigation"
-        onClick={() => setMobileOpen((open) => !open)}
-        className="flex w-full items-center justify-between rounded-xl border border-purple-100 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-sm md:hidden">
-        Menu <span aria-hidden="true" className="text-lg text-[#8054d8]">{mobileOpen ? '−' : '+'}</span>
-      </button>
-      <div id="kidsloc-primary-navigation" className={mobileOpen ? 'mt-3 block md:mt-0' : 'hidden md:mt-0 md:block'}>
-        <div className="space-y-2">
-          <a href={dashboardHref} aria-current={isDashboard ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isDashboard ? activeClass : inactiveClass}>
-            <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">⌂</span>Visão geral
-          </a>
-          <a href={customersHref} aria-current={isCustomers ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isCustomers ? activeClass : inactiveClass}>
-            <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">♙</span>Clientes
-          </a>
-          <a href={productsHref} aria-current={isProducts ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isProducts ? activeClass : inactiveClass}>
-            <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">🧸</span>Brinquedos e serviços
-          </a>
-          <a href={rentalsHref} aria-current={isRentals ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isRentals ? activeClass : inactiveClass}>
-            <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">📅</span>Locações
-          </a>
-          {canManageTeam && (
-            <a href={teamHref} aria-current={isTeam ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isTeam ? activeClass : inactiveClass}>
-              <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">👥</span>Gerenciar equipe
-            </a>
-          )}
+    <nav aria-label="Navegação principal">
+      <div className="hidden md:block">
+        <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">Menu principal</p>
+        <div className="space-y-1.5">
+          {items.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
+            className={item.active
+              ? 'relative flex items-center gap-3 rounded-2xl bg-[#8054d8] px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-purple-200/60'
+              : 'flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-600 transition hover:bg-white hover:text-[#6840bd]'}>
+            <NavIcon name={item.icon} />{item.label}
+            {item.active && <span className="ml-auto size-2 rounded-full bg-[#ffd34e]" />}
+          </a>)}
+        </div>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-purple-100 bg-white/95 px-2 pt-2 shadow-[0_-8px_30px_rgba(37,20,70,0.08)] backdrop-blur-lg md:hidden"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto grid max-w-xl gap-1" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+          {items.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
+            className={item.active ? 'flex min-w-0 flex-col items-center gap-1 rounded-xl bg-purple-50 px-1 py-2 text-[10px] font-bold text-[#6840bd]' : 'flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium text-gray-500 transition active:bg-purple-50'}>
+            <NavIcon name={item.icon} />
+            <span className="max-w-full truncate">{item.shortLabel}</span>
+            <span className={item.active ? 'h-1 w-4 rounded-full bg-[#ffd34e]' : 'h-1 w-4'} />
+          </a>)}
         </div>
       </div>
     </nav>
