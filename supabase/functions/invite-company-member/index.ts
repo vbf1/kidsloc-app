@@ -68,6 +68,11 @@ Deno.serve(async (req: Request) => {
     invited = true;
   }
 
+  // Also compare IDs, so aliases or differently-cased addresses cannot bypass self-invite protection.
+  if (targetUser.id === authData.user.id) {
+    return json({ error: 'Você não pode convidar sua própria conta.' }, 409);
+  }
+
   // Friendly duplicate check; the UNIQUE(company_id, user_id) constraint remains
   // the final race-safe guard when two invitations arrive at the same time.
   const { data: existingMembership, error: membershipLookupError } = await admin
