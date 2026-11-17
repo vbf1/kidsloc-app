@@ -30,6 +30,7 @@
     "jsdom": "^26.1.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.0",
+    "@eslint/eslintrc": "^3.3.1"
   }
 }
