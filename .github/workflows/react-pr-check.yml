@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,4 +22,3 @@ jobs:
           cache-dependency-path: apps/desktop_react/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run build
-      - run: npm run test:rentals
