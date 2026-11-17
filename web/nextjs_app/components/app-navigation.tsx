@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
-type AppNavigationProps = { basePath: string; role: CompanyRole };
+type AppNavigationProps = { basePath: string; role?: CompanyRole };
 
 export function AppNavigation({ basePath, role }: AppNavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
