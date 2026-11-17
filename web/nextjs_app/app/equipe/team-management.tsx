@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 import { SelectField } from '@/components/ui/select-field';
+import { AppNavigation } from '@/components/app-navigation';
 
 type Role = 'owner' | 'admin' | 'manager' | 'staff';
 type Company = { id: string; name: string; role: Role };
@@ -200,7 +201,9 @@ export default function TeamManagement() {
 
   return (
     <main className="kl-page">
-      <div>
+      <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-[230px_minmax(0,1fr)]">
+        <aside className="min-w-0">{userEmail && <AppNavigation basePath={basePath} role={activeCompany?.role} />}</aside>
+        <div>
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <a href={`${basePath}/`} className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><span><strong className="block text-lg">KidsLoc</strong><span className="text-xs text-gray-500">Gestão de equipe</span></span></a>
           {userEmail && <div className="flex items-center gap-3 text-sm"><span className="max-w-52 truncate text-gray-600">{userEmail}</span><button onClick={signOut} className="rounded-xl border px-3 py-2 hover:bg-gray-50">Sair</button></div>}
@@ -233,6 +236,7 @@ export default function TeamManagement() {
             <p className="mt-4 px-1 text-xs leading-5 text-gray-400">A remoção é aplicada no banco de dados; as políticas de segurança bloqueiam o acesso do membro removido aos dados da empresa.</p>
           </>
         )}
+        </div>
       </div>
     </main>
   );
