@@ -1,21 +1,28 @@
 'use client';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-type AppNavigationProps = { basePath: string };
-export function AppNavigation({ basePath }: AppNavigationProps) {
+
+type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
+type AppNavigationProps = { basePath: string; role?: CompanyRole };
+
+export function AppNavigation({ basePath, role }: AppNavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname() ?? '';
   const dashboardHref = basePath + '/app/';
   const customersHref = basePath + '/app/customers/';
   const productsHref = basePath + '/app/products/';
   const rentalsHref = basePath + '/app/rentals/';
+  const teamHref = basePath + '/equipe/';
+  const canManageTeam = role === 'owner' || role === 'admin';
   const isCustomers = pathname.endsWith('/app/customers') || pathname.endsWith('/app/customers/');
   const isProducts = pathname.endsWith('/app/products') || pathname.endsWith('/app/products/');
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
-  const isDashboard = !isCustomers && !isProducts && !isRentals;
+  const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
+  const isDashboard = !isCustomers && !isProducts && !isRentals && !isTeam;
   const linkClass = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition';
   const activeClass = linkClass + ' bg-purple-50 text-[#6840bd]';
   const inactiveClass = linkClass + ' text-gray-700 hover:bg-purple-50 hover:text-[#6840bd]';
+
   return (
     <nav aria-label="Navegação principal" className="w-full">
       <button type="button" aria-expanded={mobileOpen} aria-controls="kidsloc-primary-navigation"
@@ -37,6 +44,11 @@ export function AppNavigation({ basePath }: AppNavigationProps) {
           <a href={rentalsHref} aria-current={isRentals ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isRentals ? activeClass : inactiveClass}>
             <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">📅</span>Locações
           </a>
+          {canManageTeam && (
+            <a href={teamHref} aria-current={isTeam ? 'page' : undefined} onClick={() => setMobileOpen(false)} className={isTeam ? activeClass : inactiveClass}>
+              <span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-white text-base">👥</span>Gerenciar equipe
+            </a>
+          )}
         </div>
       </div>
     </nav>
