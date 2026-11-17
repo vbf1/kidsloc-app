@@ -90,53 +90,86 @@ export default function TeamManagement() {
     event.preventDefault();
     if (!supabase) return;
     setBusy(true); setError(''); setMessage('');
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) setError(signInError.message);
-    else { setPassword(''); setMessage('Login realizado.'); try { await loadCompanies(); } catch (e) { setError(e instanceof Error ? e.message : 'Falha ao carregar empresas.'); } }
-    setBusy(false);
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) setError(signInError.message);
+      else {
+        setPassword('');
+        setMessage('Login realizado.');
+        await loadCompanies();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao entrar ou carregar empresas.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function signOut() {
     if (!supabase) return;
-    await supabase.auth.signOut();
-    setCompanies([]); setMembers([]); setMessage('Você saiu da sua conta.');
+    setBusy(true); setError('');
+    try {
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw signOutError;
+      setCompanies([]); setMembers([]); setUserEmail('');
+      setMessage('Você saiu da sua conta.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível sair da conta.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !companyId) return;
     setBusy(true); setError(''); setMessage('');
-    const { data, error: inviteError } = await supabase.functions.invoke('invite-company-member', {
-      body: { companyId, email: inviteEmail.trim(), role: inviteRole },
-    });
-    if (inviteError) setError(inviteError.message);
-    else {
+    try {
+      const { data, error: inviteError } = await supabase.functions.invoke('invite-company-member', {
+        body: { companyId, email: inviteEmail.trim(), role: inviteRole },
+      });
+      if (inviteError) throw inviteError;
       setMessage(data?.invited ? 'Convite enviado por e-mail.' : 'Usuário adicionado à equipe.');
       setInviteEmail('');
-      try { await loadMembers(); } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível atualizar a equipe.'); }
+      await loadMembers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível concluir o convite.');
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function changeRole(member: Member, role: Role) {
     if (!supabase || !companyId || !activeCompany) return;
     setBusy(true); setError(''); setMessage('');
-    const { error: updateError } = await supabase.rpc('add_company_member', {
-      p_company_id: companyId, p_user_id: member.user_id, p_role: role,
-    });
-    if (updateError) setError(updateError.message);
-    else { setMessage('Cargo atualizado.'); await loadMembers(); }
-    setBusy(false);
+    try {
+      const { error: updateError } = await supabase.rpc('add_company_member', {
+        p_company_id: companyId, p_user_id: member.user_id, p_role: role,
+      });
+      if (updateError) throw updateError;
+      setMessage('Cargo atualizado.');
+      await loadMembers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível atualizar o cargo.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function removeMember(member: Member) {
     if (!supabase || !activeCompany || member.role === 'owner') return;
     if (!window.confirm(`Remover ${member.name} da empresa? O acesso aos dados desta empresa será encerrado imediatamente.`)) return;
     setBusy(true); setError(''); setMessage('');
-    const { error: deleteError } = await supabase.from('company_members').delete().eq('id', member.id).eq('company_id', companyId);
-    if (deleteError) setError(deleteError.message);
-    else { setMessage('Funcionário removido. O acesso aos dados da empresa foi revogado.'); await loadMembers(); }
-    setBusy(false);
+    try {
+      const { error: deleteError } = await supabase.from('company_members').delete().eq('id', member.id).eq('company_id', companyId);
+      if (deleteError) throw deleteError;
+      setMessage('Funcionário removido. O acesso aos dados da empresa foi revogado.');
+      await loadMembers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível remover o funcionário.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!supabase) return <main className="mx-auto max-w-xl p-8"><h1 className="text-2xl font-bold">Configuração necessária</h1><p className="mt-3 text-gray-600">Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY para conectar o KidsLoc.</p></main>;
