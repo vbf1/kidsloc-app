@@ -1,8 +1,8 @@
-export default function HomePage() {
+export default function HomePage() {\n  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   return (
     <main className="min-h-screen px-5 py-10 md:px-12">
       <div className="mx-auto max-w-6xl">
-        <header className="flex items-center gap-3">
+        <header className="flex flex-wrap items-center justify-between gap-3"><a href={`${basePath}/`} className="flex items-center gap-3">
           <div className="grid size-12 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</div>
           <div><p className="text-xl font-bold tracking-tight">KidsLoc <span className="text-[#8054d8]">App</span></p><p className="text-xs text-gray-500">Gestão inteligente para eventos</p></div>
         </header>
