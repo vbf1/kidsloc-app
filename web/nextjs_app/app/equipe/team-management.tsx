@@ -68,7 +68,10 @@ export default function TeamManagement() {
   }, [companyId]);
 
   useEffect(() => {
-    if (!supabase) { setSessionReady(true); return; }
+    if (!supabase) {
+      queueMicrotask(() => setSessionReady(true));
+      return;
+    }
     let mounted = true;
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session && mounted) {
@@ -84,7 +87,11 @@ export default function TeamManagement() {
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, [loadCompanies]);
 
-  useEffect(() => { loadMembers().catch((e) => setError(e instanceof Error ? e.message : 'Falha ao carregar a equipe.')); }, [loadMembers]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      void loadMembers().catch((e) => setError(e instanceof Error ? e.message : 'Falha ao carregar a equipe.'));
+    });
+  }, [loadMembers]);
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

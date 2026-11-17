@@ -4,8 +4,10 @@ on:
     branches: [main]
     paths: ['mobile/flutter_app/**', '.github/workflows/flutter-ci.yml']
   pull_request:
-    paths: ['mobile/flutter_app/**']
+    paths: ['mobile/flutter_app/**', '.github/workflows/flutter-ci.yml']
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,10 +16,41 @@ jobs:
         working-directory: mobile/flutter_app
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
-      - run: flutter pub get
+          flutter-version: 3.47.9
+      - name: Generate Android platform when missing
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          if [ ! -d android ]; then
+            flutter create --platforms=android --org br.com.kidsloc --project-name app --no-pub .
+            git checkout -- pubspec.yaml pubspec.lock
+          fi
+          grep -R --include='build.gradle*' -F 'br.com.kidsloc.app' android/app
+      - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
+      - run: flutter build apk --debug
+      - name: Commit generated Android platform
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/flutter_app/android mobile/flutter_app/.metadata mobile/flutter_app/.gitignore
+          if ! git diff --cached --quiet; then
+            git commit -m "build(android): generate native Flutter scaffold"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-android-debug-apk
+          path: mobile/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
