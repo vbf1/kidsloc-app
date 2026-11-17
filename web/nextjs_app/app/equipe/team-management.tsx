@@ -11,7 +11,8 @@ const roleLabels: Record<Role, string> = {
   owner: 'Proprietário', admin: 'Administrador', manager: 'Gerente', staff: 'Funcionário',
 };
 
-export default function TeamManagement() {\n  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+export default function TeamManagement() {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   const [sessionReady, setSessionReady] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
