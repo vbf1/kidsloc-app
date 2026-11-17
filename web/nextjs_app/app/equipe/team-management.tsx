@@ -101,7 +101,7 @@ export default function TeamManagement() {
     setCompanies([]); setMembers([]); setMessage('Você saiu da sua conta.');
   }
 
-  async function invite(event: React.FormEvent<HTMLFormElement>) {
+  async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !companyId) return;
     setBusy(true); setError(''); setMessage('');
