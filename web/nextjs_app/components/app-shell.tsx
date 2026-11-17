@@ -7,7 +7,7 @@ type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
 type AppShellProps = {
   companyName: string;
   email: string;
-  role: CompanyRole;
+  role?: CompanyRole;
   basePath: string;
   signingOut: boolean;
   onSignOut: () => void;
