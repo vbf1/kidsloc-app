@@ -1,5 +1,6 @@
 -- Add a transactional invitation operation that locks the inviter's membership
 -- while authorizing and inserting, preventing concurrent role removal/demotion.
+-- This version follows the final company role model: admin and staff only.
 create or replace function public.invite_company_member(
   p_company_id uuid,
   p_user_id uuid,
@@ -13,6 +14,7 @@ as $function$
 declare
   v_actor_id uuid := (select auth.uid());
   v_actor_role text;
+  v_actor_is_platform_owner boolean := private.is_platform_owner();
 begin
   if v_actor_id is null then
     raise exception 'Autenticação obrigatória' using errcode = '28000';
@@ -26,7 +28,7 @@ begin
     raise exception 'Você não pode convidar sua própria conta' using errcode = '42501';
   end if;
 
-  if p_role is null or p_role not in ('admin', 'manager', 'staff') then
+  if p_role is null or p_role not in ('admin', 'staff') then
     raise exception 'Cargo inválido' using errcode = '22023';
   end if;
 
@@ -39,12 +41,12 @@ begin
      and cm.user_id = v_actor_id
    for update;
 
-  if not found or v_actor_role not in ('owner', 'admin') then
-    raise exception 'Somente proprietário ou administrador pode convidar membros'
+  if not v_actor_is_platform_owner and (not found or v_actor_role <> 'admin') then
+    raise exception 'Somente o proprietário da plataforma ou administrador pode convidar membros'
       using errcode = '42501';
   end if;
 
-  if v_actor_role = 'admin' and p_role <> 'staff' then
+  if not v_actor_is_platform_owner and p_role <> 'staff' then
     raise exception 'Administradores só podem adicionar funcionários'
       using errcode = '42501';
   end if;
