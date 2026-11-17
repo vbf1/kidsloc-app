@@ -15,6 +15,8 @@ import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
 
+type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
+
 const RENTAL_COLUMNS = 'id,company_id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,delivery_fee,discount,total_amount,deposit_amount,notes,created_by,created_at,updated_at';
 function localDateValue() {
   const now = new Date();
@@ -38,6 +40,7 @@ export default function RentalsPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [role, setRole] = useState<CompanyRole | undefined>(undefined);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState('');
   const [accessLoading, setAccessLoading] = useState(true);
@@ -87,6 +90,7 @@ export default function RentalsPage() {
         const name = relatedCompany && typeof relatedCompany === 'object' && 'name' in relatedCompany ? relatedCompany.name : null;
         if (typeof name !== 'string' || !name.trim()) { setAccessError('Não foi possível identificar a empresa vinculada à sua conta.'); return; }
         setCompanyName(name.trim());
+        setRole(membership.role as CompanyRole);
         setCompanyId(membership.company_id);
       } catch {
         if (active) setAccessError('Ocorreu um erro ao verificar seu acesso. Confira sua conexão.');
@@ -289,7 +293,7 @@ export default function RentalsPage() {
   if (!companyId) return null;
 
   return (
-    <AppShell companyName={companyName} email={email} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
+    <AppShell companyName={companyName} email={email} role={role} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
       <section aria-labelledby="rentals-title">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Gestão da empresa</p><h1 id="rentals-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Locações</h1><p className="mt-2 text-sm text-gray-500">Acompanhe reservas, períodos, itens e funcionários responsáveis.</p></div>
