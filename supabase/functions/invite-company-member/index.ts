@@ -73,33 +73,21 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Você não pode convidar sua própria conta.' }, 409);
   }
 
-  // Friendly duplicate check; the UNIQUE(company_id, user_id) constraint remains
-  // the final race-safe guard when two invitations arrive at the same time.
-  const { data: existingMembership, error: membershipLookupError } = await admin
-    .from('company_members')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('user_id', targetUser.id)
-    .maybeSingle();
-  if (membershipLookupError) {
-    return json({ error: invited ? 'O convite foi enviado, mas não foi possível concluir o vínculo. Peça ao proprietário para revisar a equipe.' : 'Não foi possível verificar o vínculo com esta empresa.' }, 500);
-  }
-  if (existingMembership) {
-    return json({ error: 'Este e-mail já está vinculado à equipe desta empresa.' }, 409);
-  }
-
-  // Insert instead of calling add_company_member: that RPC intentionally upserts
-  // roles for the role-editor, while an invitation must never change an existing role.
-  const { error: memberError } = await admin.from('company_members').insert({
-    company_id: companyId,
-    user_id: targetUser.id,
-    role,
+  // The database RPC repeats authorization and inserts atomically, without upserting
+  // an existing membership or relying on a stale permission check.
+  const { error: memberError } = await userClient.rpc('invite_company_member', {
+    p_company_id: companyId,
+    p_user_id: targetUser.id,
+    p_role: role,
   });
   if (memberError) {
     if (memberError.code === '23505') {
       return json({ error: 'Este e-mail já está vinculado à equipe desta empresa.' }, 409);
     }
-    return json({ error: invited ? 'O convite foi enviado, mas o vínculo não foi concluído. Peça ao proprietário para revisar a equipe.' : 'Não foi possível adicionar este usuário à equipe.' }, 500);
+    if (memberError.code === '42501') {
+      return json({ error: memberError.message || 'Você não tem permissão para convidar este membro.' }, 403);
+    }
+    return json({ error: invited ? 'O convite foi enviado, mas o vínculo não foi concluído. Peça ao proprietário para revisar a equipe.' : 'Não foi possível adicionar este usuário à equipe.' }, 400);
   }
 
   return json({ ok: true, invited, message: invited ? 'Convite enviado.' : 'Usuário vinculado à empresa.' });
