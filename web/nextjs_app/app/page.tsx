@@ -1,10 +1,14 @@
-export default function HomePage() {\n  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+export default function HomePage() {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   return (
     <main className="min-h-screen px-5 py-10 md:px-12">
       <div className="mx-auto max-w-6xl">
-        <header className="flex flex-wrap items-center justify-between gap-3"><a href={`${basePath}/`} className="flex items-center gap-3">
-          <div className="grid size-12 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</div>
-          <div><p className="text-xl font-bold tracking-tight">KidsLoc <span className="text-[#8054d8]">App</span></p><p className="text-xs text-gray-500">Gestão inteligente para eventos</p></div>
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <a href={`${basePath}/`} className="flex items-center gap-3">
+            <div className="grid size-12 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</div>
+            <div><p className="text-xl font-bold tracking-tight">KidsLoc <span className="text-[#8054d8]">App</span></p><p className="text-xs text-gray-500">Gestão inteligente para eventos</p></div>
+          </a>
+          <a href={`${basePath}/equipe/`} className="rounded-xl bg-[#8054d8] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Gerenciar equipe</a>
         </header>
         <section className="mt-16 grid gap-10 md:grid-cols-[1.2fr_.8fr] md:items-center">
           <div>
