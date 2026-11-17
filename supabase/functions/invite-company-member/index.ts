@@ -35,6 +35,11 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Informe empresa, e-mail válido e cargo permitido.' }, 400);
   }
 
+  // A user cannot add their own account through the invitation flow.
+  if (authData.user.email?.trim().toLowerCase() === email) {
+    return json({ error: 'Você não pode convidar sua própria conta.' }, 409);
+  }
+
   const [{ data: isOwner, error: ownerError }, { data: isAdmin, error: adminError }] = await Promise.all([
     userClient.rpc('has_company_role', { p_company_id: companyId, p_roles: ['owner'] }),
     userClient.rpc('has_company_role', { p_company_id: companyId, p_roles: ['admin'] }),
@@ -57,19 +62,32 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!targetUser) {
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
-    if (error || !data.user) return json({ error: error?.message ?? 'Não foi possível enviar o convite.' }, 400);
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email!);
+    if (error || !data.user) return json({ error: 'Não foi possível enviar o convite. Verifique o endereço e tente novamente.' }, 400);
     targetUser = { id: data.user.id };
     invited = true;
   }
 
-  if (!targetUser) return json({ error: 'Não foi possível criar ou localizar a conta.' }, 500);\n\n  const { error: memberError } = await userClient.rpc('add_company_member', {
+  // Also compare IDs, so aliases or differently-cased addresses cannot bypass self-invite protection.
+  if (targetUser.id === authData.user.id) {
+    return json({ error: 'Você não pode convidar sua própria conta.' }, 409);
+  }
+
+  // The database RPC repeats authorization and inserts atomically, without upserting
+  // an existing membership or relying on a stale permission check.
+  const { error: memberError } = await userClient.rpc('invite_company_member', {
     p_company_id: companyId,
     p_user_id: targetUser.id,
     p_role: role,
   });
   if (memberError) {
-    return json({ error: invited ? 'O convite foi criado, mas o vínculo não foi concluído. Peça ao proprietário para revisar a equipe.' : memberError.message }, 400);
+    if (memberError.code === '23505') {
+      return json({ error: 'Este e-mail já está vinculado à equipe desta empresa.' }, 409);
+    }
+    if (memberError.code === '42501') {
+      return json({ error: memberError.message || 'Você não tem permissão para convidar este membro.' }, 403);
+    }
+    return json({ error: invited ? 'O convite foi enviado, mas o vínculo não foi concluído. Peça ao proprietário para revisar a equipe.' : 'Não foi possível adicionar este usuário à equipe.' }, 400);
   }
 
   return json({ ok: true, invited, message: invited ? 'Convite enviado.' : 'Usuário vinculado à empresa.' });
