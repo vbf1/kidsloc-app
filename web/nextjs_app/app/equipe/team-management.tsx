@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 import { SelectField } from '@/components/ui/select-field';
-import { AppNavigation } from '@/components/app-navigation';
+import { AppShell } from '@/components/app-shell';
 
 type Role = 'owner' | 'admin' | 'manager' | 'staff';
 type Company = { id: string; name: string; role: Role };
@@ -25,6 +25,7 @@ export default function TeamManagement() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('staff');
   const [busy, setBusy] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -116,7 +117,7 @@ export default function TeamManagement() {
 
   async function signOut() {
     if (!supabase) return;
-    setBusy(true); setError('');
+    setSigningOut(true); setError('');
     try {
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) throw signOutError;
@@ -125,7 +126,7 @@ export default function TeamManagement() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível sair da conta.');
     } finally {
-      setBusy(false);
+      setSigningOut(false);
     }
   }
 
@@ -199,19 +200,13 @@ export default function TeamManagement() {
   if (!supabase) return <main className="mx-auto max-w-xl p-8"><h1 className="text-2xl font-bold">Configuração necessária</h1><p className="mt-3 text-gray-600">Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY para conectar o KidsLoc.</p></main>;
   if (!sessionReady) return <main className="grid min-h-screen place-items-center text-gray-500">Carregando…</main>;
 
-  return (
-    <main className="kl-page">
-      <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-[230px_minmax(0,1fr)]">
-        <aside className="min-w-0">{userEmail && <AppNavigation basePath={basePath} role={activeCompany?.role} />}</aside>
-        <div>
-        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <a href={`${basePath}/`} className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><span><strong className="block text-lg">KidsLoc</strong><span className="text-xs text-gray-500">Gestão de equipe</span></span></a>
-          {userEmail && <div className="flex items-center gap-3 text-sm"><span className="max-w-52 truncate text-gray-600">{userEmail}</span><button onClick={signOut} className="rounded-xl border px-3 py-2 hover:bg-gray-50">Sair</button></div>}
-        </header>
-        {error && <div role="alert" className="kl-notice kl-notice-error mb-5"><span>{error}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setError('')}>×</button></div>}
-        {message && <div role="status" className="kl-notice kl-notice-success mb-5"><span>{message}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setMessage('')}>×</button></div>}
-        {!userEmail ? (
-          <section className="kl-card mx-auto mt-12 max-w-md">
+  if (!userEmail) {
+    return (
+      <main className="kl-page">
+        <div className="mx-auto max-w-md">
+          {error && <div role="alert" className="kl-notice kl-notice-error mb-5"><span>{error}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setError('')}>×</button></div>}
+          {message && <div role="status" className="kl-notice kl-notice-success mb-5"><span>{message}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setMessage('')}>×</button></div>}
+          <section className="kl-card mt-12">
             <h1 className="text-2xl font-bold">Entrar no KidsLoc</h1><p className="mt-2 text-sm text-gray-500">Acesse sua conta para gerenciar os funcionários da empresa.</p>
             <form onSubmit={signIn} className="mt-6 space-y-4">
               <label className="block text-sm font-medium">E-mail<input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-3" /></label>
@@ -219,25 +214,33 @@ export default function TeamManagement() {
               <button disabled={busy} className="w-full rounded-xl bg-[#8054d8] px-4 py-3 font-semibold text-white disabled:opacity-60">{busy ? 'Entrando…' : 'Entrar'}</button>
             </form>
           </section>
-        ) : companies.length === 0 ? (
-          <section className="kl-card"><h1 className="text-xl font-bold">Nenhuma empresa vinculada</h1><p className="mt-2 text-gray-600">Esta conta ainda não possui vínculo com uma empresa do KidsLoc.</p></section>
-        ) : (
-          <>
-            <section className="kl-page-heading"><div><p className="kl-eyebrow">Administração</p><h1 className="kl-title">Equipe da empresa</h1><p className="kl-subtitle">Gerencie os acessos e os cargos dos colaboradores.</p></div><div className="w-full sm:w-64"><label className="kl-field-label">Empresa</label><SelectField ariaLabel="Empresa" value={companyId} onChange={setCompanyId} options={companies.map((company) => ({ value: company.id, label: company.name }))} /></div></section>
-            <section className="kl-card mb-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">Seu acesso</h2><p className="mt-1 text-sm text-gray-500">Cargo: {activeCompany ? roleLabels[activeCompany.role] : '—'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-800">{members.length} membro(s)</span></div></section>
-            {canManage && <section className="kl-card mb-4"><h2 className="font-semibold">Adicionar funcionário</h2><p className="mt-1 text-sm text-gray-500">Enviaremos um convite para o e-mail informado. Se a pessoa já tiver conta, ela será vinculada à empresa.</p>
-              <form onSubmit={invite} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_190px_auto]"><input required type="email" placeholder="E-mail do funcionário" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="kl-input" /><SelectField ariaLabel="Cargo do novo funcionário" value={inviteRole} onChange={(value) => setInviteRole(value as Role)} options={[{ value: 'staff', label: 'Funcionário' }, ...(activeCompany?.role === 'owner' ? [{ value: 'manager', label: 'Gerente' }, { value: 'admin', label: 'Administrador' }] : [])]} /><button disabled={busy} className="kl-button-primary">Enviar convite</button></form>
-            </section>}
-            <section className="kl-card overflow-visible !p-0"><div className="border-b border-[#f0edf4] px-5 py-4"><h2 className="kl-card-title">Membros cadastrados</h2><p className="mt-1 text-xs text-gray-500">Pessoas com acesso à empresa</p></div>
-              {members.length === 0 ? <p className="p-6 text-sm text-gray-500">Nenhum membro encontrado.</p> : <div className="divide-y">{members.map((member) => <div key={member.id} className="kl-member-row"><div className="min-w-0"><p className="font-medium">{member.name}</p><p className="mt-1 text-xs text-gray-500">{member.phone || 'Telefone não informado'} · Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}</p></div>
-                <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' || !canManage || (activeCompany?.role === 'admin' && member.role !== 'staff') ? <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span> : <><SelectField ariaLabel={`Cargo de ${member.name}`} value={member.role} onChange={(value) => void changeRole(member, value as Role)} className="min-w-36" options={[...(activeCompany?.role === 'owner' ? [{ value: 'admin', label: 'Administrador' }, { value: 'manager', label: 'Gerente' }] : []), { value: 'staff', label: 'Funcionário' }]} /><button disabled={busy} onClick={() => removeMember(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></>}</div>
-              </div>)}</div>}
-            </section>
-            <p className="mt-4 px-1 text-xs leading-5 text-gray-400">A remoção é aplicada no banco de dados; as políticas de segurança bloqueiam o acesso do membro removido aos dados da empresa.</p>
-          </>
-        )}
         </div>
-      </div>
-    </main>
+      </main>
+    );
+  }
+
+  return (
+    <AppShell companyName={activeCompany?.name ?? 'KidsLoc'} email={userEmail} role={activeCompany?.role} basePath={basePath} signingOut={signingOut} onSignOut={signOut}>
+      {error && <div role="alert" className="kl-notice kl-notice-error mb-5"><span>{error}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setError('')}>×</button></div>}
+      {message && <div role="status" className="kl-notice kl-notice-success mb-5"><span>{message}</span><button type="button" className="kl-notice-dismiss" aria-label="Fechar aviso" onClick={() => setMessage('')}>×</button></div>}
+      {companies.length === 0 ? (
+        <section className="kl-card"><h1 className="text-xl font-bold">Nenhuma empresa vinculada</h1><p className="mt-2 text-gray-600">Esta conta ainda não possui vínculo com uma empresa do KidsLoc.</p></section>
+      ) : (
+        <>
+          <section className="kl-page-heading"><div><p className="kl-eyebrow">Administração</p><h1 className="kl-title">Equipe da empresa</h1><p className="kl-subtitle">Gerencie os acessos e os cargos dos colaboradores.</p></div><div className="w-full sm:w-64"><label className="kl-field-label">Empresa</label><SelectField ariaLabel="Empresa" value={companyId} onChange={setCompanyId} options={companies.map((company) => ({ value: company.id, label: company.name }))} /></div></section>
+          <section className="kl-card mb-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">Seu acesso</h2><p className="mt-1 text-sm text-gray-500">Cargo: {activeCompany ? roleLabels[activeCompany.role] : '—'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-800">{members.length} membro(s)</span></div></section>
+          {canManage && <section className="kl-card mb-4"><h2 className="font-semibold">Adicionar funcionário</h2><p className="mt-1 text-sm text-gray-500">Enviaremos um convite para o e-mail informado. Se a pessoa já tiver conta, ela será vinculada à empresa.</p>
+            <form onSubmit={invite} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_190px_auto]"><input required type="email" placeholder="E-mail do funcionário" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="kl-input" /><SelectField ariaLabel="Cargo do novo funcionário" value={inviteRole} onChange={(value) => setInviteRole(value as Role)} options={[{ value: 'staff', label: 'Funcionário' }, ...(activeCompany?.role === 'owner' ? [{ value: 'manager', label: 'Gerente' }, { value: 'admin', label: 'Administrador' }] : [])]} /><button disabled={busy} className="kl-button-primary">Enviar convite</button></form>
+          </section>}
+          <section className="kl-card overflow-visible !p-0"><div className="border-b border-[#f0edf4] px-5 py-4"><h2 className="kl-card-title">Membros cadastrados</h2><p className="mt-1 text-xs text-gray-500">Pessoas com acesso à empresa</p></div>
+            {members.length === 0 ? <p className="p-6 text-sm text-gray-500">Nenhum membro encontrado.</p> : <div className="divide-y">{members.map((member) => <div key={member.id} className="kl-member-row"><div className="min-w-0"><p className="font-medium">{member.name}</p><p className="mt-1 text-xs text-gray-500">{member.phone || 'Telefone não informado'} · Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}</p></div>
+              <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' || !canManage || (activeCompany?.role === 'admin' && member.role !== 'staff') ? <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span> : <><SelectField ariaLabel={`Cargo de ${member.name}`} value={member.role} onChange={(value) => void changeRole(member, value as Role)} className="min-w-36" options={[...(activeCompany?.role === 'owner' ? [{ value: 'admin', label: 'Administrador' }, { value: 'manager', label: 'Gerente' }] : []), { value: 'staff', label: 'Funcionário' }]} /><button disabled={busy} onClick={() => removeMember(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></>}</div>
+            </div>)}</div>}
+          </section>
+          <p className="mt-4 px-1 text-xs leading-5 text-gray-400">A remoção é aplicada no banco de dados; as políticas de segurança bloqueiam o acesso do membro removido aos dados da empresa.</p>
+        </>
+      )}
+    </AppShell>
   );
+}
 }
