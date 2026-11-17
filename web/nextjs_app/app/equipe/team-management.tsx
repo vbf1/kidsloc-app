@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 
 type Role = 'owner' | 'admin' | 'manager' | 'staff';
@@ -85,7 +85,7 @@ export default function TeamManagement() {
 
   useEffect(() => { loadMembers().catch((e) => setError(e instanceof Error ? e.message : 'Falha ao carregar a equipe.')); }, [loadMembers]);
 
-  async function signIn(event: React.FormEvent<HTMLFormElement>) {
+  async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) return;
     setBusy(true); setError(''); setMessage('');
@@ -171,8 +171,8 @@ export default function TeamManagement() {
               <form onSubmit={invite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_190px_auto]"><input required type="email" placeholder="E-mail do funcionário" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="min-w-0 rounded-xl border px-3 py-3" /><select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)} className="rounded-xl border bg-white px-3 py-3"><option value="staff">Funcionário</option>{activeCompany?.role === 'owner' && <><option value="manager">Gerente</option><option value="admin">Administrador</option></>}</select><button disabled={busy} className="rounded-xl bg-[#8054d8] px-5 py-3 font-semibold text-white disabled:opacity-60">Enviar convite</button></form>
             </section>}
             <section className="overflow-hidden rounded-2xl border bg-white"><div className="border-b px-5 py-4"><h2 className="font-semibold">Membros cadastrados</h2></div>
-              {members.length === 0 ? <p className="p-6 text-sm text-gray-500">Nenhum membro encontrado.</p> : <div className="divide-y">{members.map((member) => <div key={member.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="font-medium">{member.name}{member.user_id === members.find((m) => m.role === activeCompany?.role && m.user_id === member.user_id)?.user_id && member.role === 'owner' ? ' · Proprietário' : ''}</p><p className="mt-1 text-xs text-gray-500">{member.phone || 'Telefone não informado'} · Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}</p></div>
-                <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' ? <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels.owner}</span> : canManage ? <><select aria-label={`Cargo de ${member.name}`} disabled={busy || (activeCompany?.role === 'admin' && member.role !== 'staff')} value={member.role} onChange={(e) => changeRole(member, e.target.value as Role)} className="rounded-xl border bg-white px-3 py-2 text-sm">{activeCompany?.role === 'owner' && <><option value="admin">Administrador</option><option value="manager">Gerente</option></>}<option value="staff">Funcionário</option></select><button disabled={busy} onClick={() => removeMember(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></> : <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span>}</div>
+              {members.length === 0 ? <p className="p-6 text-sm text-gray-500">Nenhum membro encontrado.</p> : <div className="divide-y">{members.map((member) => <div key={member.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="font-medium">{member.name}</p><p className="mt-1 text-xs text-gray-500">{member.phone || 'Telefone não informado'} · Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}</p></div>
+                <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' ? <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels.owner}</span> : canManage ? <><select aria-label={`Cargo de ${member.name}`} disabled={busy || (activeCompany?.role === 'admin' && member.role !== 'staff')} value={member.role} onChange={(e) => changeRole(member, e.target.value as Role)} className="rounded-xl border bg-white px-3 py-2 text-sm">{activeCompany?.role === 'owner' && <><option value="admin">Administrador</option><option value="manager">Gerente</option></>}<option value="staff">Funcionário</option></select><button disabled={busy || (activeCompany?.role === 'admin' && member.role !== 'staff')} onClick={() => removeMember(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></> : <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span>}</div>
               </div>)}</div>}
             </section>
             <p className="mt-4 text-xs text-gray-400">A remoção é aplicada no banco de dados; as políticas de segurança bloqueiam o acesso do membro removido aos dados da empresa.</p>
