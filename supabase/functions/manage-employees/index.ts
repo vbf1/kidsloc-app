@@ -172,10 +172,19 @@ Deno.serve(async (req) => {
         id: invited.user.id, full_name: name, updated_at: new Date().toISOString(),
       }, { onConflict: "id" });
       if (profileError) return reply({ error: "Convite enviado, mas não foi possível salvar o perfil. Verifique a equipe antes de reenviar." }, 500);
-      const { error: memberError } = await admin.from("company_members").insert({
-        company_id: companyId, user_id: invited.user.id, role,
+      // Re-check authorization and insert the membership in one database transaction.
+      // Use the caller's JWT (not the service-role client) so auth.uid() is the inviter.
+      const { error: memberError } = await authClient.rpc("invite_company_member", {
+        p_company_id: companyId,
+        p_user_id: invited.user.id,
+        p_role: role,
       });
-      if (memberError) return reply({ error: "Convite enviado, mas o vínculo com a empresa não foi concluído. Verifique a equipe antes de reenviar." }, 500);
+      if (memberError) {
+        console.error("manage-employees invite_company_member:", memberError);
+        return reply({
+          error: "O convite foi enviado, mas o vínculo com a empresa não foi concluído. Confira a equipe antes de reenviar.",
+        }, 500);
+      }
       return reply({ message: "Convite enviado com sucesso." });
     }
 
