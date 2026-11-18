@@ -202,7 +202,7 @@ select lives_ok(
        'c2000000-0000-4000-8000-000000000002',
        'c1000000-0000-4000-8000-000000000006',
        'admin'
-     ) $$,
+     ) $q$,
   'platform owner can assign an administrator in any company'
 );
 
