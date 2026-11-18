@@ -89,77 +89,77 @@ select lives_ok(
 );
 
 select throws_ok(
-  $ select public.add_company_member(
+  $q$ select public.add_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000006',
        'admin'
-     ) $,
+     ) $q$,
   'P0001',
   'Somente o proprietário da plataforma pode atribuir outro administrador.',
   'company admin cannot promote another user to admin'
 );
 
 select lives_ok(
-  $ select public.invite_company_member(
+  $q$ select public.invite_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000008',
        'staff'
-     ) $,
+     ) $q$,
   'company admin can invite an employee through the transactional function'
 );
 
 select throws_ok(
-  $ select public.invite_company_member(
+  $q$ select public.invite_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000009',
        'admin'
-     ) $,
+     ) $q$,
   '42501',
   'Administradores só podem adicionar funcionários',
   'company admin cannot invite another admin'
 );
 
 select throws_ok(
-  $ select public.manage_company_member(
+  $q$ select public.manage_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000004',
        'change_role',
        'admin'
-     ) $,
+     ) $q$,
   '42501',
   'Administradores só podem gerenciar funcionários',
   'company admin cannot promote an employee to admin'
 );
 
 select lives_ok(
-  $ select public.manage_company_member(
+  $q$ select public.manage_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000008',
        'remove',
        null
-     ) $,
+     ) $q$,
   'company admin can remove an employee transactionally'
 );
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000004', true);
 
 select throws_ok(
-  $ select public.add_company_member(
+  $q$ select public.add_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000005',
        'staff'
-     ) $,
+     ) $q$,
   'P0001',
   'Sem permissão para gerenciar usuários desta empresa.',
   'employee cannot manage company members'
 );
 
 select throws_ok(
-  $ select public.invite_company_member(
+  $q$ select public.invite_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000010',
        'staff'
-     ) $,
+     ) $q$,
   '42501',
   'Somente o proprietário da plataforma ou administrador pode convidar membros',
   'employee cannot invite company members'
@@ -168,37 +168,37 @@ select throws_ok(
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
 
 select lives_ok(
-  $ select public.manage_company_member(
+  $q$ select public.manage_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000004',
        'change_role',
        'admin'
-     ) $,
+     ) $q$,
   'platform owner can promote an employee to company admin'
 );
 
-select lives_ok(
-  $ select public.manage_company_member(
-       'c2000000-0000-4000-8000-000000000002',
-       'c1000000-0000-4000-8000-000000000009',
-       'remove',
-       null
-     ) $,
-  'platform owner can remove an administrator from any company'
-);
-
 
 select lives_ok(
-  $ select public.invite_company_member(
+  $q$ select public.invite_company_member(
        'c2000000-0000-4000-8000-000000000002',
        'c1000000-0000-4000-8000-000000000009',
        'admin'
-     ) $,
+     ) $q$,
   'platform owner can invite an administrator in any company'
 );
 
 select lives_ok(
-  $ select public.add_company_member(
+  $q$ select public.manage_company_member(
+       'c2000000-0000-4000-8000-000000000002',
+       'c1000000-0000-4000-8000-000000000009',
+       'remove',
+       null
+     ) $q$,
+  'platform owner can remove an administrator from any company'
+);
+
+select lives_ok(
+  $q$ select public.add_company_member(
        'c2000000-0000-4000-8000-000000000002',
        'c1000000-0000-4000-8000-000000000006',
        'admin'
