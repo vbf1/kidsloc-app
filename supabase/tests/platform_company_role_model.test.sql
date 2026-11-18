@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(22);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -166,6 +166,15 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
+
+select throws_ok(
+  $ select public.create_company('Empresa indevida do proprietário global') $,
+  '42501',
+  'O proprietário da plataforma não pode criar uma empresa.',
+  'platform owner cannot create a company'
+);
+
+
 
 select lives_ok(
   $q$ select public.manage_company_member(
