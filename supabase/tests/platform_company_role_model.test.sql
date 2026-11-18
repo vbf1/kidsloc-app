@@ -200,7 +200,7 @@ select throws_ok(
 
 
 select throws_ok(
-  $ select public.create_company('Empresa indevida do proprietário global') $,
+  $q$ select public.create_company('Empresa indevida do proprietário global') $q$,
   '42501',
   'O proprietário da plataforma não pode criar uma empresa.',
   'platform owner cannot create a company'
