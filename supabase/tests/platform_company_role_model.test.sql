@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(21);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -119,6 +119,28 @@ select throws_ok(
   'company admin cannot invite another admin'
 );
 
+select throws_ok(
+  $ select public.manage_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000004',
+       'change_role',
+       'admin'
+     ) $,
+  '42501',
+  'Administradores só podem gerenciar funcionários',
+  'company admin cannot promote an employee to admin'
+);
+
+select lives_ok(
+  $ select public.manage_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000008',
+       'remove',
+       null
+     ) $,
+  'company admin can remove an employee transactionally'
+);
+
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000004', true);
 
 select throws_ok(
@@ -144,6 +166,27 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
+
+select lives_ok(
+  $ select public.manage_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000004',
+       'change_role',
+       'admin'
+     ) $,
+  'platform owner can promote an employee to company admin'
+);
+
+select lives_ok(
+  $ select public.manage_company_member(
+       'c2000000-0000-4000-8000-000000000002',
+       'c1000000-0000-4000-8000-000000000009',
+       'remove',
+       null
+     ) $,
+  'platform owner can remove an administrator from any company'
+);
+
 
 select lives_ok(
   $ select public.invite_company_member(
