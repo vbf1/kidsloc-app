@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(25);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -28,6 +28,13 @@ values
   ('c2000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000002', 'admin'),
   ('c2000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000004', 'staff'),
   ('c2000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000003', 'admin');
+
+select is(
+  (select count(*)::integer from public.company_members
+   where user_id = 'c1000000-0000-4000-8000-000000000001'),
+  0,
+  'platform owner has no company membership'
+);
 
 select is(
   (select count(*)::integer from private.platform_owners),
@@ -119,6 +126,18 @@ select throws_ok(
   'company admin cannot invite another admin'
 );
 
+
+select throws_ok(
+  $q$ select public.invite_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000001',
+       'staff'
+     ) $q$,
+  '42501',
+  'O proprietário da plataforma não pode ser vinculado a uma empresa.',
+  'company admin cannot invite the platform owner into a company'
+);
+
 select throws_ok(
   $q$ select public.manage_company_member(
        'c2000000-0000-4000-8000-000000000001',
@@ -166,6 +185,19 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
+
+select throws_ok(
+  $q$ select public.add_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000001',
+       'admin'
+     ) $q$,
+  '42501',
+  'O proprietário da plataforma não pode ser vinculado a uma empresa.',
+  'platform owner cannot add themselves as a company member'
+);
+
+
 
 select throws_ok(
   $ select public.create_company('Empresa indevida do proprietário global') $,
