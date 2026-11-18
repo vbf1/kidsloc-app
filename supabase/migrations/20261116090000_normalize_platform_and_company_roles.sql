@@ -130,6 +130,95 @@ begin
 end;
 $function$;
 
+-- Manage a company membership with the caller's JWT and transactional role checks.
+create or replace function public.manage_company_member(
+  p_company_id uuid,
+  p_user_id uuid,
+  p_action text,
+  p_role text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_actor_id uuid := (select auth.uid());
+  v_actor_is_platform_owner boolean := private.is_platform_owner();
+  v_actor_role text;
+  v_target_role text;
+begin
+  if v_actor_id is null then
+    raise exception 'Autenticação obrigatória' using errcode = '28000';
+  end if;
+
+  if p_company_id is null or p_user_id is null then
+    raise exception 'Empresa e usuário são obrigatórios' using errcode = '22023';
+  end if;
+
+  if p_user_id = v_actor_id then
+    raise exception 'Você não pode alterar ou remover seu próprio acesso' using errcode = '42501';
+  end if;
+
+  if p_action is null or p_action not in ('change_role', 'remove') then
+    raise exception 'Ação de gerenciamento inválida' using errcode = '22023';
+  end if;
+
+  if p_action = 'change_role' and (p_role is null or p_role not in ('admin', 'staff')) then
+    raise exception 'Cargo inválido' using errcode = '22023';
+  end if;
+
+  -- Lock the caller's membership so a concurrent demotion/removal cannot race
+  -- with the authorization decision below.
+  if not v_actor_is_platform_owner then
+    select cm.role
+      into v_actor_role
+      from public.company_members cm
+     where cm.company_id = p_company_id
+       and cm.user_id = v_actor_id
+     for update;
+
+    if not found or v_actor_role <> 'admin' then
+      raise exception 'Sem permissão para gerenciar funcionários desta empresa'
+        using errcode = '42501';
+    end if;
+  end if;
+
+  -- Serialize changes to the target membership as well.
+  select cm.role
+    into v_target_role
+    from public.company_members cm
+   where cm.company_id = p_company_id
+     and cm.user_id = p_user_id
+   for update;
+
+  if not found then
+    raise exception 'Funcionário não encontrado nesta empresa'
+      using errcode = 'P0002';
+  end if;
+
+  if not v_actor_is_platform_owner
+     and (v_target_role <> 'staff' or (p_action = 'change_role' and p_role <> 'staff')) then
+    raise exception 'Administradores só podem gerenciar funcionários'
+      using errcode = '42501';
+  end if;
+
+  if p_action = 'change_role' then
+    update public.company_members
+       set role = p_role
+     where company_id = p_company_id
+       and user_id = p_user_id;
+  else
+    delete from public.company_members
+     where company_id = p_company_id
+       and user_id = p_user_id;
+  end if;
+end;
+$function$;
+
+revoke all on function public.manage_company_member(uuid, uuid, text, text) from public, anon;
+grant execute on function public.manage_company_member(uuid, uuid, text, text) to authenticated;
+
 -- Company admins, not a separate company-owner role, administer team chat.
 drop policy if exists team_members_delete_owner on public.team_conversation_members;
 create policy team_members_delete_admin
