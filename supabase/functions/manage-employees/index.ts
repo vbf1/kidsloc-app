@@ -192,27 +192,32 @@ Deno.serve(async (req) => {
       const targetId = String(body.user_id || "");
       const newRole = String(body.role || "");
       if (!targetId || !["staff", "admin"].includes(newRole)) return reply({ error: "Dados de alteração inválidos." }, 400);
-      if (targetId === authData.user.id) return reply({ error: "Você não pode alterar seu próprio perfil." }, 403);
-      const { data: target, error } = await admin.from("company_members").select("id,role")
-        .eq("company_id", companyId).eq("user_id", targetId).maybeSingle();
-      if (error || !target) return reply({ error: "Funcionário não encontrado nesta empresa." }, 404);
-      if (callerRole !== "platform_owner" && (target.role !== "staff" || newRole !== "staff")) {
-        return reply({ error: "Administradores só podem gerenciar funcionários." }, 403);
+      const { error: updateError } = await authClient.rpc("manage_company_member", {
+        p_company_id: companyId,
+        p_user_id: targetId,
+        p_action: "change_role",
+        p_role: newRole,
+      });
+      if (updateError) {
+        const status = updateError.code === "42501" ? 403 : updateError.code === "P0002" ? 404 : 400;
+        return reply({ error: updateError.message }, status);
       }
-      const { error: updateError } = await admin.from("company_members").update({ role: newRole }).eq("id", target.id);
-      if (updateError) throw updateError;
       return reply({ message: "Permissão atualizada." });
     }
 
     if (action === "remove") {
       const targetId = String(body.user_id || "");
-      if (!targetId || targetId === authData.user.id) return reply({ error: "Não é possível remover sua própria conta por esta tela." }, 400);
-      const { data: target, error } = await admin.from("company_members").select("id,role")
-        .eq("company_id", companyId).eq("user_id", targetId).maybeSingle();
-      if (error || !target) return reply({ error: "Funcionário não encontrado nesta empresa." }, 404);
-      if (callerRole !== "platform_owner" && target.role !== "staff") return reply({ error: "Administradores só podem remover funcionários." }, 403);
-      const { error: deleteError } = await admin.from("company_members").delete().eq("id", target.id);
-      if (deleteError) throw deleteError;
+      if (!targetId) return reply({ error: "Funcionário não identificado." }, 400);
+      const { error: deleteError } = await authClient.rpc("manage_company_member", {
+        p_company_id: companyId,
+        p_user_id: targetId,
+        p_action: "remove",
+        p_role: null,
+      });
+      if (deleteError) {
+        const status = deleteError.code === "42501" ? 403 : deleteError.code === "P0002" ? 404 : 400;
+        return reply({ error: deleteError.message }, status);
+      }
       return reply({ message: "Acesso removido desta empresa." });
     }
     return reply({ error: "Ação não reconhecida." }, 400);
