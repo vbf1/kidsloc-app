@@ -57,6 +57,11 @@ begin
       using errcode = '28000';
   end if;
 
+  if coalesce(private.is_platform_owner(), false) then
+    raise exception 'O proprietário da plataforma não pode criar uma empresa.'
+      using errcode = '42501';
+  end if;
+
   if length(v_name) < 2 or length(v_name) > 160 then
     raise exception 'Nome da empresa inválido.'
       using errcode = '22023';
