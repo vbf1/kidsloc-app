@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(17);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -10,7 +10,10 @@ values
   ('c1000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated', 'company-a-staff-role-model@example.test', '', now(), now()),
   ('c1000000-0000-4000-8000-000000000005', 'authenticated', 'authenticated', 'new-staff-role-model@example.test', '', now(), now()),
   ('c1000000-0000-4000-8000-000000000006', 'authenticated', 'authenticated', 'new-admin-role-model@example.test', '', now(), now()),
-  ('c1000000-0000-4000-8000-000000000007', 'authenticated', 'authenticated', 'new-company-admin-role-model@example.test', '', now(), now());
+  ('c1000000-0000-4000-8000-000000000007', 'authenticated', 'authenticated', 'new-company-admin-role-model@example.test', '', now(), now()),
+  ('c1000000-0000-4000-8000-000000000008', 'authenticated', 'authenticated', 'invite-staff-role-model@example.test', '', now(), now()),
+  ('c1000000-0000-4000-8000-000000000009', 'authenticated', 'authenticated', 'invite-admin-role-model@example.test', '', now(), now()),
+  ('c1000000-0000-4000-8000-000000000010', 'authenticated', 'authenticated', 'invite-denied-role-model@example.test', '', now(), now());
 
 insert into private.platform_owners (user_id)
 values ('c1000000-0000-4000-8000-000000000001');
@@ -86,33 +89,73 @@ select lives_ok(
 );
 
 select throws_ok(
-  $$ select public.add_company_member(
+  $ select public.add_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000006',
        'admin'
-     ) $$,
+     ) $,
   'P0001',
   'Somente o proprietário da plataforma pode atribuir outro administrador.',
   'company admin cannot promote another user to admin'
 );
 
+select lives_ok(
+  $ select public.invite_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000008',
+       'staff'
+     ) $,
+  'company admin can invite an employee through the transactional function'
+);
+
+select throws_ok(
+  $ select public.invite_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000009',
+       'admin'
+     ) $,
+  '42501',
+  'Administradores só podem adicionar funcionários',
+  'company admin cannot invite another admin'
+);
+
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000004', true);
 
 select throws_ok(
-  $$ select public.add_company_member(
+  $ select public.add_company_member(
        'c2000000-0000-4000-8000-000000000001',
        'c1000000-0000-4000-8000-000000000005',
        'staff'
-     ) $$,
+     ) $,
   'P0001',
   'Sem permissão para gerenciar usuários desta empresa.',
   'employee cannot manage company members'
 );
 
+select throws_ok(
+  $ select public.invite_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000010',
+       'staff'
+     ) $,
+  '42501',
+  'Somente o proprietário da plataforma ou administrador pode convidar membros',
+  'employee cannot invite company members'
+);
+
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
 
 select lives_ok(
-  $$ select public.add_company_member(
+  $ select public.invite_company_member(
+       'c2000000-0000-4000-8000-000000000002',
+       'c1000000-0000-4000-8000-000000000009',
+       'admin'
+     ) $,
+  'platform owner can invite an administrator in any company'
+);
+
+select lives_ok(
+  $ select public.add_company_member(
        'c2000000-0000-4000-8000-000000000002',
        'c1000000-0000-4000-8000-000000000006',
        'admin'
