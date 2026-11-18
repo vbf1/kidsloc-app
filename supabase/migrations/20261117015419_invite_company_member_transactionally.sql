@@ -14,7 +14,7 @@ as $function$
 declare
   v_actor_id uuid := (select auth.uid());
   v_actor_role text;
-  v_actor_is_platform_owner boolean := private.is_platform_owner();
+  v_actor_is_platform_owner boolean := coalesce(private.is_platform_owner(), false);
 begin
   if v_actor_id is null then
     raise exception 'Autenticação obrigatória' using errcode = '28000';
@@ -48,6 +48,13 @@ begin
 
   if not v_actor_is_platform_owner and p_role <> 'staff' then
     raise exception 'Administradores só podem adicionar funcionários'
+      using errcode = '42501';
+  end if;
+
+  if exists (
+    select 1 from private.platform_owners po where po.user_id = p_user_id
+  ) then
+    raise exception 'O proprietário da plataforma não pode ser vinculado a uma empresa.'
       using errcode = '42501';
   end if;
 
