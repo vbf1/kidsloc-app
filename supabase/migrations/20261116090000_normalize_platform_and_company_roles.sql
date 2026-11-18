@@ -21,6 +21,11 @@ $$;
 create unique index if not exists platform_owners_singleton_uidx
   on private.platform_owners (singleton);
 
+-- A platform owner is global and must not retain a company membership.
+delete from public.company_members cm
+using private.platform_owners po
+where cm.user_id = po.user_id;
+
 alter table public.company_members
   drop constraint if exists company_members_role_check;
 
@@ -89,7 +94,7 @@ set search_path to ''
 as $function$
 declare
   v_existing_role text;
-  v_actor_is_platform_owner boolean := private.is_platform_owner();
+  v_actor_is_platform_owner boolean := coalesce(private.is_platform_owner(), false);
   v_actor_is_admin boolean;
 begin
   v_actor_is_admin := public.has_company_role(p_company_id, array['admin']::text[]);
@@ -105,6 +110,13 @@ begin
   if not exists (select 1 from auth.users u where u.id = p_user_id) then
     raise exception 'Usuário não encontrado em Authentication.';
   end if;
+  if exists (
+    select 1 from private.platform_owners po where po.user_id = p_user_id
+  ) then
+    raise exception 'O proprietário da plataforma não pode ser vinculado a uma empresa.'
+      using errcode = '42501';
+  end if;
+
 
   select cm.role into v_existing_role
   from public.company_members cm
@@ -130,6 +142,74 @@ begin
 end;
 $function$;
 
+-- Keep the deployed invitation RPC aligned with the normalized role model.
+create or replace function public.invite_company_member(
+  p_company_id uuid,
+  p_user_id uuid,
+  p_role text default 'staff'
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_actor_id uuid := (select auth.uid());
+  v_actor_role text;
+  v_actor_is_platform_owner boolean := coalesce(private.is_platform_owner(), false);
+begin
+  if v_actor_id is null then
+    raise exception 'Autenticação obrigatória' using errcode = '28000';
+  end if;
+
+  if p_company_id is null or p_user_id is null then
+    raise exception 'Empresa e usuário são obrigatórios' using errcode = '22023';
+  end if;
+
+  if p_user_id = v_actor_id then
+    raise exception 'Você não pode convidar sua própria conta' using errcode = '42501';
+  end if;
+
+  if p_role is null or p_role not in ('admin', 'staff') then
+    raise exception 'Cargo inválido' using errcode = '22023';
+  end if;
+
+  select cm.role
+    into v_actor_role
+    from public.company_members cm
+   where cm.company_id = p_company_id
+     and cm.user_id = v_actor_id
+   for update;
+
+  if not v_actor_is_platform_owner and (not found or v_actor_role <> 'admin') then
+    raise exception 'Somente o proprietário da plataforma ou administrador pode convidar membros'
+      using errcode = '42501';
+  end if;
+
+  if not v_actor_is_platform_owner and p_role <> 'staff' then
+    raise exception 'Administradores só podem adicionar funcionários'
+      using errcode = '42501';
+  end if;
+
+  if exists (
+    select 1 from private.platform_owners po where po.user_id = p_user_id
+  ) then
+    raise exception 'O proprietário da plataforma não pode ser vinculado a uma empresa.'
+      using errcode = '42501';
+  end if;
+
+  insert into public.company_members (company_id, user_id, role)
+  values (p_company_id, p_user_id, p_role);
+exception
+  when unique_violation then
+    raise exception 'Este e-mail já está vinculado à equipe desta empresa'
+      using errcode = '23505';
+end;
+$function$;
+
+revoke all on function public.invite_company_member(uuid, uuid, text) from public, anon;
+grant execute on function public.invite_company_member(uuid, uuid, text) to authenticated;
+
 -- Manage a company membership with the caller's JWT and transactional role checks.
 create or replace function public.manage_company_member(
   p_company_id uuid,
@@ -144,7 +224,7 @@ set search_path = ''
 as $function$
 declare
   v_actor_id uuid := (select auth.uid());
-  v_actor_is_platform_owner boolean := private.is_platform_owner();
+  v_actor_is_platform_owner boolean := coalesce(private.is_platform_owner(), false);
   v_actor_role text;
   v_target_role text;
 begin
