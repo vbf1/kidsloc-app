@@ -1,15 +1,15 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { ProductForm } from '../../../components/product-form';
 import { ProductList } from '../../../components/product-list';
 import { ProductUnitManager } from '../../../components/product-unit-manager';
+import { WorkspaceModal } from '../../../components/workspace-modal';
 import { SearchablePicker } from '../../../components/searchable-picker';
 import { formatProductInventoryError, matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
-import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
 
 type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
@@ -84,8 +84,6 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
-  const [formScrollRequest, setFormScrollRequest] = useState(0);
-  const formContainerRef = useRef<HTMLDivElement>(null);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
   const [unitsScrollRequest, setUnitsScrollRequest] = useState(0);
@@ -123,8 +121,6 @@ export default function ProductsPage() {
     void loadAccess();
     return () => { active = false; };
   }, [router]);
-
-  useScrollIntoViewOnChange(formContainerRef, formOpen ? `${editingProduct?.id ?? 'new'}-${formScrollRequest}` : null);
 
   useEffect(() => {
     if (!companyId || !supabase) return;
@@ -164,7 +160,7 @@ export default function ProductsPage() {
     return () => { active = false; };
   }, [companyId, page, pageSize, searchTerm, typeFilter, statusFilter, refreshIndex]);
 
-  function openNewProduct() { setEditingProduct(null); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
+  function openNewProduct() { setEditingProduct(null); setFormError(''); setFormOpen(true); setNotice(''); }
   function openEditProduct(product: ProductRecord) { setEditingProduct(product); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
   function closeForm() { if (saving) return; setFormOpen(false); setEditingProduct(null); setFormError(''); }
   async function saveProduct(values: ProductFormValues, imageFile: File | null, removeImage: boolean) {
@@ -288,7 +284,7 @@ export default function ProductsPage() {
             </div>
           </section>
         </div>}
-        {formOpen && <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7"><ProductForm key={editingProduct?.id ?? 'new-product'} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} initialImageUrl={editingProduct?.image_url ?? null} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></div>}
+        <WorkspaceModal open={formOpen} title={editingProduct ? "Editar item do catálogo" : "Novo item do catálogo"} description="Configure informações, preço, estoque e disponibilidade." onClose={closeForm} size="lg"><ProductForm key={editingProduct?.id ?? "new-product"} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} initialImageUrl={editingProduct?.image_url ?? null} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></WorkspaceModal>
         {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} scrollRequest={unitsScrollRequest} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
