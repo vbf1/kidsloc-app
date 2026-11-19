@@ -201,7 +201,7 @@ export default function RentalsPage() {
     setFormError('');
     setNotice('');
     setFormOpen(true);
-    setFormScrollRequest((current) => current + 1);
+    
   }
   function closeForm() {
     if (saving) return;
