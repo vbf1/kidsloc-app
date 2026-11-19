@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 type WorkspaceModalProps = {
   open: boolean;
@@ -14,18 +14,31 @@ type WorkspaceModalProps = {
 export function WorkspaceModal({ open, title, description, onClose, children, size = 'lg' }: WorkspaceModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const panelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = 'hidden';
+    const getFocusable = () => panelRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [];
+    const firstFocusable = getFocusable()[0];
+    (firstFocusable ?? panelRef.current)?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') { onClose(); return; }
+      if (event.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (!focusable.length) { event.preventDefault(); panelRef.current?.focus(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus();
     };
   }, [open, onClose]);
 
@@ -35,7 +48,7 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
   return (
     <div className="kl-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined}
-        className={`kl-modal-panel ${width}`}>
+        ref={panelRef} tabIndex={-1} className={`kl-modal-panel ${width}`}>
         <header className="kl-modal-header">
           <div className="min-w-0">
             <p className="kl-modal-eyebrow">KIDSLOC · ESPAÇO DE TRABALHO</p>
