@@ -75,10 +75,23 @@ Os quatro arquivos que aparecem como pares têm versões remotas diferentes, emb
 - A migration `20261116090000_normalize_platform_and_company_roles.sql` não está registrada no histórico remoto; por isso, seu novo modelo de cargos não pode ser considerado ativo em produção.
 - A Edge Function `manage-employees` publicada não foi alterada por esta análise; sua publicação permanece pendente de autorização explícita.
 
+### Políticas e funções que ainda refletem o modelo antigo
+
+Consultas somente leitura adicionais em 2026-11-19 confirmaram que o isolamento estrutural por `company_id` está presente em diversos relacionamentos, mas isso não significa que as permissões estejam no modelo novo:
+
+- A policy `platform_owner_all` em `public.company_members` concede `ALL` ao platform owner.
+- A policy `team_conversations_select` ainda permite leitura por `has_company_role(company_id, ['owner'])`; a função `is_company_member(company_id)` também trata o platform owner como membro global.
+- As policies de `team_conversation_members` ainda contêm exceções baseadas em `owner` e bypass explícito para platform owner.
+- `ensure_team_group(uuid)` ainda aceita o platform owner sem membership real e adiciona os membros atuais da empresa ao grupo.
+- `add_company_member(uuid, uuid, text)` ainda aceita `manager`; `invite_company_member(uuid, uuid, text)` também aceita `manager` e autoriza o papel `owner` como ator.
+- As funções acima são `SECURITY DEFINER`; suas validações de identidade e autorização e os privilégios EXECUTE precisam ser revisados como endpoints privilegiados, não apenas como helpers internos.
+
+**Conclusão parcial:** as migrations remotas ausentes de 17 de novembro que criaram FKs compostos parecem ter efeitos relevantes presentes no banco. Em contrapartida, o modelo de autorização para membros e conversas continua antigo. Não marcar uma migration como reconciliada apenas porque os FKs existem; constraints e policies são camadas diferentes.
+
 ## Próxima sequência de trabalho
 
 1. Comparar cada uma das 23 migrations remotas ausentes com o estado real de constraints, índices, triggers, funções e policies.
-2. Classificar cada diferença como: efeito já presente, efeito parcialmente presente, efeito ausente ou divergência intencional.
+2. Classificar separadamente constraints, índices, policies e funções. FKs compostos observados não comprovam que as policies e funções de autorização também estejam atualizadas.
 3. Comparar os oito arquivos locais sem registro remoto, identificando os quatro pares de intenção semelhante e os quatro arquivos locais sem equivalente remoto; revisar separadamente o arquivo legado com identificador de 12 dígitos.
 4. Criar migrations corretivas com versões inéditas apenas para efeitos comprovadamente ausentes ou incorretos, sem no-op e sem reaplicar a migration destrutiva de reconstrução do núcleo de locações.
 5. Reexecutar CI e revisar o plano de aplicação. A execução remota exige autorização explícita separada.
