@@ -34,7 +34,7 @@ export function CustomerList({ customers, loading, totalCount, page, pageSize, o
           <table className="w-full min-w-[680px] text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><tr><th className="px-5 py-3 font-semibold">Cliente</th><th className="px-5 py-3 font-semibold">Contato</th><th className="px-5 py-3 font-semibold">Cadastro</th><th className="px-5 py-3 text-right font-semibold">Ação</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
-              {customers.map((customer) => <tr key={customer.id} onClick={() => onView(customer)} className="cursor-pointer align-top transition hover:bg-purple-50/30">
+              {customers.map((customer) => <tr key={customer.id} onClick={() => onView(customer)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onView(customer); } }} tabIndex={0} className="cursor-pointer align-top transition hover:bg-purple-50/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-400">
                 <td className="px-5 py-4"><p className="font-semibold text-gray-900">{customer.name}</p><p className="mt-2 text-xs font-semibold text-[#6840bd]">Toque para ver os dados completos</p></td>
                 <td className="px-5 py-4"><p className="text-gray-800">{displayValue(customer.phone)}</p><p className="mt-1 break-all text-xs text-gray-500">{customer.email || 'Sem e-mail'}</p></td>
                 <td className="px-5 py-4 text-gray-500">{formatDate(customer.created_at)}</td>
