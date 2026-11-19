@@ -8,7 +8,7 @@ import { ProductList } from '../../../components/product-list';
 import { ProductUnitManager } from '../../../components/product-unit-manager';
 import { WorkspaceModal } from '../../../components/workspace-modal';
 import { SearchablePicker } from '../../../components/searchable-picker';
-import { formatProductInventoryError, matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
+import { formatProductInventoryError, formatPrice, matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { supabase } from '../../../lib/supabase';
 
@@ -85,6 +85,7 @@ export default function ProductsPage() {
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<ProductRecord | null>(null);
   const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
@@ -284,6 +285,17 @@ export default function ProductsPage() {
           </section>
         </div>}
         <WorkspaceModal open={formOpen} title={editingProduct ? "Editar item do catálogo" : "Novo item do catálogo"} description="Configure informações, preço, estoque e disponibilidade." onClose={closeForm} size="lg"><ProductForm key={editingProduct?.id ?? "new-product"} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} initialImageUrl={editingProduct?.image_url ?? null} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></WorkspaceModal>
+        <WorkspaceModal open={Boolean(viewingProduct)} title={viewingProduct ? viewingProduct.name : 'Detalhes do item'} description="Informações completas do catálogo." onClose={() => setViewingProduct(null)} size="lg">
+          {viewingProduct && <div className="space-y-5">
+            <div className="flex flex-wrap items-start gap-4 rounded-2xl bg-purple-50 p-4">
+              {viewingProduct.image_url ? <div role="img" aria-label={'Foto de ' + viewingProduct.name} className="size-24 shrink-0 rounded-xl bg-cover bg-center" style={{ backgroundImage: 'url("' + viewingProduct.image_url + '")' }} /> : <div className="grid size-24 shrink-0 place-items-center rounded-xl bg-white text-3xl">📦</div>}
+              <div className="min-w-0 flex-1"><span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-purple-700">{viewingProduct.item_type === 'toy' ? 'Brinquedo' : viewingProduct.item_type === 'machine' ? 'Máquina' : 'Serviço'}</span><p className="mt-3 text-2xl font-bold text-gray-900">{formatPrice(viewingProduct.item_type === 'toy' || (viewingProduct.item_type === 'machine' && viewingProduct.event_price === null) ? viewingProduct.daily_price : viewingProduct.event_price)}</p><p className="mt-1 text-xs text-gray-500">{viewingProduct.item_type === 'toy' || (viewingProduct.item_type === 'machine' && viewingProduct.event_price === null) ? 'Por diária' : 'Por evento'}</p></div>
+              <span className={viewingProduct.active ? 'rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700' : 'rounded-full bg-gray-200 px-3 py-1 text-xs font-semibold text-gray-600'}>{viewingProduct.active ? 'Ativo' : 'Inativo'}</span>
+            </div>
+            <dl className="grid gap-4 sm:grid-cols-2"><div><dt className="text-xs font-semibold text-gray-400">Descrição</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{viewingProduct.description || 'Não informada'}</dd></div><div><dt className="text-xs font-semibold text-gray-400">Estoque</dt><dd className="mt-1 text-sm text-gray-800">{viewingProduct.item_type === 'service' ? 'Não se aplica' : viewingProduct.inventory_mode === 'individual' ? 'Unidades individuais' : viewingProduct.total_quantity + ' unidades'}</dd></div><div className="sm:col-span-2"><dt className="text-xs font-semibold text-gray-400">Observações internas</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{viewingProduct.notes || 'Nenhuma observação'}</dd></div></dl>
+            <div className="flex justify-end gap-2 border-t border-gray-100 pt-4"><button type="button" onClick={() => setViewingProduct(null)} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700">Fechar</button><button type="button" onClick={() => { const selected=viewingProduct; setViewingProduct(null); openEditProduct(selected); }} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white">Editar item</button></div>
+          </div>}
+        </WorkspaceModal>
         <WorkspaceModal open={Boolean(managingUnitsProduct)} title={managingUnitsProduct ? 'Unidades de ' + managingUnitsProduct.name : 'Unidades do item'} description='Identifique e acompanhe cada unidade do estoque.' onClose={() => setManagingUnitsProduct(null)} size='lg'>{managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}</WorkspaceModal>
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
@@ -312,7 +324,7 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
-        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
+        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onView={setViewingProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
       </section>
     </AppShell>
   );
