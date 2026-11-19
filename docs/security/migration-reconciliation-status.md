@@ -7,7 +7,7 @@
 ## Inventário confirmado
 
 - Histórico remoto: **60 versões**.
-- Arquivos presentes em `supabase/migrations` na branch: **44 arquivos**.
+- Arquivos presentes em `supabase/migrations` na branch: **45 arquivos**.
 - Versões remotas sem arquivo local com o mesmo identificador: **23**.
 - Versões locais sem registro remoto correspondente: **7**.
 - Interseção exata: **37 versões**.
@@ -50,12 +50,17 @@ As quatro versões com nomes semelhantes acima completam as 23 ausências remota
 ### Versões locais sem registro remoto correspondente
 
 ```text
+202611090001_foundation (arquivo legado com identificador de 12 dígitos)
+20261112030000_product_catalog
+20261112050000_prevent_customer_deletion
+20261113040000_allow_machine_product_units
+20261113050000_platform_owner_readonly_conversations
 20261113060000_grant_platform_owner_check_to_authenticated
 20261116090000_normalize_platform_and_company_roles
 20261119090000_manage_company_member_transactionally
 ```
 
-As outras quatro versões locais sem correspondência exata são os arquivos dos pares listados anteriormente.
+Os quatro arquivos que aparecem como pares têm versões remotas diferentes, embora a intenção funcional pareça semelhante. O arquivo `202611090001_foundation` merece revisão separada: seu identificador tem 12 dígitos, enquanto as versões remotas atuais listadas usam 14 dígitos. Não renomear nem registrar como aplicada sem determinar sua origem e efeitos.
 
 ## Estado remoto observado por consultas SQL
 
@@ -74,7 +79,7 @@ As outras quatro versões locais sem correspondência exata são os arquivos dos
 
 1. Comparar cada uma das 23 migrations remotas ausentes com o estado real de constraints, índices, triggers, funções e policies.
 2. Classificar cada diferença como: efeito já presente, efeito parcialmente presente, efeito ausente ou divergência intencional.
-3. Comparar os sete arquivos locais sem registro remoto, identificando os quatro pares de intenção semelhante e os três arquivos locais sem equivalente remoto.
+3. Comparar os oito arquivos locais sem registro remoto, identificando os quatro pares de intenção semelhante e os quatro arquivos locais sem equivalente remoto; revisar separadamente o arquivo legado com identificador de 12 dígitos.
 4. Criar migrations corretivas com versões inéditas apenas para efeitos comprovadamente ausentes ou incorretos, sem no-op e sem reaplicar a migration destrutiva de reconstrução do núcleo de locações.
 5. Reexecutar CI e revisar o plano de aplicação. A execução remota exige autorização explícita separada.
 
