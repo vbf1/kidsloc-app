@@ -86,7 +86,6 @@ export default function ProductsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [managingUnitsProduct, setManagingUnitsProduct] = useState<ProductRecord | null>(null);
-  const [unitsScrollRequest, setUnitsScrollRequest] = useState(0);
   const [saving, setSaving] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [productToDelete, setProductToDelete] = useState<ProductRecord | null>(null);
@@ -285,7 +284,7 @@ export default function ProductsPage() {
           </section>
         </div>}
         <WorkspaceModal open={formOpen} title={editingProduct ? "Editar item do catálogo" : "Novo item do catálogo"} description="Configure informações, preço, estoque e disponibilidade." onClose={closeForm} size="lg"><ProductForm key={editingProduct?.id ?? "new-product"} initialValues={editingProduct ? fromRecord(editingProduct) : undefined} initialImageUrl={editingProduct?.image_url ?? null} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveProduct} /></WorkspaceModal>
-        {managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} scrollRequest={unitsScrollRequest} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}
+        <WorkspaceModal open={Boolean(managingUnitsProduct)} title={managingUnitsProduct ? 'Unidades de ' + managingUnitsProduct.name : 'Unidades do item'} description='Identifique e acompanhe cada unidade do estoque.' onClose={() => setManagingUnitsProduct(null)} size='lg'>{managingUnitsProduct && <ProductUnitManager key={managingUnitsProduct.id} productId={managingUnitsProduct.id} productName={managingUnitsProduct.name} companyId={companyId} totalQuantity={managingUnitsProduct.total_quantity} onClose={() => setManagingUnitsProduct(null)} />}</WorkspaceModal>
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="product-search" className="sr-only">Pesquisar itens</label>
           <input id="product-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por nome, descrição ou observações" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
@@ -313,7 +312,7 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
-        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setUnitsScrollRequest((current) => current + 1); setFormOpen(false); setEditingProduct(null); }} />
+        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
       </section>
     </AppShell>
   );
