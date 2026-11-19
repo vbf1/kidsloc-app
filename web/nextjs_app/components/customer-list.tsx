@@ -10,19 +10,6 @@ function formatDate(value: string): string {
   if (Number.isNaN(date.getTime())) return 'Data não disponível';
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(date);
 }
-function CustomerDetails({ customer }: { customer: CustomerRecord }) {
-  return (
-    <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-      <div><dt className="text-xs text-gray-400">CPF</dt><dd className="mt-1 break-words text-gray-800">{displayValue(customer.cpf)}</dd></div>
-      <div><dt className="text-xs text-gray-400">RG</dt><dd className="mt-1 break-words text-gray-800">{displayValue(customer.rg)}</dd></div>
-      <div><dt className="text-xs text-gray-400">CEP</dt><dd className="mt-1 break-words text-gray-800">{displayValue(customer.zip)}</dd></div>
-      <div><dt className="text-xs text-gray-400">Endereço</dt><dd className="mt-1 break-words text-gray-800">{displayValue(customer.address)}</dd></div>
-      <div><dt className="text-xs text-gray-400">Bairro</dt><dd className="mt-1 break-words text-gray-800">{displayValue(customer.neighborhood)}</dd></div>
-      <div><dt className="text-xs text-gray-400">Cidade / UF</dt><dd className="mt-1 break-words text-gray-800">{displayValue(customer.city_state)}</dd></div>
-      <div className="sm:col-span-2"><dt className="text-xs text-gray-400">Observações</dt><dd className="mt-1 whitespace-pre-wrap break-words text-gray-800">{displayValue(customer.notes)}</dd></div>
-    </dl>
-  );
-}
 function EditButton({ onClick }: { onClick: () => void }) {
   return <button type="button" onClick={onClick} className="rounded-lg border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50">Editar</button>;
 }
