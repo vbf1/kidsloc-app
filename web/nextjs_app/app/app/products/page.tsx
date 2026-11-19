@@ -161,7 +161,7 @@ export default function ProductsPage() {
   }, [companyId, page, pageSize, searchTerm, typeFilter, statusFilter, refreshIndex]);
 
   function openNewProduct() { setEditingProduct(null); setFormError(''); setFormOpen(true); setNotice(''); }
-  function openEditProduct(product: ProductRecord) { setEditingProduct(product); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
+  function openEditProduct(product: ProductRecord) { setEditingProduct(product); setFormError(''); setFormOpen(true);  setNotice(''); }
   function closeForm() { if (saving) return; setFormOpen(false); setEditingProduct(null); setFormError(''); }
   async function saveProduct(values: ProductFormValues, imageFile: File | null, removeImage: boolean) {
     if (!supabase || !companyId || saving) return;
