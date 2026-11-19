@@ -8,7 +8,7 @@ Não implementar regras, campos, funis ou nomenclaturas que pressuponham locaç�
 
 ## Decisão comercial de acesso
 
-- O proprietário da plataforma (platform owner) tem acesso ao LeadFesta por padrão.
+- O proprietário da plataforma (platform owner) tem acesso ao LeadFesta por padrão e pode utilizar o módulo sem depender de concessão por empresa.
 - O proprietário/administrador de cada empresa só recebe acesso quando o platform owner habilitar o recurso para aquela empresa no painel administrativo.
 - LeadFesta é um adicional pago, separado do acesso normal ao KidsLoc.
 - A ativação deve ser explícita e controlada pelo platform owner. Não habilitar automaticamente para toda empresa nova.
@@ -23,7 +23,7 @@ Não implementar regras, campos, funis ou nomenclaturas que pressuponham locaç�
 - Dentro de uma empresa habilitada, o acesso inicial é do administrador/proprietário da empresa. Não conceder automaticamente a todos os funcionários. Uma futura opção de delegação poderá ser definida separadamente.
 - A checagem deve sempre combinar empresa ativa, usuário autenticado, papel autorizado na empresa e concessão ativa do recurso.
 - Os dados de leads devem ser isolados por company_id, com FKs e políticas que impeçam leitura ou associação cruzada entre empresas.
-- O platform owner deve conseguir administrar a concessão pelo painel administrativo sem receber, por causa disso, permissões implícitas para operar os leads privados da empresa.
+- A concessão comercial do módulo não deve ser confundida com o papel de acesso aos dados. O escopo de leitura e gestão dos leads de cada empresa deve respeitar as permissões de plataforma e da empresa definidas para o KidsLoc; habilitar o adicional não deve transformar um usuário em administrador de outra empresa.
 
 ## Estrutura funcional futura
 
@@ -40,7 +40,8 @@ Não implementar regras, campos, funis ou nomenclaturas que pressuponham locaç�
 4. Um usuário de uma empresa não consegue consultar, alterar, associar ou inferir leads de outra empresa.
 5. Revogar o adicional bloqueia o acesso sem apagar os dados.
 6. Platform owner tem acesso administrativo à configuração da concessão, sem que a concessão em si amplie acesso aos leads privados.
-7. O modelo funciona para empresas de ramos diferentes, sem pressupor Sonho Kids ou Nobre Paladar.
+7. O proprietário da plataforma já consegue utilizar o módulo por padrão, sem ativação adicional.
+8. O modelo funciona para empresas de ramos diferentes, sem pressupor Sonho Kids ou Nobre Paladar.
 
 ## Estado
 
