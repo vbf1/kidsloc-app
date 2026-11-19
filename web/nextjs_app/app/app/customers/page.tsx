@@ -130,7 +130,7 @@ export default function CustomersPage() {
 
 
   function openNewCustomer() { setEditingCustomer(null); setFormError(''); setFormOpen(true); setNotice(''); }
-  function openEditCustomer(customer: CustomerRecord) { setEditingCustomer(customer); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
+  function openEditCustomer(customer: CustomerRecord) { setEditingCustomer(customer); setFormError(''); setFormOpen(true);  setNotice(''); }
   function closeForm() { if (saving) return; setFormOpen(false); setEditingCustomer(null); setFormError(''); }
 
   async function saveCustomer(values: CustomerFormValues) {
