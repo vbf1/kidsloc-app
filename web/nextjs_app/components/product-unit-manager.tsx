@@ -1,11 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { formatProductInventoryError } from '../lib/products';
 import { supabase } from '../lib/supabase';
 import { SearchablePicker } from './searchable-picker';
-import { useScrollIntoViewOnChange } from '../lib/use-scroll-into-view';
 
 type ProductUnit = {
   id: string;
@@ -19,10 +18,9 @@ type ProductUnitManagerProps = {
   companyId: string;
   totalQuantity: number;
   onClose: () => void;
-  scrollRequest: number;
 };
 
-export function ProductUnitManager({ productId, productName, companyId, totalQuantity, onClose, scrollRequest }: ProductUnitManagerProps) {
+export function ProductUnitManager({ productId, productName, companyId, totalQuantity, onClose }: ProductUnitManagerProps) {
   const [units, setUnits] = useState<ProductUnit[]>([]);
   const [assetCode, setAssetCode] = useState('');
   const [description, setDescription] = useState('');
@@ -35,10 +33,6 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const panelRef = useRef<HTMLElement>(null);
-
-  useScrollIntoViewOnChange(panelRef, `${productId}-${scrollRequest}`);
-
   const loadUnits = useCallback(async () => {
     if (!supabase) return;
     setError('');
@@ -141,7 +135,7 @@ export function ProductUnitManager({ productId, productName, companyId, totalQua
   }
 
   return (
-    <section ref={panelRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="product-units-title">
+    <section className="mb-6 scroll-mt-4 rounded-2xl border border-purple-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="product-units-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Controle individual</p>
