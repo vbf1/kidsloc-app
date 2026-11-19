@@ -53,6 +53,7 @@ export default function CustomersPage() {
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
+  const [viewingCustomer, setViewingCustomer] = useState<CustomerRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
@@ -207,6 +208,9 @@ export default function CustomersPage() {
             city_state: editingCustomer.city_state ?? '', notes: editingCustomer.notes ?? '',
           } : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveCustomer} />
         </WorkspaceModal>
+        <WorkspaceModal open={Boolean(viewingCustomer)} title={viewingCustomer ? viewingCustomer.name : 'Dados do cliente'} description="Informações completas do cadastro." onClose={() => setViewingCustomer(null)} size="lg">
+          {viewingCustomer && <div className="space-y-5"><div className="rounded-2xl bg-purple-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-purple-600">Contato principal</p><p className="mt-1 text-xl font-bold text-gray-900">{viewingCustomer.phone || 'Telefone não informado'}</p><p className="mt-1 text-sm text-gray-600">{viewingCustomer.email || 'E-mail não informado'}</p></div><dl className="grid gap-4 sm:grid-cols-2">{[['CPF',viewingCustomer.cpf],['RG',viewingCustomer.rg],['CEP',viewingCustomer.zip],['Endereço',viewingCustomer.address],['Bairro',viewingCustomer.neighborhood],['Cidade / UF',viewingCustomer.city_state]].map(([label,value]) => <div key={label}><dt className="text-xs font-semibold text-gray-400">{label}</dt><dd className="mt-1 break-words text-sm text-gray-800">{value || 'Não informado'}</dd></div>)}<div className="sm:col-span-2"><dt className="text-xs font-semibold text-gray-400">Observações</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{viewingCustomer.notes || 'Nenhuma observação'}</dd></div></dl><div className="flex justify-end gap-2 border-t border-gray-100 pt-4"><button type="button" onClick={() => setViewingCustomer(null)} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700">Fechar</button><button type="button" onClick={() => { const selected=viewingCustomer; setViewingCustomer(null); openEditCustomer(selected); }} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white">Editar cliente</button></div></div>}
+        </WorkspaceModal>
         <form onSubmit={submitSearch} className="mb-4 flex flex-col gap-2 rounded-2xl border border-purple-100 bg-white p-3 sm:flex-row">
           <label htmlFor="customer-search" className="sr-only">Pesquisar clientes por nome, telefone, e-mail ou CPF</label>
           <input id="customer-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)}
@@ -221,7 +225,7 @@ export default function CustomersPage() {
           <p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button>
         </div>}
         <CustomerList customers={customers} loading={listLoading} totalCount={totalCount} page={page}
-          pageSize={pageSize} onPageChange={changePage} onEdit={openEditCustomer} />
+          pageSize={pageSize} onPageChange={changePage} onEdit={openEditCustomer} onView={setViewingCustomer} />
       </section>
     </AppShell>
   );
