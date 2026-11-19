@@ -9,7 +9,7 @@
 - Histórico remoto: **60 versões**.
 - Arquivos presentes em `supabase/migrations` na branch: **45 arquivos**.
 - Versões remotas sem arquivo local com o mesmo identificador: **23**.
-- Versões locais sem registro remoto correspondente: **7**.
+- Versões locais sem registro remoto correspondente: **8**.
 - Interseção exata: **37 versões**.
 
 Os pares abaixo parecem representar a mesma intenção funcional com identificadores diferentes, mas não devem ser tratados como equivalentes sem comparar SQL e estado final:
@@ -45,7 +45,7 @@ Os pares abaixo parecem representar a mesma intenção funcional com identificad
 20261117014514_prevent_company_members_from_changing_own_role
 ```
 
-As quatro versões com nomes semelhantes acima completam as 23 ausências remotas.
+As quatro versões remotas com nomes semelhantes acima completam as 23 ausências remotas. A contagem local é 37 correspondências exatas + 8 arquivos sem versão remota = 45.
 
 ### Versões locais sem registro remoto correspondente
 
@@ -60,7 +60,7 @@ As quatro versões com nomes semelhantes acima completam as 23 ausências remota
 20261119090000_manage_company_member_transactionally
 ```
 
-Os quatro arquivos que aparecem como pares têm versões remotas diferentes, embora a intenção funcional pareça semelhante. O arquivo `202611090001_foundation` merece revisão separada: seu identificador tem 12 dígitos, enquanto as versões remotas atuais listadas usam 14 dígitos. Não renomear nem registrar como aplicada sem determinar sua origem e efeitos.
+Os quatro arquivos que aparecem como pares têm versões remotas diferentes, embora a intenção funcional pareça semelhante. O arquivo `20261112024141_foundation` é a correspondência exata da versão remota `20261112024141_foundation`. Já `202611090001_foundation` não tem registro remoto equivalente e sua leitura pela API de conteúdo do GitHub retornou 404, apesar de constar na listagem da PR; precisa de recuperação/verificação do arquivo antes de qualquer conclusão. Não renomear nem registrar como aplicada sem determinar sua origem e efeitos.
 
 ## Estado remoto observado por consultas SQL
 
@@ -92,7 +92,7 @@ Consultas somente leitura adicionais em 2026-11-19 confirmaram que o isolamento 
 
 1. Comparar cada uma das 23 migrations remotas ausentes com o estado real de constraints, índices, triggers, funções e policies.
 2. Classificar separadamente constraints, índices, policies e funções. FKs compostos observados não comprovam que as policies e funções de autorização também estejam atualizadas.
-3. Comparar os oito arquivos locais sem registro remoto, identificando os quatro pares de intenção semelhante e os quatro arquivos locais sem equivalente remoto; revisar separadamente o arquivo legado com identificador de 12 dígitos.
+3. Comparar os oito arquivos locais sem registro remoto, identificando os quatro pares de intenção semelhante e os quatro arquivos locais sem equivalente remoto; recuperar e inspecionar separadamente `202611090001_foundation`.
 4. Criar migrations corretivas com versões inéditas apenas para efeitos comprovadamente ausentes ou incorretos, sem no-op e sem reaplicar a migration destrutiva de reconstrução do núcleo de locações.
 5. Reexecutar CI e revisar o plano de aplicação. A execução remota exige autorização explícita separada.
 
