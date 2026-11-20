@@ -17,24 +17,24 @@ export function classifyPublicIntent(value: string, hasPublicPhone = false): Int
   };
 
   const buyerPatterns = [
-    /\\b(procuro|procurando|busco|buscando)\\b/,
-    /\\b(preciso|necessito)\\b/,
-    /\\b(alguem indica|alguem recomenda|alguma indicacao|alguma recomendacao)\\b/,
-    /\\b(onde encontro|onde acho|onde consigo)\\b/,
-    /\\b(quero contratar|gostaria de contratar|preciso contratar)\\b/,
-    /\\b(quero alugar|preciso alugar|gostaria de alugar)\\b/,
-    /\\b(quero comprar|preciso comprar|gostaria de comprar)\\b/,
-    /\\b(orcamento para|cotacao para)\\b/,
-    /\\b(quem faz|quem trabalha com|alguem conhece)\\b/,
+    /\b(procuro|procurando|busco|buscando)\b/,
+    /\b(preciso|necessito)\b/,
+    /\b(alguem indica|alguem recomenda|alguma indicacao|alguma recomendacao)\b/,
+    /\b(onde encontro|onde acho|onde consigo)\b/,
+    /\b(quero contratar|gostaria de contratar|preciso contratar)\b/,
+    /\b(quero alugar|preciso alugar|gostaria de alugar)\b/,
+    /\b(quero comprar|preciso comprar|gostaria de comprar)\b/,
+    /\b(orcamento para|cotacao para)\b/,
+    /\b(quem faz|quem trabalha com|alguem conhece)\b/,
   ];
   const vendorPatterns = [
-    /\\b(alugo|alugamos|locamos|locacao de)\\b/,
-    /\\b(ofereco|oferecemos|vendemos|vendo)\\b/,
-    /\\b(trabalho com|trabalhamos com|atuo com)\\b/,
-    /\\b(sou fornecedor|somos fornecedores|sou prestador|somos prestadores)\\b/,
-    /\\b(temos disponivel|tenho disponivel|disponivel para locacao)\\b/,
-    /\\b(faca seu orcamento|peca seu orcamento|contrate nossos)\\b/,
-    /\\b(atendemos|atendo na regiao)\\b/,
+    /\b(alugo|alugamos|locamos|locacao de)\b/,
+    /\b(ofereco|oferecemos|vendemos|vendo)\b/,
+    /\b(trabalho com|trabalhamos com|atuo com)\b/,
+    /\b(sou fornecedor|somos fornecedores|sou prestador|somos prestadores)\b/,
+    /\b(temos disponivel|tenho disponivel|disponivel para locacao)\b/,
+    /\b(faca seu orcamento|peca seu orcamento|contrate nossos)\b/,
+    /\b(atendemos|atendo na regiao)\b/,
   ];
   const buyerCount = buyerPatterns.filter((pattern) => pattern.test(text)).length;
   const vendor = vendorPatterns.some((pattern) => pattern.test(text));
@@ -61,7 +61,7 @@ export function classifyPublicIntent(value: string, hasPublicPhone = false): Int
     score += 10;
     signals.push('Mais de uma expressão de intenção de compra');
   }
-  if (/\\b(urgente|com urgencia|para hoje|ainda hoje|amanha|o quanto antes|essa semana|esta semana)\\b/.test(text)) {
+  if (/\b(urgente|com urgencia|para hoje|ainda hoje|amanha|o quanto antes|essa semana|esta semana)\b/.test(text)) {
     score += 15;
     signals.push('Prazo ou urgência mencionada');
   }
@@ -69,7 +69,7 @@ export function classifyPublicIntent(value: string, hasPublicPhone = false): Int
     score += 10;
     signals.push('Orçamento, preço ou limite de valor mencionado');
   }
-  if (/\\b(para dia|no dia|dia \\d{1,2}|em \\d{1,2}\\/\\d{1,2}|para o dia)\\b/.test(text)) {
+  if (/\b(para dia|no dia|dia \\d{1,2}|em \\d{1,2}\\/\\d{1,2}|para o dia)\b/.test(text)) {
     score += 10;
     signals.push('Data ou ocasião específica mencionada');
   }
