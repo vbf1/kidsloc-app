@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(39);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -17,6 +17,26 @@ values
 
 insert into private.platform_owners (user_id)
 values ('c1000000-0000-4000-8000-000000000001');
+
+select ok(
+  exists (
+    select 1 from pg_default_acl d
+    where d.defaclrole = 'postgres'::regrole
+      and d.defaclobjtype = 'f'
+      and d.defaclnamespace = 0
+  )
+  and not exists (
+    select 1
+    from pg_default_acl d
+    cross join lateral aclexplode(d.defaclacl) a
+    where d.defaclrole = 'postgres'::regrole
+      and d.defaclobjtype = 'f'
+      and d.defaclnamespace = 0
+      and a.grantee = 0
+      and a.privilege_type = 'EXECUTE'
+  ),
+  'new functions created by postgres do not grant EXECUTE to PUBLIC by default'
+);
 
 insert into public.companies (id, name, created_by)
 values
