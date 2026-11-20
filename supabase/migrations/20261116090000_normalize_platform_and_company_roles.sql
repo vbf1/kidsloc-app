@@ -2,6 +2,13 @@
 -- one platform owner, and only admin/staff memberships inside each company.
 -- Existing company owners are preserved as company administrators.
 
+-- PostgreSQL's schema-scoped defaults do not remove the global PUBLIC EXECUTE
+-- default. Revoke it globally so future postgres-owned functions are not
+-- callable by anon through PUBLIC; required RPC grants remain explicit below.
+alter default privileges for role postgres
+  revoke execute on functions from public;
+
+
 alter table private.platform_owners
   add column if not exists singleton boolean not null default true;
 
