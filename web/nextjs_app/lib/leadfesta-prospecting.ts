@@ -42,7 +42,7 @@ export function buildIntentSearchLinks(service: string, location: string): Inten
   const product = service.trim();
   if (!product) return [];
   const area = location.trim();
-  const intent = '("procuro" OR "estou procurando" OR "preciso" OR "alguém indica" OR "alguém recomenda" OR "onde encontro" OR "orçamento" OR "quero contratar" OR "quero alugar")';
+  const intent = '("procuro" OR "estou procurando" OR "busco" OR "estou buscando" OR "preciso" OR "necessito" OR "alguém indica" OR "alguém recomenda" OR "alguém conhece" OR "alguma indicação" OR "onde encontro" OR "onde consigo" OR "quem faz" OR "orçamento para" OR "cotação para" OR "quero contratar" OR "preciso contratar" OR "quero comprar" OR "preciso comprar" OR "quero alugar" OR "preciso alugar")';
   const local = area ? ' "' + area.replace(/"/g, '') + '"' : '';
   const base = intent + ' "' + product.replace(/"/g, '') + '"' + local;
   const searches = [
