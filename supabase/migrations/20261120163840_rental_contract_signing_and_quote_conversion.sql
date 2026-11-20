@@ -13,7 +13,7 @@ begin
   select coalesce(sum(amount),0) into v_paid from public.payments where transaction_id=v_existing;
   if new.total_amount>=v_paid then
    update public.financial_transactions set amount=new.total_amount,due_date=new.start_date,
-    status=case when new.status='cancelled' and v_paid=0 then 'cancelled' when v_paid>=new.total_amount and new.total_amount>0 then 'paid' when status='cancelled' and new.status<>'cancelled' then 'pending' else status end
+    status=case when new.status='cancelled' and v_paid=0 then 'cancelled' when v_paid>=new.total_amount and new.total_amount>0 then 'paid' when v_paid>0 then 'pending' when status='cancelled' and new.status<>'cancelled' then 'pending' else status end
    where id=v_existing;
   end if;
  elsif new.total_amount>0 then
