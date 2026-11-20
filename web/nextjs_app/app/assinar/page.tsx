@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect,useRef,useState } from 'react';\nimport type { PointerEvent, FormEvent } from 'react';
+import { useEffect,useRef,useState } from 'react';
+import type { PointerEvent, FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
 
 type PublicContract={id:string;contract_number:number;status:string;snapshot:Record<string,any>;signed_at:string|null;signer_name:string|null};
@@ -11,8 +12,8 @@ export default function SignContractPage(){
  useEffect(()=>{setToken(new URLSearchParams(window.location.search).get('token')??'');},[]);
  useEffect(()=>{let active=true;async function load(){if(!token){setError('Link de assinatura inválido.');setLoading(false);return;}if(!supabase){setError('Banco não configurado.');setLoading(false);return;}const {data,error:e}=await supabase.rpc('get_public_rental_contract',{p_token:token});if(!active)return;if(e||!data){setError('Este link é inválido, expirou ou o contrato não está disponível. Solicite um novo link à empresa.');}else setContract(data as PublicContract);setLoading(false);}void load();return()=>{active=false;};},[token]);
  function point(e:PointerEvent<SVGSVGElement>){const rect=e.currentTarget.getBoundingClientRect();return {x:Math.max(0,Math.min(600,(e.clientX-rect.left)*600/rect.width)),y:Math.max(0,Math.min(180,(e.clientY-rect.top)*180/rect.height))};}
- function start(e:React.PointerEvent<SVGSVGElement>){e.currentTarget.setPointerCapture(e.pointerId);const p=point(e);setPath('M '+p.x.toFixed(1)+' '+p.y.toFixed(1));setDrawing(true);}
- function move(e:React.PointerEvent<SVGSVGElement>){if(!drawing)return;const p=point(e);setPath(v=>v+' L '+p.x.toFixed(1)+' '+p.y.toFixed(1));}
+ function start(e:PointerEvent<SVGSVGElement>){e.currentTarget.setPointerCapture(e.pointerId);const p=point(e);setPath('M '+p.x.toFixed(1)+' '+p.y.toFixed(1));setDrawing(true);}
+ function move(e:PointerEvent<SVGSVGElement>){if(!drawing)return;const p=point(e);setPath(v=>v+' L '+p.x.toFixed(1)+' '+p.y.toFixed(1));}
  function end(){setDrawing(false);}
  async function submit(e:FormEvent){e.preventDefault();if(!supabase||!contract)return;if(!accepted||!path||!name.trim()||!document.trim()){setError('Preencha os dados, desenhe sua assinatura e confirme o consentimento.');return;}setLoading(true);setError('');const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180"><path d="'+path.replace(/[^0-9ML .-]/g,'')+'" fill="none" stroke="#111827" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';const {data,error:e2}=await supabase.rpc('sign_public_rental_contract',{p_token:token,p_signer_name:name,p_signer_document:document,p_signer_phone:phone,p_signature_svg:svg,p_consent_text:consent,p_user_agent:navigator.userAgent});if(e2||data!==true)setError(e2?.message??'Não foi possível concluir a assinatura.');else setSuccess(true);setLoading(false);}
  if(loading)return <main className="grid min-h-screen place-items-center bg-[#f8f7fc] p-5">Carregando contrato...</main>;
