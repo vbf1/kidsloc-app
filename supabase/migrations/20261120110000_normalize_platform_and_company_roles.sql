@@ -184,6 +184,17 @@ begin
 end;
 $function$;
 
+-- The historical product DELETE guard is RESTRICTIVE. Add the matching
+-- permissive admin policy so company admins can delete while staff cannot.
+drop policy if exists products_delete_owner_admin on public.products;
+create policy products_delete_owner_admin
+on public.products
+as permissive
+for delete to authenticated
+using (
+  public.has_company_role(company_id, array['owner', 'admin']::text[])
+);
+
 -- Keep the deployed invitation RPC aligned with the normalized role model.
 create or replace function public.invite_company_member(
   p_company_id uuid,
