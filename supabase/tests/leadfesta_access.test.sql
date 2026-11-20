@@ -23,7 +23,7 @@ values
   ('21000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'admin'),
   ('21000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002', 'staff'),
   ('21000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000003', 'admin'),
-  ('21000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000005', 'owner');
+  ('21000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000005', 'admin');
 
 insert into private.platform_owners (user_id)
 values ('20000000-0000-4000-8000-000000000004');
@@ -178,8 +178,8 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000005', true);
 
-select ok(public.leadfesta_is_available('21000000-0000-4000-8000-000000000001'), 'company owner with active entitlement can use LeadFesta');
-select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 2, 'company owner can read leads from its entitled company');
+select ok(public.leadfesta_is_available('21000000-0000-4000-8000-000000000001'), 'former company owner normalized to admin can use LeadFesta');
+select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 2, 'former company owner retains admin access to its entitled company');
 
 reset role;
 set local role authenticated;
