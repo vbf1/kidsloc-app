@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(28);
+select plan(32);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -173,6 +173,20 @@ select is(
   'company admin cannot bypass the role-management RPC with direct table UPDATE'
 );
 
+select lives_ok(
+  $ select public.ensure_team_group('c2000000-0000-4000-8000-000000000001') $,
+  'company admin can create the internal team group'
+);
+
+select lives_ok(
+  $ insert into public.team_messages (company_id, conversation_id, sender_id, body)
+     select c.company_id, c.id, (select auth.uid()), 'Mensagem interna de teste'
+     from public.team_conversations c
+     where c.company_id = 'c2000000-0000-4000-8000-000000000001'
+       and c.conversation_type = 'team' $,
+  'company admin can send a team message'
+);
+
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000004', true);
 
 select throws_ok(
@@ -198,6 +212,27 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
+
+select is(
+  (select count(*)::integer from public.team_conversations
+   where company_id = 'c2000000-0000-4000-8000-000000000001'),
+  0,
+  'platform owner cannot read company team conversations'
+);
+
+select is(
+  (select count(*)::integer from public.team_messages
+   where company_id = 'c2000000-0000-4000-8000-000000000001'),
+  0,
+  'platform owner cannot read company team messages'
+);
+
+select is(
+  (select count(*)::integer from public.team_conversation_members
+   where company_id = 'c2000000-0000-4000-8000-000000000001'),
+  0,
+  'platform owner cannot read company team conversation participants'
+);
 
 select throws_ok(
   $q$ select public.add_company_member(
