@@ -65,7 +65,9 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isProducts = pathname.endsWith('/app/products') || pathname.endsWith('/app/products/');
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
   const isQuotes = pathname.endsWith('/app/quotes') || pathname.endsWith('/app/quotes/');
-  const isFinance = pathname.endsWith('/app/finance') || pathname.endsWith('/app/finance/');\n  const isContracts = pathname.endsWith('/app/contracts') || pathname.endsWith('/app/contracts/');\n  const isCalendar = pathname.endsWith('/app/calendar') || pathname.endsWith('/app/calendar/');
+  const isFinance = pathname.endsWith('/app/finance') || pathname.endsWith('/app/finance/');
+  const isContracts = pathname.endsWith('/app/contracts') || pathname.endsWith('/app/contracts/');
+  const isCalendar = pathname.endsWith('/app/calendar') || pathname.endsWith('/app/calendar/');
   const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
   const isLeadFesta = (pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/')) && !pathname.includes('/prospeccao');
   const isProspecting = pathname.includes('/app/leads/prospeccao');
@@ -77,7 +79,9 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
     { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
     { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
     { label: 'Orçamentos', shortLabel: 'Orçamentos', href: basePath + '/app/quotes/', active: isQuotes, icon: 'toy' },
-    { label: 'Financeiro', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance, icon: 'home' },\n    { label: 'Contratos', shortLabel: 'Contratos', href: basePath + '/app/contracts/', active: isContracts, icon: 'toy' },\n    { label: 'Agenda', shortLabel: 'Agenda', href: basePath + '/app/calendar/', active: isCalendar, icon: 'calendar' },
+    { label: 'Financeiro', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance, icon: 'home' },
+    { label: 'Contratos', shortLabel: 'Contratos', href: basePath + '/app/contracts/', active: isContracts, icon: 'toy' },
+    { label: 'Agenda', shortLabel: 'Agenda', href: basePath + '/app/calendar/', active: isCalendar, icon: 'calendar' },
     ...(leadFestaEnabled ? [
       { label: 'LeadFesta', shortLabel: 'Leads', href: basePath + '/app/leads/', active: isLeadFesta, icon: 'funnel' as const },
       { label: 'Prospectar empresas', shortLabel: 'Prospectar', href: basePath + '/app/leads/prospeccao/', active: isProspecting, icon: 'map-pin' as const },
