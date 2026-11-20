@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ProspectResult, OSMElement } from '../../../../lib/leadfesta-prospecting';
-import { isDuplicateProspect, mapOSMElement, matchesProspectingSegment } from '../../../../lib/leadfesta-prospecting';
+import { buildIntentSearchLinks, isDuplicateProspect, mapOSMElement, matchesProspectingSegment } from '../../../../lib/leadfesta-prospecting';
 import { AppShell } from '../../../../components/app-shell';
 import { supabase } from '../../../../lib/supabase';
 
@@ -38,6 +38,14 @@ export default function LeadProspectingPage() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [searchLabel, setSearchLabel] = useState('');
+  const [intentService, setIntentService] = useState('');
+  const [intentLocation, setIntentLocation] = useState('');
+  const [intentAuthor, setIntentAuthor] = useState('');
+  const [intentPostUrl, setIntentPostUrl] = useState('');
+  const [intentText, setIntentText] = useState('');
+  const [intentPhone, setIntentPhone] = useState('');
+  const [savingIntent, setSavingIntent] = useState(false);
+  const intentLinks = useMemo(() => buildIntentSearchLinks(intentService, intentLocation), [intentService, intentLocation]);
 
   useEffect(() => {
     let active = true;
@@ -190,6 +198,67 @@ export default function LeadProspectingPage() {
     }
   }
 
+  async function saveIntentLead() {
+    if (!supabase || !workspace || savingIntent) return;
+    if (!intentAuthor.trim() || !intentPostUrl.trim()) {
+      setError('Informe o nome ou perfil público da pessoa e o link da publicação.');
+      return;
+    }
+    if (!/^https?:\\/\\//i.test(intentPostUrl.trim())) {
+      setError('O link da publicação precisa começar com http:// ou https://.');
+      return;
+    }
+    if (!stages[0]) {
+      setError('O funil ainda não possui uma etapa inicial configurada.');
+      return;
+    }
+    setSavingIntent(true);
+    setError('');
+    setNotice('');
+    try {
+      const { data: existing, error: existingError } = await supabase.from('leads')
+        .select('id,name,phone,contact_company').eq('company_id', workspace.companyId).limit(1000);
+      if (existingError) throw existingError;
+      const candidate: ProspectResult = {
+        id: 'public-intent/' + intentPostUrl.trim(),
+        name: intentAuthor.trim(), category: intentService.trim(), phone: intentPhone.trim(),
+        email: '', website: '', whatsapp: '', mobile: '', instagram: '', facebook: '',
+        linkedin: '', openingHours: '', description: '', brand: '', operator: '',
+        address: intentLocation.trim(), osmUrl: intentPostUrl.trim(),
+      };
+      if (isDuplicateProspect(candidate, (existing ?? []) as ExistingLead[])) {
+        setNotice('Este contato parece já existir no funil desta empresa. Confira os leads antes de cadastrar novamente.');
+        return;
+      }
+      const { error: insertError } = await supabase.from('leads').insert({
+        company_id: workspace.companyId,
+        stage_id: stages[0].id,
+        name: intentAuthor.trim(),
+        phone: intentPhone.trim() || null,
+        source: 'Pesquisa pública assistida',
+        notes: [
+          'Tipo de oportunidade: possível cliente procurando contratar ou comprar.',
+          intentService.trim() ? 'Produto / serviço procurado: ' + intentService.trim() : '',
+          intentLocation.trim() ? 'Localização mencionada: ' + intentLocation.trim() : '',
+          'Publicação original: ' + intentPostUrl.trim(),
+          intentText.trim() ? 'Trecho da publicação: ' + intentText.trim() : '',
+          'Contato informado manualmente a partir de fonte pública; validar interesse antes da abordagem.',
+        ].filter(Boolean).join('\\n'),
+        updated_at: new Date().toISOString(),
+      });
+      if (insertError) throw insertError;
+      setNotice('Oportunidade registrada no funil de ' + workspace.companyName + '. A publicação original foi salva nas observações.');
+      setIntentAuthor('');
+      setIntentPostUrl('');
+      setIntentText('');
+      setIntentPhone('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível registrar a oportunidade.');
+    } finally {
+      setSavingIntent(false);
+    }
+  }
+
   function toggleSelected(id: string) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
@@ -266,6 +335,41 @@ export default function LeadProspectingPage() {
       </label>}
 
       <section className={panel}>
+        <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-emerald-100 text-xl">⌕</span><div><h2 className="text-lg font-bold">Encontrar clientes procurando contratar</h2><p className="text-sm text-gray-500">Pesquisa assistida em fontes públicas, para qualquer produto ou serviço.</p></div></div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="text-sm font-semibold">Produto ou serviço procurado
+            <input className={field} value={intentService} onChange={(event) => setIntentService(event.target.value)} placeholder="Ex.: buffet, limpeza, fotografia, locação de brinquedos" maxLength={120} />
+          </label>
+          <label className="text-sm font-semibold">Cidade, bairro ou região (opcional)
+            <input className={field} value={intentLocation} onChange={(event) => setIntentLocation(event.target.value)} placeholder="Ex.: Contagem, MG" maxLength={120} />
+          </label>
+        </div>
+        {intentLinks.length > 0 && <div className="mt-4"><p className="text-sm font-semibold text-gray-800">Pesquisas prontas por fonte</p><p className="mt-1 text-xs leading-5 text-gray-500">As pesquisas procuram expressões de intenção, como “procuro”, “preciso”, “alguém indica” e “quero contratar”. Abra uma fonte, confira a publicação original e confirme que a pessoa está procurando o serviço — não oferecendo.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {intentLinks.map((link) => <a key={link.source} href={link.url} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 p-3 transition hover:border-purple-300 hover:bg-purple-50"><span className="block text-sm font-semibold text-[#6840bd]">{link.source} ↗</span><span className="mt-1 block text-xs text-gray-500">{link.description}</span></a>)}
+        </div></div>}
+        <div className="mt-5 border-t border-gray-100 pt-5"><h3 className="text-sm font-bold">Registrar uma oportunidade encontrada</h3><p className="mt-1 text-xs text-gray-500">Depois de verificar a publicação, registre somente informações públicas e necessárias. O cadastro ficará na empresa ativa.</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <label className="text-sm font-semibold">Nome ou perfil público da pessoa *
+              <input className={field} value={intentAuthor} onChange={(event) => setIntentAuthor(event.target.value)} placeholder="Nome ou @perfil" maxLength={120} />
+            </label>
+            <label className="text-sm font-semibold">Link da publicação original *
+              <input className={field} value={intentPostUrl} onChange={(event) => setIntentPostUrl(event.target.value)} placeholder="https://..." maxLength={1000} />
+            </label>
+            <label className="text-sm font-semibold">Telefone público (se informado)
+              <input className={field} value={intentPhone} onChange={(event) => setIntentPhone(event.target.value)} placeholder="(31) 99999-9999" maxLength={40} />
+            </label>
+            <label className="text-sm font-semibold">Trecho da publicação
+              <textarea className={field + ' min-h-20'} value={intentText} onChange={(event) => setIntentText(event.target.value)} placeholder="Cole apenas o trecho necessário que demonstra interesse..." maxLength={1000} />
+            </label>
+          </div>
+          <button type="button" className={primary + ' mt-3'} onClick={() => { void saveIntentLead(); }} disabled={savingIntent || !intentAuthor.trim() || !intentPostUrl.trim()}>{savingIntent ? 'Registrando...' : 'Registrar oportunidade no funil'}</button>
+        </div>
+        <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-900">Importante: esta versão abre pesquisas públicas nos buscadores; não acessa contas privadas nem extrai automaticamente dados das redes. Algumas plataformas restringem o uso comercial de suas APIs. A pessoa deve ter manifestado interesse publicamente e o contato deve respeitar a legislação aplicável.</p>
+      </section>
+
+      <details className={panel}>
+        <summary className="cursor-pointer text-base font-bold">Pesquisa complementar de estabelecimentos (não identifica clientes interessados)</summary>
+        <p className="mb-4 mt-2 text-xs leading-5 text-gray-500">Esta ferramenta antiga localiza empresas e pontos comerciais no OpenStreetMap. Use-a apenas quando seu objetivo for encontrar estabelecimentos, não pessoas procurando contratar.</p>
         <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-purple-100 text-xl">⌕</span><div><h2 className="text-lg font-bold">Buscar estabelecimentos</h2><p className="text-sm text-gray-500">A pesquisa usa dados públicos do OpenStreetMap, sem chave ou API paga.</p></div></div>
         <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_180px_auto] md:items-end">
           <label className="text-sm font-semibold">Segmento / tipo de negócio
@@ -303,6 +407,7 @@ export default function LeadProspectingPage() {
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4"><p className="text-xs text-gray-500">{duplicateIds.size} possível(is) duplicado(s) bloqueado(s) • {selectedNewCount} selecionada(s) para importar</p><button type="button" className={primary} onClick={() => { void importSelected(); }} disabled={saving || selectedNewCount === 0}>{saving ? 'Importando...' : 'Importar selecionadas para o funil'}</button></div>
       </section>}
+      </details>
 
       <section className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4"><p className="text-sm font-bold text-blue-950">Sobre os dados e a privacidade</p><p className="mt-1 text-sm leading-6 text-blue-900/80">A pesquisa consulta a base pública OpenStreetMap. Só os resultados que você selecionar serão gravados no CRM da empresa ativa. Cada empresa mantém sua própria lista; nenhuma busca ou importação mistura dados entre empresas. Os dados do mapa podem estar incompletos ou desatualizados.</p><p className="mt-2 text-xs text-blue-900/70">Dados cartográficos © contribuidores do OpenStreetMap.</p></section>
     </div>
