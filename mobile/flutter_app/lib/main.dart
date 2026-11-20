@@ -644,7 +644,7 @@ class _RecordsPageState extends State<_RecordsPage> {
         values['item_type'] = itemType;
         values['inventory_mode'] = 'quantity';
         values['active'] = active;
-        values['total_quantity'] = values['total_quantity'] ?? 1;
+        values['total_quantity'] = itemType == 'service' ? 0 : (values['total_quantity'] ?? 1);
         values['daily_price'] = itemType == 'service' ? 0 : (values['daily_price'] ?? 0);
         values['event_price'] = itemType == 'service' ? (values['event_price'] ?? 0) : values['event_price'];
       }
