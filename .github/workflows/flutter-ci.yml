@@ -34,18 +34,6 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - name: Format Dart sources
         run: dart format lib test
-      - name: Commit Dart formatting
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: .
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mobile/flutter_app/lib mobile/flutter_app/test
-          if ! git diff --cached --quiet; then
-            git commit -m "style(mobile): format Flutter sources"
-            git push origin HEAD:main
-          fi
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
