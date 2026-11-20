@@ -68,16 +68,16 @@ export function SearchablePicker({
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm"
           onMouseDown={(event) => { if (event.target === event.currentTarget) { setOpen(false); setSearch(''); } }}
         >
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="searchable-picker-title"
-            className="flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-2xl"
+            className="flex max-h-[calc(100dvh-24px)] w-full min-w-0 max-w-lg flex-col overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-2xl sm:max-h-[85dvh]"
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="flex min-w-0 items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 sm:px-5">
               <div>
                 <h2 id="searchable-picker-title" className="text-base font-bold text-gray-900">{title}</h2>
                 <p className="mt-0.5 text-xs text-gray-500">{options.length} {options.length === 1 ? 'opção disponível' : 'opções disponíveis'}</p>
