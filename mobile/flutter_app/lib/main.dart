@@ -633,11 +633,28 @@ class _QuoteCreatePageState extends State<_QuoteCreatePage> {
   double _number(TextEditingController controller) =>
       double.tryParse(controller.text.trim().replaceAll(',', '.')) ?? 0;
 
-  double get _total => (_subtotal + _number(_deliveryFee) - _number(_discount)).clamp(0, double.infinity);
+  double get _total => (_subtotal + _number(_deliveryFee) - _number(_discount)).clamp(0, double.infinity).toDouble();
+
+  bool get _validTimeRange {
+    final start = _startTime.text.split(':');
+    final end = _endTime.text.split(':');
+    if (start.length != 2 || end.length != 2) return false;
+    final startMinutes = int.tryParse(start[0])! * 60 + int.tryParse(start[1])!;
+    final endMinutes = int.tryParse(end[0])! * 60 + int.tryParse(end[1])!;
+    return endMinutes > startMinutes;
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate() || _items.isEmpty || _saving) {
       if (_items.isEmpty) setState(() => _error = 'Adicione pelo menos um item ao orçamento.');
+      return;
+    }
+    if (!_validTimeRange) {
+      setState(() => _error = 'O horário final precisa ser posterior ao horário inicial.');
+      return;
+    }
+    if (_items.any((item) => (item['quantity'] as int) < 1 || (item['unit_price'] as double) < 0)) {
+      setState(() => _error = 'Confira as quantidades e os preços dos itens.');
       return;
     }
     if (_number(_deliveryFee) < 0 || _number(_discount) < 0) {
