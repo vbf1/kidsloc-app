@@ -305,7 +305,7 @@ revoke all on function public.manage_company_member(uuid, uuid, text, text) from
 grant execute on function public.manage_company_member(uuid, uuid, text, text) to authenticated;
 
 -- Membership changes must go through the transactional SECURITY DEFINER RPC.
--- Keep the platform-owner ALL policy; remove the direct company-admin DELETE path.
+-- Remove direct membership writes; all mutations must use the validated RPC.
 drop policy if exists company_members_delete_authorized_admins on public.company_members;
 -- Membership writes must use the validated transactional RPCs, including for platform owner.
 drop policy if exists platform_owner_all on public.company_members;
