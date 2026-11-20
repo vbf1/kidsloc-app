@@ -22,7 +22,7 @@ export function buildIntentSearchLinks(service: string, location: string): Inten
     { source: 'Busca alternativa (DuckDuckGo)', description: 'Pesquisa independente na web', query: base },
     { source: 'Busca alternativa (Bing)', description: 'Pesquisa independente na web', query: base },
   ];
-  return searches.map((item, index) => ({
+  return searches.map((item) => ({
     source: item.source,
     description: item.description,
     url: (item.source === 'Busca alternativa (DuckDuckGo)' ? 'https://duckduckgo.com/?q=' : item.source === 'Busca alternativa (Bing)' ? 'https://www.bing.com/search?q=' : 'https://www.google.com/search?q=') + encodeURIComponent(item.query),
