@@ -1,11 +1,16 @@
--- Prevent authenticated API clients from deleting customer records.
--- The restrictive policy is combined with existing permissive company and
--- platform-owner policies, so it blocks DELETE for every authenticated user.
--- service_role retains its administrative bypass-RLS behavior.
+-- Preserve the deployed customer-deletion rule: only company owners/admins
+-- may delete customer records. Ordinary staff remain read/write scoped by the
+-- existing company policies, but cannot delete customers.
+-- This replaces the earlier local-only blanket deny, which diverged from the
+-- final remote policy and blocked administrators in a clean database.
 
-create policy customers_prevent_delete_authenticated
+drop policy if exists customers_prevent_delete_authenticated on public.customers;
+drop policy if exists customers_delete_owner_admin on public.customers;
+
+create policy customers_delete_owner_admin
 on public.customers
-as restrictive
 for delete
 to authenticated
-using (false);
+using (
+  public.has_company_role(company_id, array['owner'::text, 'admin'::text])
+);
