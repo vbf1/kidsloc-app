@@ -458,28 +458,10 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openModule(String title, String table) async {
     if (_companyId == null) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      final rows = await Supabase.instance.client.from(table).select('*')
-          .eq('company_id', _companyId!)
-          .order(table == 'rentals' ? 'start_date' : 'created_at', ascending: false)
-          .limit(60);
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => _RecordsPage(title: title, rows: rows),
-      ));
-    } catch (_) {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível abrir este módulo.')),
-      );
-    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!),
+    ));
+    if (mounted) _load();
   }
 
   @override
