@@ -4,62 +4,27 @@
 **Branch analisada:** `chore/foundation-reconciliation-verify`  
 **Diagnóstico:** somente leitura. Nenhuma migration foi aplicada, reparada ou removida no banco remoto.
 
-## Inventário confirmado
+## Inventário confirmado — reconciliação final em 20/11/2026
 
-- Histórico remoto: **60 versões**.
-- Arquivos presentes em `supabase/migrations` na branch: **44 arquivos**.
-- Versões remotas sem arquivo local com o mesmo identificador: **23**.
-- Versões locais sem registro remoto correspondente: **7**.
-- Interseção exata: **37 versões**.
+- Histórico remoto: **60 migrations aplicadas**.
+- Arquivos locais em `supabase/migrations`: **62**.
+- Versões remotas sem arquivo local correspondente: **0**.
+- Arquivos locais sem versão remota: **2**, ambos hardening novo, com timestamps posteriores à última migration remota.
+- Correspondência exata por versão e SQL: **60/60**.
 
-Os pares abaixo parecem representar a mesma intenção funcional com identificadores diferentes, mas não devem ser tratados como equivalentes sem comparar SQL e estado final:
+A tabela remota `supabase_migrations.schema_migrations` contém as colunas `statements` e `rollback`. Os SQLs originais das 23 versões que faltavam no Git foram recuperados diretamente de `statements`, sem reconstrução manual. Os 60 arquivos locais foram comparados com o SQL armazenado no ledger; todos correspondem ao conteúdo original após normalização de espaços/quebra de linha.
 
-| Remota | Arquivo local semelhante |
-|---|---|
-| `20261113003334_prevent_customer_deletion` | `20261112050000_prevent_customer_deletion` |
-| `20261113012143_product_catalog_20261112030000` | `20261112030000_product_catalog` |
-| `20261113030743_allow_machine_product_units` | `20261113040000_allow_machine_product_units` |
-| `20261113043836_platform_owner_readonly_conversations` | `20261113050000_platform_owner_readonly_conversations` |
+As quatro migrations locais intermediárias que tinham identificadores alternativos foram removidas e substituídas pelos quatro arquivos originais recuperados do ledger. Também foi removido o arquivo local redundante `20261113060000_grant_platform_owner_check_to_authenticated.sql`: a função `is_platform_owner_for_company()` já é criada pela migration original `20261112024141_foundation.sql`, e o acesso autenticado é preservado pela migration original `20261113134849_tighten_public_schema_default_privileges.sql`.
 
-### Versões remotas sem arquivo local correspondente
+As seis migrations de versão remota cujo arquivo local havia sido modificado foram restauradas ao SQL original armazenado no ledger. As correções necessárias foram mantidas nas migrations posteriores de hardening, em vez de alterar retroativamente migrations já aplicadas. A migration destrutiva `20261107165527_rebuild_rental_core_and_clear_legacy_records.sql` foi comparada e permanece idêntica ao SQL remoto; como já está aplicada, não deve ser reaplicada.
 
-```text
-20261113134849_tighten_public_schema_default_privileges
-20261113135835_restrict_customer_and_product_deletes
-20261113140033_fix_rental_creator_and_assignee_read_access
-20261113140039_avoid_rental_policy_recursion
-20261113141219_restrict_finance_document_and_stock_permissions
-20261113141653_restrict_product_unit_and_maintenance_deletes
-20261113142519_revoke_authenticated_maintain_privilege
-20261113144522_remove_broad_rental_child_select_policies
-20261113144740_allow_rental_creator_to_manage_rental
-20261113152713_allow_authorized_rental_updates
-20261117005923_enforce_company_scoped_inventory_foreign_keys
-20261117005941_enforce_company_scoped_rental_finance_and_team_foreign_keys
-20261117005958_enforce_company_scoped_customer_events_and_assets
-20261117010018_index_company_scoped_foreign_keys
-20261117010059_enforce_product_unit_and_payment_rental_consistency
-20261117010616_ensure_single_team_group_per_company
-20261117010919_revoke_company_data_access_after_member_removal
-20261117011036_allow_authorized_company_member_removal
-20261117014514_prevent_company_members_from_changing_own_role
-```
+A migration legada `202611090001_foundation.sql` continua excluída por pertencer a uma fundação antiga e não constar no ledger remoto.
 
-As quatro versões remotas com nomes semelhantes acima completam as 23 ausências remotas. A contagem local é 37 correspondências exatas + 7 arquivos sem versão remota = 44.
+As duas migrations novas foram posicionadas depois da última versão remota `20261117015419`:
+- `20261120110000_normalize_platform_and_company_roles.sql`
+- `20261120120000_manage_company_member_transactionally.sql`
 
-### Versões locais sem registro remoto correspondente
-
-```text
-20261112030000_product_catalog
-20261112050000_prevent_customer_deletion
-20261113040000_allow_machine_product_units
-20261113050000_platform_owner_readonly_conversations
-20261113060000_grant_platform_owner_check_to_authenticated
-20261116090000_normalize_platform_and_company_roles
-20261119090000_manage_company_member_transactionally
-```
-
-Os quatro arquivos que aparecem como pares têm versões remotas diferentes, embora a intenção funcional pareça semelhante. O arquivo `20261112024141_foundation` é a correspondência exata da versão remota `20261112024141_foundation`. O inventário atual da branch contém 44 arquivos e não contém `202611090001_foundation.sql`. Esse arquivo foi recuperado do histórico Git no commit `3a4b068570ffde2e2fce7e85505c2e6c9e0fdb62`: ele pertence a uma fundação antiga, com `company_users`, enums `company_role/company_status` e uma estrutura diferente da atual `company_members`. Não consta no ledger remoto nem no diretório atual; é um artefato histórico substituído pela fundação posterior `20261112024141_foundation.sql`, não deve ser restaurado nem aplicado.
+**Nota histórica:** as seções abaixo registram etapas intermediárias da auditoria, anteriores à recuperação dos SQLs. Qualquer menção nelas a 23 arquivos remotos ausentes, sete arquivos locais sem correspondência, pares locais alternativos ou SQLs não recuperáveis está superada por esta reconciliação final e pela seção de encerramento ao fim do documento.
 
 ## Estado remoto observado por consultas SQL
 
@@ -71,7 +36,7 @@ Os quatro arquivos que aparecem como pares têm versões remotas diferentes, emb
 - A função remota `is_company_member(uuid)` ainda trata o platform owner como membro global para fins de autorização.
 - `has_company_role(uuid, text[])` ainda mapeia o platform owner para o papel `owner`.
 - A função remota `ensure_team_group(uuid)` ainda permite que o platform owner acione a garantia do grupo, embora as policies atuais impeçam o platform owner de inserir mensagens.
-- A migration `20261116090000_normalize_platform_and_company_roles.sql` não está registrada no histórico remoto; por isso, seu novo modelo de cargos não pode ser considerado ativo em produção.
+- A migration `20261120110000_normalize_platform_and_company_roles.sql` não está registrada no histórico remoto; por isso, seu novo modelo de cargos não pode ser considerado ativo em produção.
 - A Edge Function `manage-employees` publicada não foi alterada por esta análise; sua publicação permanece pendente de autorização explícita.
 
 ### Políticas e funções que ainda refletem o modelo antigo
@@ -109,7 +74,7 @@ A inspeção das definições efetivamente publicadas no Postgres identificou ca
 - As três funções antigas (`add_company_member`, `invite_company_member`, `ensure_team_group`) têm EXECUTE para `authenticated`, não para `anon`. Não foi encontrada a função remota `manage_company_member`; o fluxo transacional novo não está ativo em produção.
 - No instante da consulta, `company_members` continha 3 vínculos `owner` e nenhum vínculo `admin`, `manager` ou `staff`. A consulta de associação com `private.platform_owners` confirmou que 1 dos 3 vínculos é do platform owner, na empresa `Festejando`; a empresa tem somente esse vínculo e nenhum registro nas 25 tabelas públicas auditadas com `company_id`. A migration remove essa associação global e converte os outros dois vínculos para `admin`, preservando o acesso administrativo a Sonho Kids Brinquedos e Nobre Paladar. A empresa Festejando permanece cadastrada, mas sem membros; isso deve ser revisado antes da aplicação em produção.
 
-**Risco e ação requerida:** a migration local `20261116090000_normalize_platform_and_company_roles.sql` corrige os comportamentos descritos ao substituir as funções e policies, impedir a associação de platform owner como membro, restringir os papéis e bloquear o acesso global às conversas. Entretanto, essa migration ainda não foi aplicada. A suíte `platform_company_role_model.test.sql` agora cobre as tentativas diretas de inserir platform owner em `company_members`, convite com `manager`, uso de `ensure_team_group` pelo platform owner, leitura de conversas/mensagens/participantes pelo platform owner e alterações diretas de membros fora do RPC. As verificações validam a negação no banco, não apenas na interface.
+**Risco e ação requerida:** a migration local `20261120110000_normalize_platform_and_company_roles.sql` corrige os comportamentos descritos ao substituir as funções e policies, impedir a associação de platform owner como membro, restringir os papéis e bloquear o acesso global às conversas. Entretanto, essa migration ainda não foi aplicada. A suíte `platform_company_role_model.test.sql` agora cobre as tentativas diretas de inserir platform owner em `company_members`, convite com `manager`, uso de `ensure_team_group` pelo platform owner, leitura de conversas/mensagens/participantes pelo platform owner e alterações diretas de membros fora do RPC. As verificações validam a negação no banco, não apenas na interface.
 
 
 ### Auditoria de funções `SECURITY DEFINER` — estado remoto
@@ -120,8 +85,8 @@ A inspeção das definições efetivamente publicadas no Postgres identificou ca
 ### Divergência da regra de cargos e acesso do platform owner
 
 - O constraint remoto `company_members_role_check` ainda aceita `owner`, `admin`, `manager` e `staff`; a migration local de normalização pretende migrar vínculos `owner` para `admin`, `manager` para `staff` e restringir o constraint a `admin`/ `staff`.
-- O estado remoto atual ainda permite leitura de conversas pelo platform owner, mas não escrita. A migration local `20261116090000_normalize_platform_and_company_roles.sql` altera esse comportamento e bloqueia o acesso do platform owner ao conteúdo das conversas. Essa diferença precisa ser mantida explícita na revisão de segurança e no plano de implantação.
-- A migration local `20261116090000` já cria uma versão inicial de `manage_company_member`; `20261119090000` redefine a mesma função com validações adicionais (por exemplo, exige `p_role` nulo na remoção e impede gerenciar a conta do platform owner). A segunda migration é um hardening incremental, não deve ser tratada como função independente.
+- O estado remoto atual ainda permite leitura de conversas pelo platform owner, mas não escrita. A migration local `20261120110000_normalize_platform_and_company_roles.sql` altera esse comportamento e bloqueia o acesso do platform owner ao conteúdo das conversas. Essa diferença precisa ser mantida explícita na revisão de segurança e no plano de implantação.
+- A migration local `20261120110000` já cria uma versão inicial de `manage_company_member`; `20261120120000` redefine a mesma função com validações adicionais (por exemplo, exige `p_role` nulo na remoção e impede gerenciar a conta do platform owner). A segunda migration é um hardening incremental, não deve ser tratada como função independente.
 
 **Conclusão parcial:** os efeitos de integridade referencial de remoção de membro e de escopo por empresa estão presentes no banco. Em contrapartida, o modelo de cargos e a separação entre platform owner e membros da empresa continuam divergentes do estado proposto na branch. Não marcar uma migration como reconciliada apenas porque alguns efeitos relacionados já existem; constraints, policies e funções são camadas diferentes.
 
@@ -133,12 +98,12 @@ A inspeção das definições efetivamente publicadas no Postgres identificou ca
 - `20261113141219_restrict_finance_document_and_stock_permissions` e `20261113141653_restrict_product_unit_and_maintenance_deletes`: no remoto, documentos, transações financeiras, movimentações de estoque, manutenção e unidades têm leitura/operações de membro conforme tabela, mas DELETE restrito a owner/admin. A migration local de normalização remove `company_members_all` dessas tabelas e cria policies explícitas, preservando `platform_owner_all`.
 - `20261113142519_revoke_authenticated_maintain_privilege`: o catálogo confirma que `authenticated` não tem privilégio `MAINTAIN` em nenhuma tabela pública auditada.
 
-Essas alterações foram incorporadas à migration local `20261116090000_normalize_platform_and_company_roles.sql` para que um banco limpo reproduza o estado de segurança final observado, em vez de herdar permissões amplas da migration inicial.
+Essas alterações foram incorporadas à migration local `20261120110000_normalize_platform_and_company_roles.sql` para que um banco limpo reproduza o estado de segurança final observado, em vez de herdar permissões amplas da migration inicial.
 
 ### Comparação dos quatro pares de migrations com nomes/versões diferentes
 
 - **Catálogo de produtos:** `20261112030000_product_catalog` + `20261113025749_add_machine_catalog_type` + `20261113040000_allow_machine_product_units` formam, em conjunto, o modelo que existe no remoto: tipos `toy`, `machine` e `service`, preços por diária/evento, trigger de regras de catálogo e bloqueio de unidades físicas para serviços. A função remota também contém a proteção adicional de limite de unidades que aparece na migration local `20261113203747_protect_individual_unit_reservations_and_counts`.
-- **Conversas somente leitura do platform owner:** a migration local `20261113050000_platform_owner_readonly_conversations` corresponde ao estado remoto anterior: platform owner pode ler, mas não escrever. A migration local posterior `20261116090000_normalize_platform_and_company_roles` altera a política proposta para bloquear também a leitura; os novos testes pgTAP cobrem esse estado final da branch.
+- **Conversas somente leitura do platform owner:** a migration local `20261113050000_platform_owner_readonly_conversations` corresponde ao estado remoto anterior: platform owner pode ler, mas não escrever. A migration local posterior `20261120110000_normalize_platform_and_company_roles` altera a política proposta para bloquear também a leitura; os novos testes pgTAP cobrem esse estado final da branch.
 - **Prevenção de exclusão de clientes:** o par `20261113003334_prevent_customer_deletion` / `20261112050000_prevent_customer_deletion` **não é equivalente no estado final**. O remoto não tem a policy restritiva `customers_prevent_delete_authenticated`; possui uma policy permissiva `customers_delete_owner_admin`, que permite DELETE por owner/admin (além do acesso global do platform owner). O arquivo local `20261112050000` originalmente criava uma policy restritiva `USING (false)`, que bloquearia DELETE também para administradores. A branch foi corrigida para remover essa policy antiga e criar `customers_delete_owner_admin`, reproduzindo o estado remoto final. A suíte `role_permissions.test.sql` agora verifica que staff não exclui clientes e admin pode excluí-los.
 - **Unidades de máquinas:** a função remota `prevent_service_product_units` aceita `toy` e `machine`, rejeita `service`, exige inventário individual e mesma empresa, e também verifica o limite de unidades cadastradas. A cadeia local `20261113040000` + `20261113203747` cobre esses efeitos.
 
@@ -154,9 +119,9 @@ Consultas somente leitura ao catálogo confirmaram os seguintes efeitos:
 - A migration `20261117011036_allow_authorized_company_member_removal`: a policy `company_members_delete_authorized_admins` está presente. Sua expressão impede apagar registros com papel `owner`; permite remoção por papel `owner` e permite que `admin` remova somente registros `staff`. No modelo novo, após a conversão dos cargos, o administrador da empresa remove apenas funcionários.
 - A migration `20261117014514_prevent_company_members_from_changing_own_role`: não há policy de UPDATE para `company_members` nem trigger de usuário nessa tabela. O papel `authenticated` ainda possui privilégio SQL UPDATE, mas o RLS sem policy de UPDATE bloqueia a alteração direta por membros comuns. A policy `platform_owner_all` continua concedendo acesso total ao proprietário da plataforma. Portanto, a proteção efetiva para administradores/funcionários vem do RLS, não de trigger.
 
-**Novo achado de segurança:** a policy remota `company_members_delete_authorized_admins` permite ao administrador excluir funcionários diretamente pela Data API, contornando o novo RPC transacional `manage_company_member` e os locks de concorrência. A branch foi corrigida para remover essa policy e também `platform_owner_all` de `company_members` na migration `20261116090000_normalize_platform_and_company_roles.sql`. A leitura continua pela policy de SELECT; toda escrita, inclusive pelo platform owner, passa pelos RPCs transacionais.
+**Novo achado de segurança:** a policy remota `company_members_delete_authorized_admins` permite ao administrador excluir funcionários diretamente pela Data API, contornando o novo RPC transacional `manage_company_member` e os locks de concorrência. A branch foi corrigida para remover essa policy e também `platform_owner_all` de `company_members` na migration `20261120110000_normalize_platform_and_company_roles.sql`. A leitura continua pela policy de SELECT; toda escrita, inclusive pelo platform owner, passa pelos RPCs transacionais.
 
-A revisão do catálogo também revelou que o estado remoto não tinha `platform_owner_all` nas tabelas de chat, enquanto a migration histórica `20261107165500_global_platform_owner_and_company_settings` criava essas policies no banco limpo. A migration local `20261116090000` foi corrigida para removê-las explicitamente de `team_conversations`, `team_messages` e `team_conversation_members`, antes de aplicar as policies de isolamento. Os testes diretos de leitura de chat pelo platform owner verificam esse cenário.
+A revisão do catálogo também revelou que o estado remoto não tinha `platform_owner_all` nas tabelas de chat, enquanto a migration histórica `20261107165500_global_platform_owner_and_company_settings` criava essas policies no banco limpo. A migration local `20261120110000` foi corrigida para removê-las explicitamente de `team_conversations`, `team_messages` e `team_conversation_members`, antes de aplicar as policies de isolamento. Os testes diretos de leitura de chat pelo platform owner verificam esse cenário.
 
 Os arquivos SQL originais de `20261117011036` e `20261117014514` não estão no diretório atual da branch e não foram encontrados no histórico Git do repositório. Os efeitos acima foram classificados a partir do catálogo remoto; não se deve inventar ou reconstruir o SQL original nem marcar a reconciliação de histórico como concluída apenas por semelhança de efeitos.
 
@@ -189,7 +154,7 @@ Uma nova leitura direta de `pg_policies`, `pg_constraint` e `pg_trigger` confirm
 - `company_members_delete_authorized_admins` e `platform_owner_all` ainda estão presentes no remoto. Não há policy de UPDATE para membros comuns, e não há trigger; a policy `platform_owner_all` permanece como caminho global de escrita até a migration local removê-la.
 - As três RPCs antigas `add_company_member`, `invite_company_member` e `ensure_team_group` continuam `SECURITY DEFINER`, com `search_path` vazio e EXECUTE para `authenticated`; `manage_company_member` ainda não existe remotamente.
 
-**Implicação:** o estado remoto continua divergente do modelo final da branch em constraints, policies de chat, escrita de memberships e RPCs. As migrations locais `20261116090000` e `20261119090000` cobrem parte dessas correções no banco reconstruído e nos testes, mas ainda não foram aplicadas ao projeto remoto. Não executar repair, push ou deploy nesta etapa.
+**Implicação:** o estado remoto continua divergente do modelo final da branch em constraints, policies de chat, escrita de memberships e RPCs. As migrations locais `20261120110000` e `20261120120000` cobrem parte dessas correções no banco reconstruído e nos testes, mas ainda não foram aplicadas ao projeto remoto. Não executar repair, push ou deploy nesta etapa.
 
 
 
@@ -200,7 +165,7 @@ Uma nova leitura direta de `pg_policies`, `pg_constraint` e `pg_trigger` confirm
 - `authenticated` possui grants SQL de SELECT/INSERT/UPDATE/DELETE na tabela. Esses grants, isoladamente, não autorizam a operação: INSERT e UPDATE continuam sem policy RLS específica para esse papel; DELETE é controlado pela policy acima; o platform owner recebe a exceção da policy ALL.
 - Não há triggers de usuário em `company_members`. O constraint remoto continua aceitando `owner`, `admin`, `manager` e `staff`.
 - A consulta de privilégios de rotina confirmou EXECUTE para `authenticated` em `add_company_member` e `invite_company_member`; `manage_company_member` ainda não existe no remoto.
-- A migration `20261116090000` remove as duas policies de escrita direta; `20261119090000` endurece a RPC transacional, rejeitando cargo não nulo em remoção e impedindo que o vínculo do platform owner seja alvo de gerenciamento. A sequência local é coerente com os testes, mas não está implantada.
+- A migration `20261120110000` remove as duas policies de escrita direta; `20261120120000` endurece a RPC transacional, rejeitando cargo não nulo em remoção e impedindo que o vínculo do platform owner seja alvo de gerenciamento. A sequência local é coerente com os testes, mas não está implantada.
 
 
 
@@ -234,7 +199,7 @@ A versão `20261117015419_invite_company_member_transactionally.sql` existe tant
 
 - A definição remota de `public.invite_company_member(uuid, uuid, text)` ainda aceita `manager` e exige vínculo real do ator com papel `owner` ou `admin`.
 - O arquivo local com esse mesmo identificador define somente `admin` e `staff`, trata o platform owner separadamente e impede vinculá-lo como membro de empresa.
-- O arquivo local posterior `20261116090000_normalize_platform_and_company_roles.sql` também redefine a RPC para o modelo final; `20261119090000_manage_company_member_transactionally.sql` adiciona a operação transacional de alteração/remoção de membros.
+- O arquivo local posterior `20261120110000_normalize_platform_and_company_roles.sql` também redefine a RPC para o modelo final; `20261120120000_manage_company_member_transactionally.sql` adiciona a operação transacional de alteração/remoção de membros.
 - Portanto, a função atualmente publicada diverge do conteúdo desejado pela branch, mesmo que o identificador conste como aplicado no ledger. Não se deve editar o ledger nem reaplicar a versão `20261117015419`; a correção de produção precisa ocorrer por migration nova e inédita, após validação integral do plano.
 
 ### CI do commit documental `34a2705a535082dd35bcc11f626c347db61004a3` — 20/11/2026
@@ -272,7 +237,7 @@ Com isso, os arquivos locais sem identificador remoto foram mapeados por categor
 - Arquivo legado `202611090001_foundation.sql`: excluído da branch por ser obsoleto.
 - `20261112030000`, `20261112050000`, `20261113040000` e `20261113050000`: pares funcionais avaliados junto com as versões remotas de identificadores diferentes e as migrations locais subsequentes.
 - `20261113060000`: efeito funcional já confirmado no catálogo remoto.
-- `20261116090000` e `20261119090000`: novas correções/hardening ainda ausentes do remoto e não aplicadas.
+- `20261120110000` e `20261120120000`: novas correções/hardening ainda ausentes do remoto e não aplicadas.
 
 Este mapeamento não substitui a revisão dos SQLs originais ausentes, nem significa que o histórico de migrations esteja reconciliado.
 
@@ -281,7 +246,7 @@ Este mapeamento não substitui a revisão dos SQLs originais ausentes, nem signi
 
 A revisão do fluxo da tela `/equipe/` encontrou duas incompatibilidades com a migration de normalização:
 
-- A remoção de funcionário ainda tentava executar `DELETE` direto em `company_members`. A migration `20261116090000` remove a policy que permitia essa escrita direta, concentrando as alterações no RPC transacional.
+- A remoção de funcionário ainda tentava executar `DELETE` direto em `company_members`. A migration `20261120110000` remove a policy que permitia essa escrita direta, concentrando as alterações no RPC transacional.
 - A tela ainda oferecia o cargo legado `manager` para contas com papel `owner`; a nova regra permite somente `admin` e `staff`. A Edge Function antiga poderia criar/enviar o convite antes de a RPC rejeitar `manager`, deixando uma conta convidada sem vínculo.
 
 Correções realizadas na branch:
@@ -302,7 +267,7 @@ As alterações estão na branch `chore/foundation-reconciliation-verify`. Os wo
 - Também existem ACLs padrão distintas para o role administrativo `supabase_admin`, incluindo grants a `anon` em tabelas, sequências e funções. A auditoria de propriedade confirmou que **nenhum objeto atualmente existente no schema `public` é de propriedade de `supabase_admin`**; os objetos públicos consultados pertencem a `postgres`. Portanto, não foi identificado acesso atual de `anon` decorrente desses defaults. O risco é prospectivo para objetos que venham a ser criados por `supabase_admin`; não alterar defaults gerenciados pela plataforma sem identificar a origem e o propósito.
 - A tabela `public.rental_event_reminder_deliveries` tem RLS habilitado e nenhuma policy. A migration de origem `20261107165534_event_reminder_notifications_schema.sql` documenta explicitamente que é um ledger de idempotência exclusivo do `service_role`, revoga todos os privilégios de `anon`/`authenticated` e concede `ALL` a `service_role`. A checagem de privilégios efetivos confirmou que `anon` e `authenticated` não têm SELECT nem INSERT, enquanto `service_role` tem SELECT. Portanto, a ausência de policy é intencional e não representa exposição pela Data API; o Advisor `rls_enabled_no_policy` é informativo neste caso.
 - Os Security Advisors também apontaram oito funções `SECURITY DEFINER` executáveis por `authenticated`: `add_company_member`, `can_manage_rental`, `create_company`, `ensure_team_group`, `has_company_role`, `invite_company_member`, `is_company_member` e `is_platform_owner_for_company`. Todas as oito têm `search_path` vazio e EXECUTE negado a `anon`; a execução por `authenticated` é explícita e deve ser avaliada função a função, pois algumas são RPCs de produto e outras helpers usados por RLS.
-- A rechecagem das definições remotas confirmou que ainda estão ativos os comportamentos antigos já descritos: `add_company_member` e `invite_company_member` aceitam `manager`; `add_company_member` reconhece o platform owner pelo papel global e não bloqueia destino que seja platform owner; `ensure_team_group` ainda permite bypass para platform owner sem vínculo empresarial. As migrations locais `20261116090000` e `20261119090000` contêm as correções propostas, mas não estão aplicadas no projeto remoto.
+- A rechecagem das definições remotas confirmou que ainda estão ativos os comportamentos antigos já descritos: `add_company_member` e `invite_company_member` aceitam `manager`; `add_company_member` reconhece o platform owner pelo papel global e não bloqueia destino que seja platform owner; `ensure_team_group` ainda permite bypass para platform owner sem vínculo empresarial. As migrations locais `20261120110000` e `20261120120000` contêm as correções propostas, mas não estão aplicadas no projeto remoto.
 - O Advisor de Auth também informa que a proteção contra senhas vazadas está desativada. É uma configuração de Auth separada das migrations; não foi alterada.
 - Nenhuma alteração foi feita no banco remoto, nos privilégios, em Auth ou nas Edge Functions. Os resultados acima foram obtidos por consultas somente leitura e pelo Security Advisor.
 
@@ -314,10 +279,10 @@ Nova leitura de `pg_policies`, `pg_constraint` e `pg_proc` confirma os seguintes
 - A policy `company_members_delete_authorized_admins` continua permitindo DELETE direto: o papel legado `owner` pode remover qualquer vínculo que não seja `owner`, e `admin` pode remover `staff`. A policy `platform_owner_all` continua permitindo ao platform owner SELECT/INSERT/UPDATE/DELETE global nessa tabela. A branch remove ambas as policies para obrigar o uso das RPCs validadas.
 - Não há policy RLS de UPDATE para membros comuns nem trigger de usuário que proteja a coluna `role`. Com grants SQL de UPDATE, a ausência de policy impede alteração direta por membros comuns; a exceção remota continua sendo `platform_owner_all`. Assim, o efeito observado da migration remota `20261117014514_prevent_company_members_from_changing_own_role` não equivale a uma proteção completa contra a exceção global do platform owner.
 - As policies remotas de leitura de chat ainda permitem acesso global indireto: `team_conversations_select` usa `is_company_member(company_id)` e `has_company_role(company_id, ['owner'])`; `team_messages_select_participant` e `team_members_select_participants` também usam os helpers legados. No remoto, `is_company_member` retorna verdadeiro para platform owner e `has_company_role(..., ['owner'])` também o reconhece como owner global. As policies de INSERT/DELETE do chat já bloqueiam explicitamente o platform owner, mas as policies SELECT não o fazem.
-- Correção importante de interpretação do relatório: a migration local `20261116090000_normalize_platform_and_company_roles.sql` **não redefine** os helpers globais `is_company_member`/ `has_company_role`. Ela remove as policies globais de chat e recria as policies SELECT com `NOT private.is_platform_owner()`, além de trocar as exceções de papel `owner` por `admin`. O bloqueio proposto decorre dessas policies explícitas, não de uma alteração dos helpers. O relatório deve ser lido com essa distinção.
+- Correção importante de interpretação do relatório: a migration local `20261120110000_normalize_platform_and_company_roles.sql` **não redefine** os helpers globais `is_company_member`/ `has_company_role`. Ela remove as policies globais de chat e recria as policies SELECT com `NOT private.is_platform_owner()`, além de trocar as exceções de papel `owner` por `admin`. O bloqueio proposto decorre dessas policies explícitas, não de uma alteração dos helpers. O relatório deve ser lido com essa distinção.
 - A migration local também redefine `ensure_team_group` para exigir membership real e negar platform owner; no remoto a função ainda permite bypass global. A versão local de `invite_company_member` rejeita `manager` e separa platform owner de membros de empresa; a função remota ainda aceita `manager` e só permite ator com vínculo `owner/admin`.
 - A função remota `add_company_member` ainda aceita `manager`, trata platform owner como owner global por meio de `has_company_role` e não bloqueia explicitamente o usuário-alvo caso ele seja o próprio platform owner. A versão local restringe os cargos a `admin/staff`, trata o platform owner como ator global de forma explícita e impede vinculá-lo como alvo.
-- A função local `manage_company_member` na migration `20261119090000` bloqueia autoalteração/autorremoção, bloqueia como alvo qualquer conta registrada em `private.platform_owners`, exige `p_role IS NULL` em remoção e serializa as alterações com `FOR UPDATE` sobre ator e alvo. Essa função não existe no banco remoto.
+- A função local `manage_company_member` na migration `20261120120000` bloqueia autoalteração/autorremoção, bloqueia como alvo qualquer conta registrada em `private.platform_owners`, exige `p_role IS NULL` em remoção e serializa as alterações com `FOR UPDATE` sobre ator e alvo. Essa função não existe no banco remoto.
 
 #### Classificação das migrations remotas sem SQL recuperável
 
@@ -331,7 +296,7 @@ Nenhum dado, policy, função ou privilégio foi alterado no Supabase remoto. Es
 
 - A busca no código da branch confirmou que a tela atual de equipe não chama `add_company_member`; usa `manage_company_member` para alteração/remoção e a Edge Function de convite chama `invite_company_member`. A RPC `add_company_member` continua, contudo, executável por `authenticated` e é coberta por testes pgTAP, portanto não foi removida nem teve seu grant revogado nesta etapa.
 - A revisão identificou que a versão local da RPC verificava o papel do administrador por `has_company_role`, mas não bloqueava a linha de membership do ator. Uma mudança concorrente de cargo/remoção poderia ocorrer entre a autorização e a inclusão do novo membro.
-- A migration local `20261116090000_normalize_platform_and_company_roles.sql` foi endurecida: para ator que não seja platform owner, agora lê e bloqueia com `SELECT ... FOR UPDATE` o vínculo do próprio ator e confirma que seu cargo ainda é `admin` antes de continuar. Isso serializa a autorização com a RPC transacional de alteração/remoção, que também bloqueia a linha do ator/alvo.
+- A migration local `20261120110000_normalize_platform_and_company_roles.sql` foi endurecida: para ator que não seja platform owner, agora lê e bloqueia com `SELECT ... FOR UPDATE` o vínculo do próprio ator e confirma que seu cargo ainda é `admin` antes de continuar. Isso serializa a autorização com a RPC transacional de alteração/remoção, que também bloqueia a linha do ator/alvo.
 - A lógica de destino foi preservada: somente platform owner pode atribuir `admin`; administrador de empresa só gerencia `staff`; contas registradas como platform owner não podem ser vinculadas como membros. A RPC continua no código para compatibilidade, mas não é usada pela UI atual.
 - Esta alteração está somente na branch. Ainda precisa passar pelo reset do banco local, pgTAP e workflows CI; não foi aplicada no Supabase remoto.
 
@@ -408,8 +373,27 @@ Uma revisão mais profunda de `pg_default_acl` identificou uma nuance que a chec
 - O ACL padrão específico de `public` para funções criadas por `postgres` não inclui `anon`, mas não havia entrada global de default ACL para funções de `postgres`.
 - No PostgreSQL, a ausência dessa revogação global mantém o EXECUTE padrão de `PUBLIC`; como `anon` herda privilégios de `PUBLIC`, uma função nova criada por `postgres` poderia ficar executável anonimamente, mesmo sem grant direto a `anon` no ACL específico do schema.
 - A documentação oficial do Supabase confirma que um REVOKE limitado a `IN SCHEMA public` não remove o EXECUTE global de `PUBLIC`; a revogação precisa ser global: https://supabase.com/kb/troubleshooting/cant-change-the-default-privileges-of-supabase_admin-in-the-public-schema-448af9 e https://supabase.com/docs/guides/api/securing-your-api.
-- **Correção incluída na branch:** a migration local `20261116090000_normalize_platform_and_company_roles.sql` agora executa `ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`. Os grants diretos de RPCs necessários permanecem explícitos; a alteração não revoga EXECUTE de funções já existentes.
+- **Correção incluída na branch:** a migration local `20261120110000_normalize_platform_and_company_roles.sql` agora executa `ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`. Os grants diretos de RPCs necessários permanecem explícitos; a alteração não revoga EXECUTE de funções já existentes.
 - **Teste incluído:** `platform_company_role_model.test.sql` passou de 38 para 39 verificações e agora exige uma entrada global de default ACL sem EXECUTE para `PUBLIC`.
 - As 18 funções públicas existentes continuam sem EXECUTE efetivo para `anon`; esta correção trata a exposição potencial de funções futuras criadas por `postgres`.
 
 A alteração está somente na branch e aguarda CI com reset do banco local, E2E e pgTAP. Não foi executada no projeto remoto. A migration remota `20261113134849_tighten_public_schema_default_privileges` continua sem SQL original recuperável; a análise do catálogo agora distingue corretamente ACL de schema e ACL global.
+
+
+### Reconstituição integral do histórico remoto — 20/11/2026
+
+A auditoria descobriu que o ledger remoto guarda o SQL executado em `supabase_migrations.schema_migrations.statements`. A partir dessa fonte, foram recuperadas as 23 migrations que não tinham arquivo no repositório. Nenhum SQL foi inventado.
+
+- As 23 migrations ausentes foram criadas com seus identificadores e nomes originais.
+- As 6 migrations locais com conteúdo diferente do ledger foram restauradas ao SQL remoto original: `20261112024141`, `20261113054337`, `20261113203648`, `20261113203657`, `20261113203747` e `20261117015419`.
+- Os quatro arquivos intermediários com versões alternativas foram removidos: `20261112030000`, `20261112050000`, `20261113040000` e `20261113050000`. Seus equivalentes oficiais são agora os arquivos recuperados `20261113012143`, `20261113003334`, `20261113030743` e `20261113043836`, junto com as migrations remotas subsequentes que completam as regras finais.
+- O arquivo `20261113060000` foi removido porque a função `is_platform_owner_for_company()` já consta da migration original `20261112024141`; a migration `20261113134849` remove os grants anônimos e mantém o acesso autenticado previsto.
+- A migration original `20261117015419` foi restaurada sem alterações. A regra nova de convite e cargos passa a ser aplicada pela migration posterior `20261120110000`, evitando modificar o conteúdo de uma versão já aplicada remotamente.
+- A migration de normalização de cargos foi renomeada para `20261120110000` e a RPC transacional para `20261120120000`, ambas posteriores à última versão remota. Isso evita que migrations locais novas tenham timestamp anterior ao fim do ledger remoto.
+- O arquivo `20261107165527_rebuild_rental_core_and_clear_legacy_records.sql` foi comparado diretamente com o SQL do ledger e é idêntico. Continua proibido reaplicá-lo em produção, pois sua finalidade histórica inclui reconstrução destrutiva do núcleo de locações.
+
+**Resultado do inventário:** 60/60 migrations remotas têm agora arquivo local com o mesmo identificador, nome e SQL original; existem somente duas migrations novas pendentes. Não foi usado `migration repair`, não houve edição do ledger remoto e nenhuma migration foi aplicada ao projeto.
+
+A migration `20261120110000` também contém a revogação global do EXECUTE padrão de `PUBLIC` para funções futuras criadas por `postgres`, e a suíte pgTAP valida essa configuração. A migration `20261120120000` mantém o gerenciamento transacional de membros.
+
+**Validação pendente:** executar novamente o CI completo após esta reconstituição, incluindo `supabase db reset`, E2E de Auth/onboarding e os testes pgTAP. Até essa validação terminar, a fundação não deve ser marcada como pronta. O estado remoto permanece inalterado.
