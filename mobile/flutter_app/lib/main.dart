@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'quote_create_page.dart';
 import 'rental_create_page.dart';
+import 'finance_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -497,9 +498,15 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openModule(String title, String table) async {
     if (_companyId == null) return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!),
-    ));
+    if (table == 'financial_transactions') {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => FinancePage(companyId: _companyId!),
+      ));
+    } else {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!),
+      ));
+    }
     if (mounted) _load();
   }
 
