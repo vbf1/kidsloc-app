@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(35);
+select plan(36);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -236,6 +236,21 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
+
+insert into public.company_members (company_id, user_id, role)
+values (
+  'c2000000-0000-4000-8000-000000000001',
+  'c1000000-0000-4000-8000-000000000001',
+  'admin'
+);
+
+select is(
+  (select count(*)::integer from public.company_members
+   where company_id = 'c2000000-0000-4000-8000-000000000001'
+     and user_id = 'c1000000-0000-4000-8000-000000000001'),
+  0,
+  'platform owner cannot bypass membership RPCs with direct table INSERT'
+);
 
 select is(
   (select count(*)::integer from public.team_conversations
