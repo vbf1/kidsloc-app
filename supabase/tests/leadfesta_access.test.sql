@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(34);
+select plan(36);
 
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -10,7 +10,8 @@ values
   ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'lead-admin-one@example.test', '', now(), now()),
   ('20000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'lead-staff-one@example.test', '', now(), now()),
   ('20000000-0000-4000-8000-000000000003', 'authenticated', 'authenticated', 'lead-admin-two@example.test', '', now(), now()),
-  ('20000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated', 'lead-platform-owner@example.test', '', now(), now());
+  ('20000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated', 'lead-platform-owner@example.test', '', now(), now()),
+  ('20000000-0000-4000-8000-000000000005', 'authenticated', 'authenticated', 'lead-company-owner@example.test', '', now(), now());
 
 insert into public.companies (id, name, created_by)
 values
@@ -21,7 +22,8 @@ insert into public.company_members (company_id, user_id, role)
 values
   ('21000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'admin'),
   ('21000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002', 'staff'),
-  ('21000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000003', 'admin');
+  ('21000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000003', 'admin'),
+  ('21000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000005', 'owner');
 
 insert into private.platform_owners (user_id)
 values ('20000000-0000-4000-8000-000000000004');
@@ -171,6 +173,13 @@ select throws_ok(
   'new row violates row-level security policy for table "leads"',
   'staff cannot insert leads directly through the Data API'
 );
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000005', true);
+
+select ok(public.leadfesta_is_available('21000000-0000-4000-8000-000000000001'), 'company owner with active entitlement can use LeadFesta');
+select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 2, 'company owner can read leads from its entitled company');
 
 reset role;
 set local role authenticated;
