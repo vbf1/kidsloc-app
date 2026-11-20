@@ -43,6 +43,7 @@ export default function LeadProspectingPage() {
   const [intentAuthor, setIntentAuthor] = useState('');
   const [intentPostUrl, setIntentPostUrl] = useState('');
   const [intentText, setIntentText] = useState('');
+  const [intentVerified, setIntentVerified] = useState(false);
   const [intentPhone, setIntentPhone] = useState('');
   const [savingIntent, setSavingIntent] = useState(false);
   const intentLinks = useMemo(() => buildIntentSearchLinks(intentService, intentLocation), [intentService, intentLocation]);
@@ -204,6 +205,10 @@ export default function LeadProspectingPage() {
       setError('Informe o nome ou perfil público da pessoa e o link da publicação.');
       return;
     }
+    if (!intentVerified) {
+      setError('Confirme que a publicação mostra alguém procurando comprar ou contratar, e não oferecendo o serviço.');
+      return;
+    }
     if (!/^https?:\/\//i.test(intentPostUrl.trim())) {
       setError('O link da publicação precisa começar com http:// ou https://.');
       return;
@@ -252,6 +257,7 @@ export default function LeadProspectingPage() {
       setIntentPostUrl('');
       setIntentText('');
       setIntentPhone('');
+      setIntentVerified(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível registrar a oportunidade.');
     } finally {
@@ -362,7 +368,8 @@ export default function LeadProspectingPage() {
               <textarea className={field + ' min-h-20'} value={intentText} onChange={(event) => setIntentText(event.target.value)} placeholder="Cole apenas o trecho necessário que demonstra interesse..." maxLength={1000} />
             </label>
           </div>
-          <button type="button" className={primary + ' mt-3'} onClick={() => { void saveIntentLead(); }} disabled={savingIntent || !intentAuthor.trim() || !intentPostUrl.trim()}>{savingIntent ? 'Registrando...' : 'Registrar oportunidade no funil'}</button>
+          <label className="mt-3 flex items-start gap-2 text-sm text-gray-700"><input type="checkbox" className="mt-1 size-4 accent-[#8054d8]" checked={intentVerified} onChange={(event) => setIntentVerified(event.target.checked)} /><span>Confirmei que a publicação mostra uma pessoa procurando comprar ou contratar este produto/serviço — não alguém anunciando ou oferecendo.</span></label>
+          <button type="button" className={primary + ' mt-3'} onClick={() => { void saveIntentLead(); }} disabled={savingIntent || !intentAuthor.trim() || !intentPostUrl.trim() || !intentVerified}>{savingIntent ? 'Registrando...' : 'Registrar oportunidade no funil'}</button>
         </div>
         <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-900">Importante: esta versão abre pesquisas públicas nos buscadores; não acessa contas privadas nem extrai automaticamente dados das redes. Algumas plataformas restringem o uso comercial de suas APIs. A pessoa deve ter manifestado interesse publicamente e o contato deve respeitar a legislação aplicável.</p>
       </section>
