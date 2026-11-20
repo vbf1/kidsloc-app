@@ -100,12 +100,20 @@ as $function$
 declare
   v_existing_role text;
   v_actor_is_platform_owner boolean := coalesce(private.is_platform_owner(), false);
-  v_actor_is_admin boolean;
+  v_actor_role text;
 begin
-  v_actor_is_admin := public.has_company_role(p_company_id, array['admin']::text[]);
+  -- Serialize authorization against concurrent role changes/removal of the actor.
+  if not v_actor_is_platform_owner then
+    select cm.role
+      into v_actor_role
+      from public.company_members cm
+     where cm.company_id = p_company_id
+       and cm.user_id = (select auth.uid())
+     for update;
 
-  if not (v_actor_is_platform_owner or v_actor_is_admin) then
-    raise exception 'Sem permissão para gerenciar usuários desta empresa.';
+    if not found or v_actor_role <> 'admin' then
+      raise exception 'Sem permissão para gerenciar usuários desta empresa.';
+    end if;
   end if;
 
   if p_role not in ('admin', 'staff') then
@@ -128,7 +136,7 @@ begin
   where cm.company_id = p_company_id and cm.user_id = p_user_id
   for update;
 
-  if v_actor_is_admin and not v_actor_is_platform_owner then
+  if not v_actor_is_platform_owner then
     if p_role = 'admin' then
       raise exception 'Somente o proprietário da plataforma pode atribuir outro administrador.';
     end if;
