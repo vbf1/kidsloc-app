@@ -15,7 +15,7 @@ const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+
 export default function FinancePage(){
  const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [transactions,setTransactions]=useState<Tx[]>([]);const [payments,setPayments]=useState<Payment[]>([]);const [showForm,setShowForm]=useState(false);const [type,setType]=useState<'income'|'expense'>('income');const [description,setDescription]=useState('');const [category,setCategory]=useState('');const [amount,setAmount]=useState('');const [dueDate,setDueDate]=useState(today());const [saving,setSaving]=useState(false);const [receiving,setReceiving]=useState<Tx|null>(null);const [receiveAmount,setReceiveAmount]=useState('');const [method,setMethod]=useState('Pix');const [receiveDate,setReceiveDate]=useState(today());
  const canEdit=role==='owner'||role==='admin';
- const load=useCallback(async()=>{
+ async function load(){
   await Promise.resolve();
   if(!supabase){setError('Banco não configurado.');setLoading(false);return;}
   const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace('/login/');return;}setEmail(user.email??'');
