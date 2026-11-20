@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(16);
 
 select has_table('public', 'lead_pipeline_stages', 'LeadFesta pipeline stages table exists');
 select has_table('public', 'leads', 'LeadFesta leads table exists');
@@ -20,6 +20,9 @@ select has_function('public', 'convert_lead_to_customer', array['uuid','uuid'], 
 
 select ok(not has_function_privilege('anon', 'public.set_leadfesta_entitlement(uuid,boolean)', 'EXECUTE'), 'anonymous users cannot enable or suspend LeadFesta');
 select ok(not has_table_privilege('anon', 'public.leads', 'SELECT'), 'anonymous users cannot read lead data');
+select ok(not has_table_privilege('authenticated', 'public.leads', 'DELETE'), 'leads cannot be deleted through the authenticated Data API');
+select ok(not has_table_privilege('authenticated', 'public.lead_activities', 'UPDATE'), 'contact history cannot be edited after it is recorded');
+select ok(not has_table_privilege('authenticated', 'public.lead_activities', 'DELETE'), 'contact history cannot be deleted through the authenticated Data API');
 
 select * from finish();
 rollback;

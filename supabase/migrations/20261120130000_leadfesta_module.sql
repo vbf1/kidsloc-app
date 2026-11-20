@@ -293,23 +293,37 @@ alter table public.leads enable row level security;
 alter table public.lead_activities enable row level security;
 
 revoke all on public.lead_pipeline_stages, public.leads, public.lead_activities from public, anon;
+revoke all on public.leads, public.lead_activities from authenticated;
 grant select, insert, update, delete on public.lead_pipeline_stages to authenticated;
-grant select, insert, update, delete on public.leads to authenticated;
-grant select, insert, update, delete on public.lead_activities to authenticated;
+grant select, insert, update on public.leads to authenticated;
+grant select, insert on public.lead_activities to authenticated;
 
 create policy lead_pipeline_stages_access
 on public.lead_pipeline_stages for all to authenticated
 using (public.can_access_leadfesta(company_id))
 with check (public.can_access_leadfesta(company_id));
 
-create policy leads_access
-on public.leads for all to authenticated
+create policy leads_select_access
+on public.leads for select to authenticated
+using (public.can_access_leadfesta(company_id));
+
+create policy leads_insert_access
+on public.leads for insert to authenticated
+with check (public.can_access_leadfesta(company_id));
+
+create policy leads_update_access
+on public.leads for update to authenticated
 using (public.can_access_leadfesta(company_id))
 with check (public.can_access_leadfesta(company_id));
 
-create policy lead_activities_access
-on public.lead_activities for all to authenticated
-using (public.can_access_leadfesta(company_id))
+-- Contact history is append-only. Prevent updates/deletes so the audit trail
+-- survives ordinary CRM workflows and module suspension.
+create policy lead_activities_select_access
+on public.lead_activities for select to authenticated
+using (public.can_access_leadfesta(company_id));
+
+create policy lead_activities_insert_access
+on public.lead_activities for insert to authenticated
 with check (
   public.can_access_leadfesta(company_id)
   and exists (
