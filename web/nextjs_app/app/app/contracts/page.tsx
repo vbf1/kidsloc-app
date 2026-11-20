@@ -19,6 +19,7 @@ function esc(v:unknown){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;'
 export default function ContractsPage(){
  const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [rentals,setRentals]=useState<Rental[]>([]);const [customers,setCustomers]=useState<Record<string,Customer>>({});const [contracts,setContracts]=useState<Contract[]>([]);const [itemsByRental,setItemsByRental]=useState<Record<string,Item[]>>({});const [links,setLinks]=useState<Record<string,string>>({});const [selectedRental,setSelectedRental]=useState('');
  const load=useCallback(async()=>{
+  await Promise.resolve();
   if(!supabase){setError('Banco não configurado.');setLoading(false);return;}
   const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace('/login/');return;}setEmail(user.email??'');
   const {data:m,error:e}=await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
