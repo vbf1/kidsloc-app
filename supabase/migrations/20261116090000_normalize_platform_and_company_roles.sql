@@ -304,6 +304,10 @@ $function$;
 revoke all on function public.manage_company_member(uuid, uuid, text, text) from public, anon;
 grant execute on function public.manage_company_member(uuid, uuid, text, text) to authenticated;
 
+-- Membership changes must go through the transactional SECURITY DEFINER RPC.
+-- Keep the platform-owner ALL policy; remove the direct company-admin DELETE path.
+drop policy if exists company_members_delete_authorized_admins on public.company_members;
+
 -- Company admins, not a separate company-owner role, administer team chat.
 drop policy if exists team_members_delete_owner on public.team_conversation_members;
 create policy team_members_delete_admin
