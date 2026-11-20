@@ -397,3 +397,15 @@ A auditoria descobriu que o ledger remoto guarda o SQL executado em `supabase_mi
 A migration `20261120110000` também contém a revogação global do EXECUTE padrão de `PUBLIC` para funções futuras criadas por `postgres`, e a suíte pgTAP valida essa configuração. A migration `20261120120000` mantém o gerenciamento transacional de membros.
 
 **Validação pendente:** executar novamente o CI completo após esta reconstituição, incluindo `supabase db reset`, E2E de Auth/onboarding e os testes pgTAP. Até essa validação terminar, a fundação não deve ser marcada como pronta. O estado remoto permanece inalterado.
+
+
+### Correção da policy de exclusão do catálogo — 20/11/2026
+
+O primeiro pgTAP após a recuperação integral do histórico encontrou uma falha real: `product_delete_owner_admin_only` estava marcada como **RESTRICTIVE**, mas não havia policy permissiva de DELETE para administradores da empresa. A policy global permissiva atendia somente o platform owner; por isso o teste `company admin can delete company products` falhava.
+
+- A auditoria do catálogo confirmou que esta era a única policy DELETE restritiva no schema `public`; a policy restritiva de SELECT em `rentals` tem policies permissivas complementares e permanece intencional.
+- A migration nova `20261120110000` agora cria a policy permissiva `products_delete_owner_admin`, limitada a `owner/admin`, mantendo a policy restritiva histórica como segunda barreira.
+- Funcionários continuam sem policy permissiva para excluir produtos; platform owner mantém acesso pelo caminho global já previsto.
+- O teste existente em `role_permissions.test.sql` cobre tanto a negação para funcionário quanto a exclusão permitida para administrador.
+
+O primeiro CI também confirmou: `supabase db reset` passou e os testes E2E de Auth/onboarding passaram. O pgTAP apontou ainda a falta do grant autenticado da RPC `is_platform_owner_for_company()`; esse grant foi preservado na migration `20261120110000`. A correção da policy de produtos está na branch e aguarda nova execução de pgTAP. Nenhuma alteração foi feita no Supabase remoto.
