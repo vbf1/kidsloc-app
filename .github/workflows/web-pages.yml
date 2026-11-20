@@ -1,10 +1,10 @@
 name: Web - test and deploy GitHub Pages
 on:
   push:
-    branches: [main, feature/v0.1-auth-company-onboarding, feature/ui-organized-customer-catalog]
-    paths: ['web/nextjs_app/**', '.github/workflows/web-pages.yml']
+    branches: [main, feature/v0.1-auth-company-onboarding, feature/ui-organized-customer-catalog, demo/leadfesta-pages]
+    paths: ['web/nextjs_app/**', 'demo/leadfesta/**', '.github/workflows/web-pages.yml']
   pull_request:
-    paths: ['web/nextjs_app/**', '.github/workflows/web-pages.yml']
+    paths: ['web/nextjs_app/**', 'demo/leadfesta/**', '.github/workflows/web-pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,6 +34,10 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH || '/kidsloc-app' }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://wfwohnssvftegnhwdzmt.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
+      - name: Add isolated LeadFesta demo
+        run: |
+          mkdir -p out/leadfesta
+          cp ../../demo/leadfesta/index.html out/leadfesta/index.html
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -48,5 +52,3 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
-# Trigger Pages deployment for the validated password-reset error messages.
-# Keep PR validation path-triggered; this comment intentionally records the CI revalidation trigger.
