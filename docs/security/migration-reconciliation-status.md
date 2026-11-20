@@ -412,8 +412,14 @@ O primeiro CI também confirmou: `supabase db reset` passou e os testes E2E de A
 
 ### Correção final — preservação do vínculo legado da Festejando — 20/11/2026
 
-A conclusão histórica de que a migration `20261120110000_normalize_platform_and_company_roles.sql` removeria o vínculo do platform owner com Festejando está supersedida e não descreve o SQL final. A migration preserva a linha existente em `public.company_members` para o mesmo par `(company_id, user_id)` e normaliza somente o papel legado `owner` para `admin`; não apaga a empresa nem remove ou substitui o usuário vinculado.
+A leitura de algumas seções históricas deste diagnóstico ficou desatualizada após o endurecimento final da migration `20261120110000_normalize_platform_and_company_roles.sql`. **A conclusão antiga de que a migration removeria o vínculo do platform owner com Festejando está supersedida e não descreve o SQL final.**
 
-A suíte `supabase/tests/platform_company_role_model.test.sql` confirma que o platform owner continua com exatamente um vínculo empresarial e que esse mesmo vínculo permanece com papel `admin`. Essa cobertura foi executada no CI junto com os demais testes pgTAP.
+A versão atual da migration:
+- preserva a linha existente em `public.company_members` para o mesmo par `(company_id, user_id)`;
+- normaliza o papel legado `owner` para `admin`, conforme o novo conjunto de papéis `admin/staff`;
+- não apaga a empresa Festejando nem remove ou substitui o usuário vinculado;
+- impede novos vínculos de contas platform owner por meio das RPCs de gerenciamento.
 
-**O vínculo entre a conta platform owner e a empresa Festejando permanece; somente o rótulo do papel é normalizado.** Esta atualização documental não altera dados nem executa migrations no Supabase remoto.
+A suíte `supabase/tests/platform_company_role_model.test.sql` contém duas asserções explícitas: uma confirma que o platform owner continua com exatamente um vínculo empresarial e outra confirma que esse mesmo vínculo permanece com papel `admin`. Essa cobertura foi executada no CI, junto com os demais testes pgTAP.
+
+Portanto, o requisito de preservação da associação legado é atendido no SQL final: **o vínculo entre a conta platform owner e a empresa Festejando permanece; somente o rótulo de papel é normalizado**. Esta correção documental não altera dados nem executa migrations no Supabase remoto.

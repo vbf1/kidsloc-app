@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(42);
+select plan(43);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -47,13 +47,24 @@ insert into public.company_members (company_id, user_id, role)
 values
   ('c2000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000002', 'admin'),
   ('c2000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000004', 'staff'),
-  ('c2000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000003', 'admin');
+  ('c2000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000003', 'admin'),
+  ('c2000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000001', 'admin');
 
 select is(
   (select count(*)::integer from public.company_members
    where user_id = 'c1000000-0000-4000-8000-000000000001'),
-  0,
-  'platform owner has no company membership'
+  1,
+  'legacy platform-owner company membership is preserved'
+);
+
+select ok(
+  exists (
+    select 1 from public.company_members
+    where company_id = 'c2000000-0000-4000-8000-000000000001'
+      and user_id = 'c1000000-0000-4000-8000-000000000001'
+      and role = 'admin'
+  ),
+  'legacy platform-owner membership is preserved as company admin'
 );
 
 select is(

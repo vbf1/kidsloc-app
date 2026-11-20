@@ -35,7 +35,7 @@ Status checked: 2026-11-20. This document is a preparation checklist only. It do
 Only after all mandatory decisions and approvals:
 
 1. Apply `20261120110000_normalize_platform_and_company_roles.sql` once.
-2. Verify the migration ledger records version `20261120110000`; inspect company memberships and confirm the expected admin/staff roles and Festejando outcome.
+2. Verify the migration ledger records version `20261120110000`; inspect company memberships and confirm the Festejando platform-owner link still exists with the normalized `admin` role.
 3. Apply `20261120120000_manage_company_member_transactionally.sql` once.
 4. Verify the ledger records version `20261120120000`; confirm the member-management RPC has the intended grants and transactional checks.
 5. Apply `20261120130000_leadfesta_module.sql` once, only after the foundation migrations are verified.

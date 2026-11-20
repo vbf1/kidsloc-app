@@ -28,10 +28,10 @@ $$;
 create unique index if not exists platform_owners_singleton_uidx
   on private.platform_owners (singleton);
 
--- A platform owner is global and must not retain a company membership.
-delete from public.company_members cm
-using private.platform_owners po
-where cm.user_id = po.user_id;
+-- Preserve existing platform-owner memberships during reconciliation.
+-- In particular, do not orphan legacy companies that only have the platform
+-- owner linked. New platform-owner memberships remain blocked by the member
+-- management RPCs below.
 
 alter table public.company_members
   drop constraint if exists company_members_role_check;
