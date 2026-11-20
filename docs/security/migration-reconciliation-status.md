@@ -409,3 +409,17 @@ O primeiro pgTAP após a recuperação integral do histórico encontrou uma falh
 - O teste existente em `role_permissions.test.sql` cobre tanto a negação para funcionário quanto a exclusão permitida para administrador.
 
 O primeiro CI também confirmou: `supabase db reset` passou e os testes E2E de Auth/onboarding passaram. O pgTAP apontou ainda a falta do grant autenticado da RPC `is_platform_owner_for_company()`; esse grant foi preservado na migration `20261120110000`. A correção da policy de produtos está na branch e aguarda nova execução de pgTAP. Nenhuma alteração foi feita no Supabase remoto.
+
+### Correção final — preservação do vínculo legado da Festejando — 20/11/2026
+
+A leitura de algumas seções históricas deste diagnóstico ficou desatualizada após o endurecimento final da migration `20261120110000_normalize_platform_and_company_roles.sql`. **A conclusão antiga de que a migration removeria o vínculo do platform owner com Festejando está supersedida e não descreve o SQL final.**
+
+A versão atual da migration:
+- preserva a linha existente em `public.company_members` para o mesmo par `(company_id, user_id)`;
+- normaliza o papel legado `owner` para `admin`, conforme o novo conjunto de papéis `admin/staff`;
+- não apaga a empresa Festejando nem remove ou substitui o usuário vinculado;
+- impede novos vínculos de contas platform owner por meio das RPCs de gerenciamento.
+
+A suíte `supabase/tests/platform_company_role_model.test.sql` contém duas asserções explícitas: uma confirma que o platform owner continua com exatamente um vínculo empresarial e outra confirma que esse mesmo vínculo permanece com papel `admin`. Essa cobertura foi executada no CI, junto com os demais testes pgTAP.
+
+Portanto, o requisito de preservação da associação legado é atendido no SQL final: **o vínculo entre a conta platform owner e a empresa Festejando permanece; somente o rótulo de papel é normalizado**. Esta correção documental não altera dados nem executa migrations no Supabase remoto.
