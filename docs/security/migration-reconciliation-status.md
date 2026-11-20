@@ -326,3 +326,11 @@ Nova leitura de `pg_policies`, `pg_constraint` e `pg_proc` confirma os seguintes
 - As duas migrations permanecem sem SQL original recuperável. Não foram reconstruídas nem declaradas equivalentes; a classificação acima descreve apenas o catálogo efetivamente observado.
 
 Nenhum dado, policy, função ou privilégio foi alterado no Supabase remoto. Esta atualização é documental e baseada em consultas somente leitura.
+
+### Endurecimento da RPC legada `add_company_member` — 20/11/2026
+
+- A busca no código da branch confirmou que a tela atual de equipe não chama `add_company_member`; usa `manage_company_member` para alteração/remoção e a Edge Function de convite chama `invite_company_member`. A RPC `add_company_member` continua, contudo, executável por `authenticated` e é coberta por testes pgTAP, portanto não foi removida nem teve seu grant revogado nesta etapa.
+- A revisão identificou que a versão local da RPC verificava o papel do administrador por `has_company_role`, mas não bloqueava a linha de membership do ator. Uma mudança concorrente de cargo/remoção poderia ocorrer entre a autorização e a inclusão do novo membro.
+- A migration local `20261116090000_normalize_platform_and_company_roles.sql` foi endurecida: para ator que não seja platform owner, agora lê e bloqueia com `SELECT ... FOR UPDATE` o vínculo do próprio ator e confirma que seu cargo ainda é `admin` antes de continuar. Isso serializa a autorização com a RPC transacional de alteração/remoção, que também bloqueia a linha do ator/alvo.
+- A lógica de destino foi preservada: somente platform owner pode atribuir `admin`; administrador de empresa só gerencia `staff`; contas registradas como platform owner não podem ser vinculadas como membros. A RPC continua no código para compatibilidade, mas não é usada pela UI atual.
+- Esta alteração está somente na branch. Ainda precisa passar pelo reset do banco local, pgTAP e workflows CI; não foi aplicada no Supabase remoto.
