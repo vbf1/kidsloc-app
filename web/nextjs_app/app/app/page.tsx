@@ -152,9 +152,8 @@ export default function AppHomePage() {
         </div>
 
         <div className="mt-6">
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3">
             <h2 className="text-lg font-bold">Resumo da empresa</h2>
-            <span className="text-xs text-gray-400">Dados atualizados ao abrir esta tela</span>
           </div>
           {statsError && <p role="alert" className="mb-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{statsError}</p>}
           <div className="grid grid-cols-2 gap-3">
