@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDuplicateProspect, mapOSMElement, matchesProspectingSegment, normalizeProspectingText } from '../lib/leadfesta-prospecting';
+import { buildIntentSearchLinks, isDuplicateProspect, mapOSMElement, matchesProspectingSegment, normalizeProspectingText } from '../lib/leadfesta-prospecting';
 
 describe('LeadFesta prospecting helpers', () => {
   it('normalizes accents and spacing', () => {
@@ -53,6 +53,17 @@ describe('LeadFesta prospecting helpers', () => {
   it('does not match unrelated businesses when searching for a rental service', () => {
     const pharmacy = mapOSMElement({ type: 'node', id: 99, tags: { name: 'Farmácia Central', amenity: 'pharmacy' } })!;
     expect(matchesProspectingSegment(pharmacy, 'locação de brinquedos', { amenity: 'pharmacy' })).toBe(false);
+  });
+
+  it('builds generic intent searches across public sources', () => {
+    const links = buildIntentSearchLinks('fotografia', 'Contagem, MG');
+    expect(links.length).toBeGreaterThanOrEqual(6);
+    expect(links[0].url).toContain('google.com/search?q=');
+    expect(decodeURIComponent(links[0].url)).toContain('procuro');
+    expect(decodeURIComponent(links[0].url)).toContain('fotografia');
+    expect(decodeURIComponent(links[0].url)).toContain('Contagem, MG');
+    expect(links.some((link) => link.source === 'Facebook público')).toBe(true);
+    expect(buildIntentSearchLinks('', 'Contagem, MG')).toEqual([]);
   });
 
   it('detects duplicates by company name or phone', () => {
