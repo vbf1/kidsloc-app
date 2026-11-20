@@ -39,14 +39,13 @@ Status verificado: 20/11/2026. O rollout de banco e Edge Functions foi aplicado 
 - O entitlement LeadFesta não foi habilitado automaticamente para Sonho Kids ou Nobre Paladar. O platform owner pode ativar cada empresa no painel administrativo depois de decidir onde o módulo será usado.
 - A proteção de senha vazada do Supabase Auth permanece desativada porque exige plano Pro ou superior; não houve upgrade nem cobrança.
 - Os avisos de segurança do advisor sobre funções SECURITY DEFINER existentes e leaked-password protection devem ser revisados separadamente; não foram alteradas permissões fora das migrations aprovadas.
-- Ainda falta confirmar o frontend no site após o merge e o deploy do GitHub Pages.
+- Frontend publicado no GitHub Pages em 20/11/2026 pelo workflow `44751385522`; build e deploy concluídos com sucesso. URL: https://vbf1.github.io/kidsloc-app/.
 
 ## Procedimento de continuidade
 
-1. Finalizar revisão/merge da PR #87.
-2. Retarget da PR #88 para `main`, confirmar checks atualizados e mesclar.
-3. Confirmar execução do workflow de GitHub Pages no branch principal.
-4. Fazer smoke test com login real: navegação KidsLoc, acesso ao CRM, prospecção, criação de lead, histórico e conversão em cliente.
-5. Ativar o entitlement apenas nas empresas escolhidas pelo platform owner.
+1. PR #87 e PR #88 foram mescladas em `main`.
+2. O workflow de GitHub Pages concluiu build e deploy com sucesso no commit `fb2eb3a78f4436711b311ee6693a8cc9655e3dbb`.
+3. Próxima verificação operacional: login real e teste de navegação KidsLoc, acesso ao CRM, prospecção, criação de lead, histórico e conversão em cliente.
+4. Ativar o entitlement apenas nas empresas escolhidas pelo platform owner.
 
 Não executar migrations antigas novamente, especialmente `20261107165527_rebuild_rental_core_and_clear_legacy_records.sql`, que é destrutiva e já está aplicada.
