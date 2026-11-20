@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(25);
+select plan(30);
 
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -69,6 +69,53 @@ select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001
 select ok(public.leadfesta_is_available('21000000-0000-4000-8000-000000000001'), 'company admin with active entitlement can use LeadFesta');
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 1, 'admin can read leads from the entitled company');
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000002'), 0, 'admin cannot read another company leads');
+insert into public.leads (company_id, stage_id, name, created_by, created_at)
+values (
+  '21000000-0000-4000-8000-000000000001',
+  current_setting('test.lead_stage_id')::uuid,
+  'Lead para teste de auditoria',
+  '20000000-0000-4000-8000-000000000003',
+  '2000-01-01 00:00:00+00'
+);
+
+select is(
+  (select created_by from public.leads where name = 'Lead para teste de auditoria'),
+  '20000000-0000-4000-8000-000000000001'::uuid,
+  'lead creator is always taken from the authenticated session'
+);
+select ok(
+  (select created_at > now() - interval '1 minute' from public.leads where name = 'Lead para teste de auditoria'),
+  'lead creation timestamp cannot be backdated by the client'
+);
+
+update public.leads
+set created_by = '20000000-0000-4000-8000-000000000003',
+    created_at = '2000-01-01 00:00:00+00'
+where name = 'Lead para teste de auditoria';
+
+select ok(
+  (select created_by = '20000000-0000-4000-8000-000000000001'::uuid
+      and created_at > now() - interval '1 minute'
+   from public.leads where name = 'Lead para teste de auditoria'),
+  'lead creator and creation timestamp cannot be rewritten later'
+);
+
+insert into public.lead_activities (company_id, lead_id, activity_type, body, created_by, created_at)
+select company_id, id, 'note', 'Teste de autoria protegida',
+       '20000000-0000-4000-8000-000000000003',
+       '2000-01-01 00:00:00+00'
+from public.leads where name = 'Lead para teste de auditoria';
+
+select is(
+  (select created_by from public.lead_activities where body = 'Teste de autoria protegida'),
+  '20000000-0000-4000-8000-000000000001'::uuid,
+  'activity author is always taken from the authenticated session'
+);
+select ok(
+  (select created_at > now() - interval '1 minute' from public.lead_activities where body = 'Teste de autoria protegida'),
+  'activity creation timestamp cannot be backdated by the client'
+);
+
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000001'), 1, 'admin can read own company activity history');
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000002'), 0, 'admin cannot read another company activity history');
 select throws_ok(
