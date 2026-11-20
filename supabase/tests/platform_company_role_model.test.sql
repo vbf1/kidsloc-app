@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(41);
+select plan(42);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -122,6 +122,12 @@ select ok(
       )
   ),
   'anon has no direct row-operation grants on public tables'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.is_platform_owner_for_company()', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.is_platform_owner_for_company()', 'EXECUTE'),
+  'platform-owner routing RPC is executable by authenticated users only'
 );
 
 set local role authenticated;
