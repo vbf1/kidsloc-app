@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(30);
+select plan(33);
 
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -68,6 +68,27 @@ select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001
 
 select ok(public.leadfesta_is_available('21000000-0000-4000-8000-000000000001'), 'company admin with active entitlement can use LeadFesta');
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 1, 'admin can read leads from the entitled company');
+select lives_ok(
+  'select public.update_lead_stage(
+    ''21000000-0000-4000-8000-000000000001'',
+    (select id from public.leads where company_id = ''21000000-0000-4000-8000-000000000001'' limit 1),
+    (select id from public.lead_pipeline_stages where company_id = ''21000000-0000-4000-8000-000000000001'' and name = ''Em contato'')
+  )',
+  'admin can change a lead stage through the transactional RPC'
+);
+select is(
+  (select s.name from public.leads l join public.lead_pipeline_stages s on s.id = l.stage_id
+   where l.company_id = '21000000-0000-4000-8000-000000000001' limit 1),
+  'Em contato',
+  'transactional stage change updates the lead'
+);
+select is(
+  (select count(*)::int from public.lead_activities
+   where company_id = '21000000-0000-4000-8000-000000000001' and activity_type = 'status_change'),
+  1,
+  'transactional stage change always records its history'
+);
+
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000002'), 0, 'admin cannot read another company leads');
 insert into public.leads (company_id, stage_id, name, created_by, created_at)
 values (
