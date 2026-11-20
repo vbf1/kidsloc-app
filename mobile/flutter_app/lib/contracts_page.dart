@@ -47,22 +47,33 @@ class _ContractsPageState extends State<ContractsPage> {
     });
     try {
       final client = Supabase.instance.client;
-      final results = await Future.wait([
-        client.from('companies').select('name').eq('id', widget.companyId).maybeSingle(),
-        client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,total_amount,delivery_fee,discount').eq('company_id', widget.companyId).neq('status', 'cancelled').order('start_date', ascending: false).limit(200),
-        client.from('customers').select('id,name,phone,email,address,cpf,rg,zip,neighborhood,city_state').eq('company_id', widget.companyId),
-        client.from('rental_contracts').select('id,contract_number,rental_id,status,created_at,contract_snapshot,token_expires_at,signed_at,signer_name').eq('company_id', widget.companyId).order('created_at', ascending: false).limit(200),
+      final companyFuture = client.from('companies').select('name').eq('id', widget.companyId).maybeSingle();
+      final rentalsFuture = client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,total_amount,delivery_fee,discount').eq('company_id', widget.companyId).neq('status', 'cancelled').order('start_date', ascending: false).limit(200);
+      final customersFuture = client.from('customers').select('id,name,phone,email,address,cpf,rg,zip,neighborhood,city_state').eq('company_id', widget.companyId);
+      final contractsFuture = client.from('rental_contracts').select('id,contract_number,rental_id,status,created_at,contract_snapshot,token_expires_at,signed_at,signer_name').eq('company_id', widget.companyId).order('created_at', ascending: false).limit(200);
+      final results = await Future.wait<dynamic>([
+        companyFuture,
+        rentalsFuture,
+        customersFuture,
+        contractsFuture,
       ]);
-      final rentals = results[1].map((e) => Map<String, dynamic>.from(e)).toList();
-      final customers = {
-        for (final e in results[2]) e['id'].toString(): Map<String, dynamic>.from(e),
+      final company = results[0] as Map<String, dynamic>?;
+      final rentalRows = results[1] as List<dynamic>? ?? <dynamic>[];
+      final customerRows = results[2] as List<dynamic>? ?? <dynamic>[];
+      final contractRows = results[3] as List<dynamic>? ?? <dynamic>[];
+      final rentals = rentalRows.map((e) => Map<String, dynamic>.from(e)).toList();
+      final customers = <String, Map<String, dynamic>>{
+        for (final e in customerRows)
+          e['id'].toString(): Map<String, dynamic>.from(e),
       };
       final ids = rentals.map((e) => e['id'].toString()).toList();
       final Map<String, List<Map<String, dynamic>>> itemsByRental = {};
       if (ids.isNotEmpty) {
         final itemRows = await client.from('rental_items').select('rental_id,product_id,quantity,unit_price,subtotal').eq('company_id', widget.companyId).inFilter('rental_id', ids);
         final productRows = await client.from('products').select('id,name').eq('company_id', widget.companyId);
-        final productNames = {for (final p in productRows) p['id'].toString(): p['name']?.toString() ?? 'Item'};
+        final productNames = {
+          for (final p in productRows) p['id'].toString(): p['name']?.toString() ?? 'Item',
+        };
         for (final raw in itemRows) {
           final item = Map<String, dynamic>.from(raw);
           final id = item['rental_id'].toString();
@@ -72,10 +83,10 @@ class _ContractsPageState extends State<ContractsPage> {
       }
       if (!mounted) return;
       setState(() {
-        _companyName = results[0]?['name']?.toString() ?? 'Empresa';
+        _companyName = company?['name']?.toString() ?? 'Empresa';
         _rentals = rentals;
         _customers = customers;
-        _contracts = results[3].map((e) => Map<String, dynamic>.from(e)).toList();
+        _contracts = contractRows.map((e) => Map<String, dynamic>.from(e)).toList();
         _itemsByRental = itemsByRental;
         _loading = false;
       });
