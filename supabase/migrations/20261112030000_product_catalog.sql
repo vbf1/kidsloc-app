@@ -6,7 +6,7 @@ alter table public.products
 alter table public.products
   drop constraint if exists products_item_type_check,
   add constraint products_item_type_check
-    check (item_type in ('toy', 'service')),
+    check (item_type in ('toy', 'machine', 'service')),
   drop constraint if exists products_catalog_pricing_inventory_check,
   add constraint products_catalog_pricing_inventory_check
     check (
@@ -14,6 +14,11 @@ alter table public.products
       or
       (item_type = 'service' and event_price is not null and event_price >= 0
         and inventory_mode = 'quantity' and total_quantity = 0 and daily_price = 0)
+      or
+      (item_type = 'machine' and (
+        (event_price is null and daily_price >= 0)
+        or (event_price is not null and event_price >= 0 and daily_price = 0)
+      ))
     );
 
 create index if not exists idx_products_company_type_active_name
@@ -51,9 +56,16 @@ begin
       raise exception 'Serviços não podem possuir estoque físico nem preço diário.'
         using errcode = '23514';
     end if;
-  elsif new.item_type = 'toy' and new.event_price is not null then
-    raise exception 'Brinquedos utilizam preço diário, não preço por evento.'
-      using errcode = '23514';
+  elsif new.item_type = 'toy' then
+    if new.event_price is not null then
+      raise exception 'Brinquedos utilizam preço diário, não preço por evento.'
+        using errcode = '23514';
+    end if;
+  elsif new.item_type = 'machine' then
+    if new.event_price is not null and new.daily_price <> 0 then
+      raise exception 'Máquinas devem utilizar preço por diária ou por evento, não ambos.'
+        using errcode = '23514';
+    end if;
   end if;
   return new;
 end;
