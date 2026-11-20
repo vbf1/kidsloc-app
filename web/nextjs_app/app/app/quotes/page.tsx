@@ -68,6 +68,8 @@ export default function QuotesPage() {
     }
     setLoading(false);
   }, [router]);
+  // This effect starts an asynchronous data request; state updates occur after the request resolves.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{ void load(); },[load]);
 
   const subtotal = useMemo(()=>items.reduce((sum,item)=>sum+item.quantity*item.unit_price,0),[items]);
