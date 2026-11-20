@@ -162,7 +162,7 @@ Os arquivos SQL originais de `20261117011036` e `20261117014514` não estão no 
 
 ### Testes de isolamento do chat e gerenciamento transacional
 
-- A suíte `platform_company_role_model.test.sql` foi ampliada para **36 verificações**; `foundation.test.sql` agora tem 26 verificações de políticas e `role_permissions.test.sql` tem 4 verificações de exclusão por cargo.
+- A suíte `platform_company_role_model.test.sql` foi ampliada para **36 verificações**; `foundation.test.sql` agora tem 26 verificações de políticas e `role_permissions.test.sql` tem 5 verificações de catálogo e exclusão por cargo.
 - Além de validar que platform owner não consegue executar `ensure_team_group`, agora cria uma conversa e mensagem como administrador e verifica que platform owner não consegue ler conversas, mensagens nem participantes diretamente via RLS.
 - Também valida que administrador não pode remover a própria associação pela RPC nem contornar a RPC transacional usando DELETE direto na tabela; platform owner também não pode inserir vínculo diretamente na tabela.
 - A migration de normalização remove a policy de DELETE direto de membros comuns; a remoção autorizada de funcionários fica concentrada no RPC transacional.
