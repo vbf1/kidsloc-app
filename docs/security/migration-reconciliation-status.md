@@ -9,7 +9,7 @@
 - Histórico remoto: **60 versões**.
 - Arquivos presentes em `supabase/migrations` na branch: **44 arquivos**.
 - Versões remotas sem arquivo local com o mesmo identificador: **23**.
-- Versões locais sem registro remoto correspondente: **8**.
+- Versões locais sem registro remoto correspondente: **7**.
 - Interseção exata: **37 versões**.
 
 Os pares abaixo parecem representar a mesma intenção funcional com identificadores diferentes, mas não devem ser tratados como equivalentes sem comparar SQL e estado final:
