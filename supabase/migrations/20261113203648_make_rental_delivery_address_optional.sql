@@ -285,7 +285,7 @@ begin
               select 1
               from public.rental_item_units riu
               join public.rental_items ri on ri.id = riu.rental_item_id
-              join public.rentals r on r.id = ri.rental_id
+              join public.rentals r on r.id = ri.rental_item_id
               where riu.product_unit_id = pu.id
                 and r.id <> p_rental_id
                 and r.status in ('pending','confirmed','ongoing')
