@@ -237,18 +237,15 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
 
-insert into public.company_members (company_id, user_id, role)
-values (
-  'c2000000-0000-4000-8000-000000000001',
-  'c1000000-0000-4000-8000-000000000001',
-  'admin'
-);
-
-select is(
-  (select count(*)::integer from public.company_members
-   where company_id = 'c2000000-0000-4000-8000-000000000001'
-     and user_id = 'c1000000-0000-4000-8000-000000000001'),
-  0,
+select throws_ok(
+  $q$ insert into public.company_members (company_id, user_id, role)
+     values (
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000001',
+       'admin'
+     ) $q$,
+  '42501',
+  'new row violates row-level security policy for table "company_members"',
   'platform owner cannot bypass membership RPCs with direct table INSERT'
 );
 
