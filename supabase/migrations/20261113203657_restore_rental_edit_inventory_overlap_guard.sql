@@ -1,4 +1,3 @@
--- Keep the update RPC's transactional individual-unit overlap validation after the optional-address migration.
 create or replace function public.update_rental_with_items(
   p_company_id uuid,
   p_rental_id uuid,
