@@ -13,6 +13,32 @@ describe('LeadFesta prospecting helpers', () => {
     })).toMatchObject({ id: 'node/123', name: 'Escola Exemplo', category: 'school', phone: '+55 31 3333-4444', address: 'Rua A' });
   });
 
+  it('extracts additional public contact and business details', () => {
+    expect(mapOSMElement({
+      type: 'way', id: 456,
+      tags: {
+        name: 'Clínica Exemplo', amenity: 'clinic',
+        'contact:whatsapp': '+55 31 99999-0000',
+        'contact:instagram': '@clinicaexemplo',
+        'contact:facebook': 'https://facebook.com/clinicaexemplo',
+        opening_hours: 'Mo-Fr 08:00-18:00',
+        description: 'Atendimento especializado',
+        brand: 'Rede Exemplo',
+        operator: 'Grupo Exemplo',
+        'addr:full': 'Av. Central, 100 - Centro',
+      },
+    })).toMatchObject({
+      whatsapp: '+55 31 99999-0000',
+      instagram: '@clinicaexemplo',
+      facebook: 'https://facebook.com/clinicaexemplo',
+      openingHours: 'Mo-Fr 08:00-18:00',
+      description: 'Atendimento especializado',
+      brand: 'Rede Exemplo',
+      operator: 'Grupo Exemplo',
+      address: 'Av. Central, 100 - Centro',
+    });
+  });
+
   it('ignores unnamed map objects', () => {
     expect(mapOSMElement({ type: 'node', id: 1, tags: { amenity: 'school' } })).toBeNull();
   });
