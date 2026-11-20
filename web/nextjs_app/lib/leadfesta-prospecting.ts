@@ -14,6 +14,15 @@ export type ProspectResult = {
   phone: string;
   email: string;
   website: string;
+  whatsapp: string;
+  mobile: string;
+  instagram: string;
+  facebook: string;
+  linkedin: string;
+  openingHours: string;
+  description: string;
+  brand: string;
+  operator: string;
   address: string;
   osmUrl: string;
 };
@@ -30,6 +39,7 @@ export function mapOSMElement(element: OSMElement): ProspectResult | null {
   const category = tags.amenity || tags.shop || tags.office || tags.craft ||
     tags.tourism || tags.leisure || tags.healthcare || tags.sport || tags['building:use'] || 'Empresa / estabelecimento';
   const street = [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(', ');
+  const social = (key: string) => tags['contact:' + key] || tags[key] || '';
   const district = tags['addr:suburb'] || tags['addr:neighbourhood'] || '';
   const city = tags['addr:city'] || '';
   const address = [street, district, city].filter(Boolean).join(' - ');
@@ -40,7 +50,16 @@ export function mapOSMElement(element: OSMElement): ProspectResult | null {
     phone: tags.phone || tags['contact:phone'] || '',
     email: tags.email || tags['contact:email'] || '',
     website: tags.website || tags['contact:website'] || '',
-    address,
+    whatsapp: social('whatsapp'),
+    mobile: tags.mobile || tags['contact:mobile'] || '',
+    instagram: social('instagram'),
+    facebook: social('facebook'),
+    linkedin: social('linkedin'),
+    openingHours: tags.opening_hours || '',
+    description: tags.description || tags['description:pt'] || '',
+    brand: tags.brand || '',
+    operator: tags.operator || '',
+    address: address || tags['addr:full'] || '',
     osmUrl: 'https://www.openstreetmap.org/' + element.type + '/' + element.id,
   };
 }
