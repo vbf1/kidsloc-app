@@ -7,7 +7,6 @@ import { supabase } from '../../../lib/supabase';
 
 type Role='owner'|'admin'|'manager'|'staff';
 type Rental={id:string;rental_number:number;customer_id:string|null;start_date:string;end_date:string;start_time:string|null;end_time:string|null;status:string;total_amount:number|string};
-type Customer={id:string;name:string};
 const pad=(n:number)=>String(n).padStart(2,'0');
 const key=(y:number,m:number,d:number)=>y+'-'+pad(m+1)+'-'+pad(d);
 const label=(v:string)=>new Date(v+'T00:00:00').toLocaleDateString('pt-BR');
