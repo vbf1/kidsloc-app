@@ -127,7 +127,7 @@ export function RentalForm({
       {error && <FormFeedback>{error}</FormFeedback>}
       <section aria-labelledby="rental-customer-heading">
         <h3 id="rental-customer-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Cliente e período</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className={labelClass}>Cliente *</label>
             <div className="mt-1">
@@ -170,14 +170,14 @@ export function RentalForm({
       </section>
       <section aria-labelledby="rental-delivery-heading">
         <h3 id="rental-delivery-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Entrega</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className={labelClass}>Modalidade
             <div className="mt-1"><SearchablePicker title="Modalidade de entrega" value={values.delivery_method} options={[
               { value: 'customer_pickup', label: 'Retirada pelo cliente', description: 'O cliente busca os equipamentos' },
               { value: 'delivery', label: 'Entrega no endereço', description: 'A equipe leva os equipamentos ao local' },
             ]} placeholder="Selecione a modalidade" searchPlaceholder="Buscar modalidade..." emptyText="Nenhuma modalidade encontrada." disabled={saving} onChange={(value) => updateField('delivery_method', value as RentalFormValues['delivery_method'])} /></div>
           </div>
-          {values.delivery_method === 'delivery' && <label className={labelClass + ' sm:col-span-2'}>Endereço de entrega (opcional)
+          {values.delivery_method === 'delivery' && <label className={labelClass + ' md:col-span-2'}>Endereço de entrega (opcional)
             <textarea rows={2} maxLength={500} value={values.delivery_address} onChange={(event) => updateField('delivery_address', event.target.value)} className={inputClass} placeholder="Rua, número, bairro, cidade" disabled={saving} />
             {fieldErrors.delivery_address && <FieldFeedback id="rental-address-error">{fieldErrors.delivery_address}</FieldFeedback>}
           </label>}
@@ -187,7 +187,7 @@ export function RentalForm({
         <h3 id="rental-items-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Itens da locação</h3>
         <fieldset className="mb-4 rounded-xl border border-gray-200 p-3">
           <legend className="px-1 text-sm font-semibold text-gray-800">Forma de cobrança</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2">
             <label className={'flex cursor-pointer items-start gap-3 rounded-lg border p-3 ' + (pricingMode === 'individual' ? 'border-purple-300 bg-purple-50' : 'border-gray-200')}>
               <input type="radio" name="rental-pricing-mode" checked={pricingMode === 'individual'} onChange={() => changePricingMode('individual')} disabled={saving} className="mt-1 accent-[#8054d8]" />
               <span><strong className="block text-sm text-gray-900">Preço por equipamento</strong><span className="text-xs text-gray-500">Cada item tem seu preço individual.</span></span>
@@ -222,7 +222,7 @@ export function RentalForm({
             {values.items.map((item, index) => {
               const product = products.find((candidate) => candidate.id === item.product_id);
               return (
-                <div key={item.product_id} className={'grid gap-3 rounded-xl border border-gray-200 p-3 sm:items-end ' + (pricingMode === 'combo' ? 'sm:grid-cols-[minmax(0,1fr)_100px_auto]' : 'sm:grid-cols-[minmax(0,1fr)_100px_150px_auto]')}>
+                <div key={item.product_id} className={'grid gap-3 rounded-xl border border-gray-200 p-3 sm:items-end ' + (pricingMode === 'combo' ? 'md:grid-cols-[minmax(0,1fr)_100px_auto]' : 'md:grid-cols-[minmax(0,1fr)_100px_150px_auto]')}>
                   <div className="min-w-0"><p className="text-sm font-semibold text-gray-900">{product?.name ?? 'Item do catálogo'}</p><p className="mt-1 text-xs text-gray-500">{product?.item_type === 'toy' ? 'Preço por dia × período' : 'Preço por evento'}</p></div>
                   <label className={labelClass}>Quantidade
                     <input type="number" min="1" max="1000000" step="1" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} className={inputClass} disabled={saving} />
@@ -231,7 +231,7 @@ export function RentalForm({
                     <input inputMode="decimal" value={item.unit_price} onChange={(event) => updateItem(index, 'unit_price', event.target.value)} className={inputClass} disabled={saving} />
                   </label> : <p className="self-center text-sm font-medium text-purple-700">Incluído no combo</p>}
                   <button type="button" onClick={() => removeItem(index)} disabled={saving} className="rounded-xl border border-red-100 px-3 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button>
-                  <p className={'text-xs text-gray-500 ' + (pricingMode === 'combo' ? 'sm:col-span-3' : 'sm:col-span-4')}>{pricingMode === 'combo' ? 'Equipamento incluído no valor fechado do pacote.' : <>Subtotal: <strong className="text-gray-800">{formatRentalPrice((Number(item.quantity) || 0) * (parseRentalPrice(item.unit_price) ?? 0))}</strong></>}</p>
+                  <p className={'text-xs text-gray-500 ' + (pricingMode === 'combo' ? 'md:col-span-3' : 'md:col-span-4')}>{pricingMode === 'combo' ? 'Equipamento incluído no valor fechado do pacote.' : <>Subtotal: <strong className="text-gray-800">{formatRentalPrice((Number(item.quantity) || 0) * (parseRentalPrice(item.unit_price) ?? 0))}</strong></>}</p>
                 </div>
               );
             })}
@@ -249,7 +249,7 @@ export function RentalForm({
       <section aria-labelledby="rental-responsibles-heading">
         <h3 id="rental-responsibles-heading" className="mb-2 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Funcionários responsáveis</h3>
         <p className="mb-3 text-xs text-gray-500">A locação ficará visível ao criador, aos funcionários selecionados e aos administradores da empresa.</p>
-        {members.length ? <div className="grid gap-2 sm:grid-cols-2">
+        {members.length ? <div className="grid gap-2 md:grid-cols-2">
           {members.map((member) => <label key={member.user_id} className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-3 text-sm text-gray-700">
             <input type="checkbox" checked={values.responsible_user_ids.includes(member.user_id)} onChange={(event) => toggleResponsible(member.user_id, event.target.checked)} disabled={saving} className="size-4 accent-[#8054d8]" />
             <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{member.full_name}{member.user_id === currentUserId ? ' (você)' : ''}</span><span className="text-xs text-gray-500">{member.role === 'owner' ? 'Proprietário' : member.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></span>
