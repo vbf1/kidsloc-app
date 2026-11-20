@@ -47,6 +47,7 @@ export default function QuotesPage() {
   const [unitPrice,setUnitPrice] = useState('');
 
   const load = useCallback(async () => {
+    await Promise.resolve();
     if (!supabase) { setError('A conexão com o banco não está configurada.'); setLoading(false); return; }
     const { data:{user}, error:authError } = await supabase.auth.getUser();
     if (authError || !user) { router.replace('/login/'); return; }
