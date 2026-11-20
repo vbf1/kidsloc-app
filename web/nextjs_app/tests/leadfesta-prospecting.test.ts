@@ -66,6 +66,15 @@ describe('LeadFesta prospecting helpers', () => {
     expect(buildIntentSearchLinks('', 'Contagem, MG')).toEqual([]);
   });
 
+  it('builds broad buyer-intent searches without assuming a specific industry', () => {
+    const links = buildIntentSearchLinks('consultoria financeira', 'Contagem, MG');
+    expect(links.length).toBeGreaterThan(5);
+    expect(links[0].url).toContain(encodeURIComponent('"busco"'));
+    expect(links[0].url).toContain(encodeURIComponent('"quero comprar"'));
+    expect(links[0].url).toContain(encodeURIComponent('consultoria financeira'));
+    expect(links[0].url).toContain(encodeURIComponent('Contagem, MG'));
+  });
+
   it('classifies buyer intent across different business sectors', () => {
     expect(classifyPublicIntent('Estou procurando fotógrafo para casamento')).toMatchObject({ classification: 'buyer' });
     expect(classifyPublicIntent('Alguém indica uma empresa de limpeza?')).toMatchObject({ classification: 'buyer' });
