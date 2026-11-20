@@ -433,7 +433,7 @@ class _HomePageState extends State<HomePage> {
       final counts = <String, int>{};
       for (final module in _modules) {
         final response = await client.from(module[1])
-            .select('id', const FetchOptions(count: CountOption.exact, head: true))
+            .select('id')
             .eq('company_id', companyId);
         counts[module[0]] = response.count ?? 0;
       }
