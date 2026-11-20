@@ -390,6 +390,31 @@ drop policy if exists product_units_delete_owner_admin on public.product_units;
 create policy product_units_delete_owner_admin on public.product_units
 for delete to authenticated using (public.has_company_role(company_id, array['owner','admin']::text[]));
 
+create or replace function public.can_manage_rental(p_company_id uuid, p_rental_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select public.is_company_member(p_company_id)
+    and exists (
+      select 1 from public.rentals r
+      where r.id = p_rental_id and r.company_id = p_company_id
+        and (
+          r.created_by = (select auth.uid())
+          or public.has_company_role(p_company_id, array['owner','admin']::text[])
+          or exists (
+            select 1 from public.rental_responsibles rr
+            where rr.company_id = r.company_id
+              and rr.rental_id = r.id
+              and rr.user_id = (select auth.uid())
+          )
+        )
+    );
+$function$;
+revoke all on function public.can_manage_rental(uuid, uuid) from public, anon;
+grant execute on function public.can_manage_rental(uuid, uuid) to authenticated;
 -- Restore the creator/assignee policies missing from the local migration set.
 drop policy if exists rentals_scope_select on public.rentals;
 create policy rentals_scope_select on public.rentals as restrictive
