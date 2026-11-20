@@ -106,7 +106,7 @@ stable
 security definer
 set search_path = ''
 as $function$
-  select public.leadfesta_is_available(p_company_id);
+  select (select auth.uid()) is not null and public.leadfesta_is_available(p_company_id);
 $function$;
 revoke all on function public.can_access_leadfesta(uuid) from public, anon;
 grant execute on function public.can_access_leadfesta(uuid) to authenticated;
@@ -292,6 +292,7 @@ alter table public.lead_pipeline_stages enable row level security;
 alter table public.leads enable row level security;
 alter table public.lead_activities enable row level security;
 
+revoke all on public.lead_pipeline_stages, public.leads, public.lead_activities from public, anon;
 grant select, insert, update, delete on public.lead_pipeline_stages to authenticated;
 grant select, insert, update, delete on public.leads to authenticated;
 grant select, insert, update, delete on public.lead_activities to authenticated;

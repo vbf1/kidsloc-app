@@ -44,7 +44,11 @@ export default function LeadFestaAdminPage() {
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    // Load remote entitlement state after the admin page mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, []);
 
   async function toggle(row: Entitlement) {
     if (!supabase || savingId) return;

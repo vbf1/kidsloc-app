@@ -133,6 +133,8 @@ export default function LeadFestaPage() {
   }, [companyId]);
 
   useEffect(() => {
+    // Synchronize the selected company with its protected CRM data.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (workspace && companyId) void loadData();
   }, [workspace, companyId, loadData]);
 
@@ -155,7 +157,11 @@ export default function LeadFestaPage() {
     if (!error) setActivities((data ?? []) as LeadActivity[]);
   }, [companyId, selectedLeadId]);
 
-  useEffect(() => { void loadActivities(); }, [loadActivities]);
+  useEffect(() => {
+    // Load the selected lead's activity history from Supabase.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadActivities();
+  }, [loadActivities]);
 
   async function createLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
