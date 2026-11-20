@@ -16,7 +16,7 @@ Status checked: 2026-11-20. This document is a preparation checklist only. It do
 ## Mandatory decisions before rollout
 
 1. Decide the treatment of company **Festejando**. The first new migration removes the only platform-owner membership from this company, leaving the company record in place but with no members. Do not run the migration until this is explicitly accepted or the data/membership plan is changed and revalidated.
-2. Decide whether to enable Supabase Auth leaked-password protection. It is currently disabled. This is a separate Auth setting and must not be changed without approval.
+2. Supabase Auth leaked-password protection is currently disabled. The linked Supabase organization is on the **Free** plan, while Supabase documents this feature as available on **Pro and above**. Enabling it therefore requires a plan upgrade and a cost decision first; do not change the plan or Auth settings without explicit approval. See [Supabase password security](https://supabase.com/docs/guides/auth/password-security).
 3. Obtain explicit approval for production migration execution, Edge Function deployment, and PR merge. Validation success alone is not deployment approval.
 
 ## Pre-deployment safeguards
