@@ -226,3 +226,22 @@ Foram identificadas três FKs que referenciam `company_members(company_id, user_
 Na empresa Festejando, a consulta específica encontrou zero registros relacionados nas três tabelas filhas (tokens FCM, participantes de conversa e responsáveis de locação). A auditoria anterior também encontrou zero registros nas 25 tabelas públicas operacionais com `company_id`. Portanto, a remoção não deve apagar dados operacionais conhecidos dessa empresa; ainda assim, a empresa ficará sem administrador e precisará de uma decisão antes de qualquer implantação: manter como empresa legada vazia, atribuir outro administrador válido ou remover a empresa em uma operação futura separada (não incluída nesta migration).
 
 Nenhuma linha foi alterada. Esta verificação foi somente leitura e não autoriza a aplicação da migration.
+
+
+### Rechecagem do identificador `20261117015419` e do fluxo de convite — 20/11/2026
+
+A versão `20261117015419_invite_company_member_transactionally.sql` existe tanto no ledger remoto quanto na branch. Porém, a presença do mesmo identificador **não comprova equivalência do conteúdo SQL**:
+
+- A definição remota de `public.invite_company_member(uuid, uuid, text)` ainda aceita `manager` e exige vínculo real do ator com papel `owner` ou `admin`.
+- O arquivo local com esse mesmo identificador define somente `admin` e `staff`, trata o platform owner separadamente e impede vinculá-lo como membro de empresa.
+- O arquivo local posterior `20261116090000_normalize_platform_and_company_roles.sql` também redefine a RPC para o modelo final; `20261119090000_manage_company_member_transactionally.sql` adiciona a operação transacional de alteração/remoção de membros.
+- Portanto, a função atualmente publicada diverge do conteúdo desejado pela branch, mesmo que o identificador conste como aplicado no ledger. Não se deve editar o ledger nem reaplicar a versão `20261117015419`; a correção de produção precisa ocorrer por migration nova e inédita, após validação integral do plano.
+
+### CI do commit documental `34a2705a535082dd35bcc11f626c347db61004a3` — 20/11/2026
+
+Os três workflows associados a esse commit terminaram com sucesso:
+- `Web - test and deploy GitHub Pages` — sucesso.
+- `Web - pull request checks` — sucesso.
+- `Supabase migration checks` — sucesso, incluindo type-check, `supabase db reset`, Auth/onboarding E2E e pgTAP.
+
+Essa aprovação valida a reconstrução local da branch; não prova igualdade total com o banco remoto nem autoriza implantação.
