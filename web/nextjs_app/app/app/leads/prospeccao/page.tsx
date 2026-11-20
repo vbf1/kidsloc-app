@@ -47,7 +47,7 @@ export default function LeadProspectingPage() {
   const [intentPhone, setIntentPhone] = useState('');
   const [savingIntent, setSavingIntent] = useState(false);
   const intentLinks = useMemo(() => buildIntentSearchLinks(intentService, intentLocation), [intentService, intentLocation]);
-  const intentSignal = useMemo(() => classifyPublicIntent(intentText), [intentText]);
+  const intentSignal = useMemo(() => classifyPublicIntent(intentText, Boolean(intentPhone.trim())), [intentText, intentPhone]);
 
   useEffect(() => {
     let active = true;
@@ -369,7 +369,9 @@ export default function LeadProspectingPage() {
               <textarea className={field + ' min-h-20'} value={intentText} onChange={(event) => setIntentText(event.target.value)} placeholder="Cole apenas o trecho necessário que demonstra interesse..." maxLength={1000} />
             <span className={'mt-2 block rounded-lg p-3 text-xs leading-5 ' + (intentSignal.classification === 'buyer' ? 'bg-emerald-50 text-emerald-800' : intentSignal.classification === 'vendor' ? 'bg-amber-50 text-amber-900' : 'bg-gray-50 text-gray-600')}>
               <strong>{intentSignal.classification === 'buyer' ? 'Sinal de possível cliente' : intentSignal.classification === 'vendor' ? 'Sinal de possível oferta' : 'Intenção não identificada'}</strong>
-              <span className="mt-1 block">{intentSignal.reason} Esta análise é apenas um auxílio; confirme manualmente o contexto antes de registrar.</span>
+              {intentSignal.classification !== 'vendor' && <span className="mt-1 block font-semibold">Força dos sinais: {intentSignal.score}/100 · {intentSignal.priority === 'high' ? 'Alta' : intentSignal.priority === 'medium' ? 'Média' : 'Baixa'}</span>}
+              {intentSignal.signals.length > 0 && <ul className="mt-1 list-disc pl-4">{intentSignal.signals.map((signal) => <li key={signal}>{signal}</li>)}</ul>}
+              <span className="mt-1 block">{intentSignal.reason} A pontuação é uma triagem heurística, não uma probabilidade de conversão. Confira manualmente o contexto antes de registrar.</span>
             </span>
             </label>
           </div>
