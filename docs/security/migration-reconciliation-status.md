@@ -275,3 +275,23 @@ Com isso, os arquivos locais sem identificador remoto foram mapeados por categor
 - `20261116090000` e `20261119090000`: novas correções/hardening ainda ausentes do remoto e não aplicadas.
 
 Este mapeamento não substitui a revisão dos SQLs originais ausentes, nem significa que o histórico de migrations esteja reconciliado.
+
+
+### Integração da tela de equipe com as RPCs transacionais — 20/11/2026
+
+A revisão do fluxo da tela `/equipe/` encontrou duas incompatibilidades com a migration de normalização:
+
+- A remoção de funcionário ainda tentava executar `DELETE` direto em `company_members`. A migration `20261116090000` remove a policy que permitia essa escrita direta, concentrando as alterações no RPC transacional.
+- A tela ainda oferecia o cargo legado `manager` para contas com papel `owner`; a nova regra permite somente `admin` e `staff`. A Edge Function antiga poderia criar/enviar o convite antes de a RPC rejeitar `manager`, deixando uma conta convidada sem vínculo.
+
+Correções realizadas na branch:
+- A tela agora usa `manage_company_member` para mudança de cargo e remoção, em vez de `add_company_member` para tudo e `DELETE` direto na tabela.
+- Para administradores de empresa, a interface mostra o cargo dos funcionários e oferece remoção; não apresenta um seletor de cargo que só permitiria escolher novamente `staff`.
+- O cargo `manager` foi removido das opções de convite/alteração.
+- A Edge Function `invite-company-member` agora rejeita `manager` antes de enviar o e-mail.
+
+Arquivos alterados:
+- `web/nextjs_app/app/equipe/team-management.tsx`
+- `supabase/functions/invite-company-member/index.ts`
+
+As alterações estão na branch `chore/foundation-reconciliation-verify`. Os workflows de validação foram disparados para o novo commit e ainda precisam terminar antes de considerar a correção validada. Nenhuma Edge Function foi publicada e nenhuma alteração foi aplicada ao Supabase remoto.
