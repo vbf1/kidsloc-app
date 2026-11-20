@@ -308,6 +308,176 @@ grant execute on function public.manage_company_member(uuid, uuid, text, text) t
 -- Keep the platform-owner ALL policy; remove the direct company-admin DELETE path.
 drop policy if exists company_members_delete_authorized_admins on public.company_members;
 
+-- Reconcile company-wide operational policies to the deployed role model.
+-- The initial foundation grants company_members_all on these tables; remove
+-- those broad policies before applying explicit per-operation permissions.
+do $
+declare v_table text;
+begin
+  foreach v_table in array array['documents','financial_transactions','stock_movements','maintenance_records','product_units'] loop
+    execute format('drop policy if exists company_members_all on public.%I', v_table);
+  end loop;
+end;
+$;
+
+drop policy if exists documents_select_company_members on public.documents;
+create policy documents_select_company_members on public.documents
+for select to authenticated using (public.is_company_member(company_id));
+drop policy if exists documents_insert_company_members on public.documents;
+create policy documents_insert_company_members on public.documents
+for insert to authenticated with check (public.is_company_member(company_id));
+drop policy if exists documents_update_company_members on public.documents;
+create policy documents_update_company_members on public.documents
+for update to authenticated using (public.is_company_member(company_id))
+with check (public.is_company_member(company_id));
+drop policy if exists documents_delete_owner_admin on public.documents;
+create policy documents_delete_owner_admin on public.documents
+for delete to authenticated using (public.has_company_role(company_id, array['owner','admin']::text[]));
+
+drop policy if exists financial_transactions_select_company_members on public.financial_transactions;
+create policy financial_transactions_select_company_members on public.financial_transactions
+for select to authenticated using (public.is_company_member(company_id));
+drop policy if exists financial_transactions_insert_owner_admin on public.financial_transactions;
+create policy financial_transactions_insert_owner_admin on public.financial_transactions
+for insert to authenticated with check (public.has_company_role(company_id, array['owner','admin']::text[]));
+drop policy if exists financial_transactions_update_owner_admin on public.financial_transactions;
+create policy financial_transactions_update_owner_admin on public.financial_transactions
+for update to authenticated using (public.has_company_role(company_id, array['owner','admin']::text[]))
+with check (public.has_company_role(company_id, array['owner','admin']::text[]));
+drop policy if exists financial_transactions_delete_owner_admin on public.financial_transactions;
+create policy financial_transactions_delete_owner_admin on public.financial_transactions
+for delete to authenticated using (public.has_company_role(company_id, array['owner','admin']::text[]));
+
+drop policy if exists stock_movements_select_company_members on public.stock_movements;
+create policy stock_movements_select_company_members on public.stock_movements
+for select to authenticated using (public.is_company_member(company_id));
+drop policy if exists stock_movements_insert_company_members on public.stock_movements;
+create policy stock_movements_insert_company_members on public.stock_movements
+for insert to authenticated with check (public.is_company_member(company_id));
+drop policy if exists stock_movements_update_company_members on public.stock_movements;
+create policy stock_movements_update_company_members on public.stock_movements
+for update to authenticated using (public.is_company_member(company_id))
+with check (public.is_company_member(company_id));
+drop policy if exists stock_movements_delete_owner_admin on public.stock_movements;
+create policy stock_movements_delete_owner_admin on public.stock_movements
+for delete to authenticated using (public.has_company_role(company_id, array['owner','admin']::text[]));
+
+drop policy if exists maintenance_records_select_company_members on public.maintenance_records;
+create policy maintenance_records_select_company_members on public.maintenance_records
+for select to authenticated using (public.is_company_member(company_id));
+drop policy if exists maintenance_records_insert_company_members on public.maintenance_records;
+create policy maintenance_records_insert_company_members on public.maintenance_records
+for insert to authenticated with check (public.is_company_member(company_id));
+drop policy if exists maintenance_records_update_company_members on public.maintenance_records;
+create policy maintenance_records_update_company_members on public.maintenance_records
+for update to authenticated using (public.is_company_member(company_id))
+with check (public.is_company_member(company_id));
+drop policy if exists maintenance_records_delete_owner_admin on public.maintenance_records;
+create policy maintenance_records_delete_owner_admin on public.maintenance_records
+for delete to authenticated using (public.has_company_role(company_id, array['owner','admin']::text[]));
+
+drop policy if exists product_units_select_company_members on public.product_units;
+create policy product_units_select_company_members on public.product_units
+for select to authenticated using (public.is_company_member(company_id));
+drop policy if exists product_units_insert_company_members on public.product_units;
+create policy product_units_insert_company_members on public.product_units
+for insert to authenticated with check (public.is_company_member(company_id));
+drop policy if exists product_units_update_company_members on public.product_units;
+create policy product_units_update_company_members on public.product_units
+for update to authenticated using (public.is_company_member(company_id))
+with check (public.is_company_member(company_id));
+drop policy if exists product_units_delete_owner_admin on public.product_units;
+create policy product_units_delete_owner_admin on public.product_units
+for delete to authenticated using (public.has_company_role(company_id, array['owner','admin']::text[]));
+
+-- Restore the creator/assignee policies missing from the local migration set.
+drop policy if exists rentals_scope_select on public.rentals;
+create policy rentals_scope_select on public.rentals as restrictive
+for select to authenticated using (
+  public.is_platform_owner() or
+  (public.is_company_member(company_id) and
+    (created_by = (select auth.uid()) or public.can_manage_rental(company_id, id)))
+);
+drop policy if exists rentals_select_creator_or_assigned on public.rentals;
+create policy rentals_select_creator_or_assigned on public.rentals
+for select to authenticated using (
+  public.is_company_member(company_id) and
+  (created_by = (select auth.uid()) or public.can_manage_rental(company_id, id))
+);
+drop policy if exists rentals_update_creator_assigned_admin on public.rentals;
+create policy rentals_update_creator_assigned_admin on public.rentals
+for update to authenticated using (
+  public.is_company_member(company_id) and public.can_manage_rental(company_id, id)
+) with check (
+  public.is_company_member(company_id) and public.can_manage_rental(company_id, id)
+);
+
+drop policy if exists rental_items_scope_select on public.rental_items;
+drop policy if exists rental_items_select_creator_or_assigned on public.rental_items;
+create policy rental_items_select_creator_or_assigned on public.rental_items
+for select to authenticated using (exists (
+  select 1 from public.rentals r
+  where r.id = rental_items.rental_id and r.company_id = rental_items.company_id
+    and public.is_company_member(r.company_id)
+    and (r.created_by = (select auth.uid()) or public.can_manage_rental(r.company_id, r.id))
+));
+drop policy if exists rental_items_delete_creator_assigned_admin on public.rental_items;
+create policy rental_items_delete_creator_assigned_admin on public.rental_items
+for delete to authenticated using (exists (
+  select 1 from public.rentals r
+  where r.id = rental_items.rental_id and r.company_id = rental_items.company_id
+    and public.can_manage_rental(r.company_id, r.id)
+));
+
+drop policy if exists rental_item_units_scope_select on public.rental_item_units;
+drop policy if exists rental_item_units_select_creator_or_assigned on public.rental_item_units;
+create policy rental_item_units_select_creator_or_assigned on public.rental_item_units
+for select to authenticated using (exists (
+  select 1 from public.rental_items ri
+  join public.rentals r on r.id = ri.rental_id and r.company_id = ri.company_id
+  where ri.id = rental_item_units.rental_item_id and ri.company_id = rental_item_units.company_id
+    and public.is_company_member(r.company_id)
+    and (r.created_by = (select auth.uid()) or public.can_manage_rental(r.company_id, r.id))
+));
+
+drop policy if exists rental_events_scope_select on public.rental_events;
+drop policy if exists rental_events_select_creator_or_assigned on public.rental_events;
+create policy rental_events_select_creator_or_assigned on public.rental_events
+for select to authenticated using (exists (
+  select 1 from public.rentals r
+  where r.id = rental_events.rental_id and r.company_id = rental_events.company_id
+    and public.is_company_member(r.company_id)
+    and (r.created_by = (select auth.uid()) or public.can_manage_rental(r.company_id, r.id))
+));
+
+drop policy if exists rental_responsibles_scope_select on public.rental_responsibles;
+create policy rental_responsibles_scope_select on public.rental_responsibles
+for select to authenticated using (
+  public.is_platform_owner() or
+  (public.is_company_member(company_id) and (
+    user_id = (select auth.uid())
+    or exists (select 1 from public.company_members cm where cm.company_id = rental_responsibles.company_id
+      and cm.user_id = (select auth.uid()) and cm.role in ('owner','admin'))
+    or exists (select 1 from public.rentals r where r.id = rental_responsibles.rental_id
+      and r.company_id = rental_responsibles.company_id
+      and (r.created_by = (select auth.uid()) or public.can_manage_rental(r.company_id, r.id)))
+  ))
+);
+drop policy if exists rental_responsibles_select_creator_or_assigned on public.rental_responsibles;
+create policy rental_responsibles_select_creator_or_assigned on public.rental_responsibles
+for select to authenticated using (exists (
+  select 1 from public.rentals r
+  where r.id = rental_responsibles.rental_id and r.company_id = rental_responsibles.company_id
+    and public.is_company_member(r.company_id)
+    and (r.created_by = (select auth.uid()) or public.can_manage_rental(r.company_id, r.id))
+));
+drop policy if exists rental_responsibles_delete_creator_assigned_admin on public.rental_responsibles;
+create policy rental_responsibles_delete_creator_assigned_admin on public.rental_responsibles
+for delete to authenticated using (exists (
+  select 1 from public.rentals r
+  where r.id = rental_responsibles.rental_id and r.company_id = rental_responsibles.company_id
+    and public.can_manage_rental(r.company_id, r.id)
+));
 -- Remove the broad platform-owner policies created by the earlier global-access migration.
 -- The platform owner is not a company chat participant and must not inherit chat access.
 drop policy if exists platform_owner_all on public.team_conversations;
