@@ -66,6 +66,17 @@ describe('LeadFesta prospecting helpers', () => {
     expect(buildIntentSearchLinks('', 'Contagem, MG')).toEqual([]);
   });
 
+  it('applies selected publication recency to supported search engines', () => {
+    const day = buildIntentSearchLinks('serviço de limpeza', 'Contagem, MG', 'day');
+    const month = buildIntentSearchLinks('serviço de limpeza', 'Contagem, MG', 'month');
+    const any = buildIntentSearchLinks('serviço de limpeza', 'Contagem, MG', 'any');
+    expect(day[0].url).toContain('tbs=qdr:d');
+    expect(month[0].url).toContain('tbs=qdr:m');
+    expect(any[0].url).not.toContain('tbs=qdr:');
+    expect(day.find((link) => link.source === 'Busca alternativa (DuckDuckGo)')?.url).toContain('df=d');
+    expect(day.find((link) => link.source === 'Busca alternativa (Bing)')?.description).toContain('ajuste o período');
+  });
+
   it('builds broad buyer-intent searches without assuming a specific industry', () => {
     const links = buildIntentSearchLinks('consultoria financeira', 'Contagem, MG');
     expect(links.length).toBeGreaterThan(5);
