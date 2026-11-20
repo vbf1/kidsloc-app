@@ -50,6 +50,11 @@ describe('LeadFesta prospecting helpers', () => {
     expect(matchesProspectingSegment(prospect, '', {})).toBe(true);
   });
 
+  it('does not match unrelated businesses when searching for a rental service', () => {
+    const pharmacy = mapOSMElement({ type: 'node', id: 99, tags: { name: 'Farmácia Central', amenity: 'pharmacy' } })!;
+    expect(matchesProspectingSegment(pharmacy, 'locação de brinquedos', { amenity: 'pharmacy' })).toBe(false);
+  });
+
   it('detects duplicates by company name or phone', () => {
     const existing = [{ name: 'Escola Horizonte', contact_company: 'Escola Horizonte', phone: '31999990000' }];
     expect(isDuplicateProspect({ name: '  escola horizonte ', phone: '' }, existing)).toBe(true);
