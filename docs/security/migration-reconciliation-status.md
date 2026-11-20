@@ -262,3 +262,16 @@ A comparação adicional do catálogo de produtos confirmou que o estado remoto 
 - Os triggers correspondentes estão presentes no remoto. A função e os triggers observados correspondem ao SQL da cadeia local, inclusive à proteção incremental de contagem.
 
 Nenhum dado ou privilégio foi alterado nesta verificação.
+
+
+### Mapeamento do arquivo local `20261113060000` — 20/11/2026
+
+A função `public.is_platform_owner_for_company()` existe no remoto com a mesma implementação funcional do arquivo local `20261113060000_grant_platform_owner_check_to_authenticated.sql`: `SECURITY DEFINER`, `search_path` vazio, consulta defensiva a `private.is_platform_owner()` e retorno booleano. O ACL remoto permite EXECUTE a `authenticated` e `service_role`, não a `anon`. Portanto, o efeito funcional deste arquivo local sem versão remota correspondente já está presente no catálogo remoto; a divergência é do identificador/histórico, não da função observada.
+
+Com isso, os arquivos locais sem identificador remoto foram mapeados por categoria:
+- Arquivo legado `202611090001_foundation.sql`: excluído da branch por ser obsoleto.
+- `20261112030000`, `20261112050000`, `20261113040000` e `20261113050000`: pares funcionais avaliados junto com as versões remotas de identificadores diferentes e as migrations locais subsequentes.
+- `20261113060000`: efeito funcional já confirmado no catálogo remoto.
+- `20261116090000` e `20261119090000`: novas correções/hardening ainda ausentes do remoto e não aplicadas.
+
+Este mapeamento não substitui a revisão dos SQLs originais ausentes, nem significa que o histórico de migrations esteja reconciliado.
