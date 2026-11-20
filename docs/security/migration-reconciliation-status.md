@@ -386,3 +386,16 @@ Nova rechecagem somente leitura do catálogo e dos Security Advisors:
 - O Advisor de Auth continua apontando proteção contra senhas vazadas desativada. É uma configuração de Auth independente e não foi alterada.
 
 **Classificação:** não foi identificado acesso anônimo efetivo às 28 tabelas ou às 18 funções públicas consultadas. Permanecem diferenças funcionais conhecidas no modelo de cargos/RPCs, questões prospectivas de ACL padrão de `supabase_admin`, avisos de performance e a configuração de proteção contra senhas vazadas. Nenhum dado, privilégio, policy, índice, bucket, função, migration ou configuração remota foi alterado.
+
+
+### Esclarecimento sobre ACLs padrão de `supabase_admin` e extensões — 20/11/2026
+
+A investigação foi aprofundada com o catálogo de extensões e a documentação oficial atual do Supabase:
+
+- As ACLs padrão amplas de `supabase_admin` são gerenciadas pela plataforma. A documentação do Supabase informa que o usuário `postgres` não pode alterá-las; o role interno é usado em tarefas administrativas e na criação de objetos de extensões.
+- A documentação esclarece que serviços Supabase não criam tabelas, views ou funções em `public` como `supabase_admin`; o caso relevante é principalmente a instalação de extensões em `public`. As ACLs padrão do role só afetam objetos que ele próprio cria.
+- A consulta de `pg_extension` encontrou `pg_stat_statements`, `pgcrypto` e `uuid-ossp` no schema `extensions`, `supabase_vault` no schema `vault` e `plpgsql` em `pg_catalog`. **Nenhuma extensão está instalada em `public`**.
+- A auditoria anterior também confirmou que nenhum objeto atual do schema `public` pertence a `supabase_admin`. Assim, não há objeto público atual exposto por essas ACLs padrão.
+- A ação preventiva correta é continuar instalando extensões no schema `extensions` quando suportado e verificar a propriedade dos objetos após upgrades; não tentar revogar ou alterar diretamente os defaults internos de `supabase_admin`.
+
+**Reclassificação:** a ACL padrão de `supabase_admin` deixa de ser tratada como alteração pendente do projeto. É um comportamento interno documentado do Supabase, sem objetos públicos atuais afetados. O efeito dos defaults de `postgres` continua confirmado como restrito para `anon`; o SQL original da migration remota não foi recuperado, então a equivalência histórica exata permanece não comprovada.
