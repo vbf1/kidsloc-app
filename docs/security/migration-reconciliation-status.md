@@ -423,3 +423,25 @@ A versão atual da migration:
 A suíte `supabase/tests/platform_company_role_model.test.sql` contém duas asserções explícitas: uma confirma que o platform owner continua com exatamente um vínculo empresarial e outra confirma que esse mesmo vínculo permanece com papel `admin`. Essa cobertura foi executada no CI, junto com os demais testes pgTAP.
 
 Portanto, o requisito de preservação da associação legado é atendido no SQL final: **o vínculo entre a conta platform owner e a empresa Festejando permanece; somente o rótulo de papel é normalizado**. Esta correção documental não altera dados nem executa migrations no Supabase remoto.
+
+
+## Atualização após rollout de produção — 20/11/2026
+
+O diagnóstico acima descrevia o estado anterior ao rollout. Após backup manual confirmado pelo usuário e autorização explícita, foram aplicadas as três migrations novas. O histórico remoto agora contém **63 migrations**, com os seguintes IDs gerados pelo Supabase:
+
+- `20261120140755_normalize_platform_and_company_roles`
+- `20261120140813_manage_company_member_transactionally`
+- `20261120140835_leadfesta_module`
+
+Os arquivos locais foram renomeados para usar exatamente esses IDs. Não reaplicar essas migrations nem criar arquivos locais com os timestamps antigos.
+
+Verificações remotas após a aplicação:
+- A associação original do platform owner com **Festejando** continua com o mesmo `company_id` e `user_id`; o papel foi normalizado para `admin`.
+- Os vínculos de **Sonho Kids Brinquedos** e **Nobre Paladar** foram preservados, ambos com papel `admin`.
+- Não há papéis diferentes de `admin`/ `staff` em `company_members`; no momento da verificação, as três associações existentes estavam como `admin`.
+- As tabelas `leads`, `lead_activities` e `lead_pipeline_stages` existem e têm RLS habilitado.
+- Seis etapas padrão foram criadas para cada empresa existente; nenhum lead foi criado durante a migration.
+- As funções de gestão de membros mantêm EXECUTE negado a `anon` e concedido a `authenticated`.
+- Edge Functions `manage-employees` e `invite-company-member` estão ativas na versão 3, ambas com JWT verification habilitada.
+
+O entitlement LeadFesta permanece desativado por padrão; a ativação por empresa deve ser decidida pelo platform owner. A publicação do frontend ainda depende do merge das PRs e do workflow de GitHub Pages.
