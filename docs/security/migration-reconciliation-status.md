@@ -7,7 +7,7 @@
 ## Inventário confirmado
 
 - Histórico remoto: **60 versões**.
-- Arquivos presentes em `supabase/migrations` na branch: **45 arquivos**.
+- Arquivos presentes em `supabase/migrations` na branch: **44 arquivos**.
 - Versões remotas sem arquivo local com o mesmo identificador: **23**.
 - Versões locais sem registro remoto correspondente: **8**.
 - Interseção exata: **37 versões**.
@@ -45,12 +45,11 @@ Os pares abaixo parecem representar a mesma intenção funcional com identificad
 20261117014514_prevent_company_members_from_changing_own_role
 ```
 
-As quatro versões remotas com nomes semelhantes acima completam as 23 ausências remotas. A contagem local é 37 correspondências exatas + 8 arquivos sem versão remota = 45.
+As quatro versões remotas com nomes semelhantes acima completam as 23 ausências remotas. A contagem local é 37 correspondências exatas + 7 arquivos sem versão remota = 44.
 
 ### Versões locais sem registro remoto correspondente
 
 ```text
-202611090001_foundation (arquivo legado com identificador de 12 dígitos)
 20261112030000_product_catalog
 20261112050000_prevent_customer_deletion
 20261113040000_allow_machine_product_units
@@ -60,7 +59,7 @@ As quatro versões remotas com nomes semelhantes acima completam as 23 ausência
 20261119090000_manage_company_member_transactionally
 ```
 
-Os quatro arquivos que aparecem como pares têm versões remotas diferentes, embora a intenção funcional pareça semelhante. O arquivo `20261112024141_foundation` é a correspondência exata da versão remota `20261112024141_foundation`. Já `202611090001_foundation` não tem registro remoto equivalente e sua leitura pela API de conteúdo do GitHub retornou 404, apesar de constar na listagem da PR; precisa de recuperação/verificação do arquivo antes de qualquer conclusão. Não renomear nem registrar como aplicada sem determinar sua origem e efeitos.
+Os quatro arquivos que aparecem como pares têm versões remotas diferentes, embora a intenção funcional pareça semelhante. O arquivo `20261112024141_foundation` é a correspondência exata da versão remota `20261112024141_foundation`. O inventário atual da branch contém 44 arquivos e não contém `202611090001_foundation.sql`. Esse arquivo foi recuperado do histórico Git no commit `3a4b068570ffde2e2fce7e85505c2e6c9e0fdb62`: ele pertence a uma fundação antiga, com `company_users`, enums `company_role/company_status` e uma estrutura diferente da atual `company_members`. Não consta no ledger remoto nem no diretório atual; é um artefato histórico substituído pela fundação posterior `20261112024141_foundation.sql`, não deve ser restaurado nem aplicado.
 
 ## Estado remoto observado por consultas SQL
 
@@ -120,11 +119,34 @@ A inspeção das definições efetivamente publicadas no Postgres identificou ca
 
 **Conclusão parcial:** os efeitos de integridade referencial de remoção de membro e de escopo por empresa estão presentes no banco. Em contrapartida, o modelo de cargos e a separação entre platform owner e membros da empresa continuam divergentes do estado proposto na branch. Não marcar uma migration como reconciliada apenas porque alguns efeitos relacionados já existem; constraints, policies e funções são camadas diferentes.
 
+### Auditoria das migrations remotas de 17/11 — verificação do estado efetivo
+
+Consultas somente leitura ao catálogo confirmaram os seguintes efeitos:
+
+- As três migrations de FKs company-scoped (`20261117005923`, `20261117005941`, `20261117005958`) correspondem a **26 FKs compostas** atualmente presentes no banco, incluindo vínculos empresa-produto, empresa-locação, empresa-cliente, empresa-membro, empresa-conversa e empresa-transação. As definições verificadas incluem o mesmo `company_id` nos dois lados da referência, evitando referências cruzadas entre empresas.
+- A migration `20261117010018_index_company_scoped_foreign_keys`: os índices de prefixo das FKs compostas auditadas estão presentes. A auditoria não declara que toda FK simples do schema tenha índice; o foco desta confirmação é o conjunto company-scoped.
+- A migration `20261117010059_enforce_product_unit_and_payment_rental_consistency`: estão presentes as FKs compostas que ligam unidades ao produto da mesma empresa e pagamentos à locação/transação da mesma empresa, inclusive a constraint de correspondência entre `company_id`, `rental_id` e `transaction_id`.
+- A migration `20261117010616_ensure_single_team_group_per_company`: o índice único parcial `team_conversations_one_team_group_per_company_idx` está presente em `(company_id)` com predicado `conversation_type = 'team'`.
+- A migration `20261117010919_revoke_company_data_access_after_member_removal`: a FK composta `team_members_company_member_fkey` mantém `ON DELETE CASCADE`; a remoção do vínculo da empresa remove a participação nas conversas.
+- A migration `20261117011036_allow_authorized_company_member_removal`: a policy `company_members_delete_authorized_admins` está presente. Sua expressão impede apagar registros com papel `owner`; permite remoção por papel `owner` e permite que `admin` remova somente registros `staff`. No modelo novo, após a conversão dos cargos, o administrador da empresa remove apenas funcionários.
+- A migration `20261117014514_prevent_company_members_from_changing_own_role`: não há policy de UPDATE para `company_members` nem trigger de usuário nessa tabela. O papel `authenticated` ainda possui privilégio SQL UPDATE, mas o RLS sem policy de UPDATE bloqueia a alteração direta por membros comuns. A policy `platform_owner_all` continua concedendo acesso total ao proprietário da plataforma. Portanto, a proteção efetiva para administradores/funcionários vem do RLS, não de trigger.
+
+**Novo achado de segurança:** a policy remota `company_members_delete_authorized_admins` permite ao administrador excluir funcionários diretamente pela Data API, contornando o novo RPC transacional `manage_company_member` e os locks de concorrência. A branch foi corrigida para remover essa policy na migration `20261116090000_normalize_platform_and_company_roles.sql`; o caminho de alteração/remoção de membros passa a ser a função transacional. A policy global do platform owner permanece separada.
+
+Os arquivos SQL originais de `20261117011036` e `20261117014514` não estão no diretório atual da branch e não foram encontrados no histórico Git do repositório. Os efeitos acima foram classificados a partir do catálogo remoto; não se deve inventar ou reconstruir o SQL original nem marcar a reconciliação de histórico como concluída apenas por semelhança de efeitos.
+
+### Testes de isolamento do chat e gerenciamento transacional
+
+- A suíte `platform_company_role_model.test.sql` foi ampliada para **35 verificações**.
+- Além de validar que platform owner não consegue executar `ensure_team_group`, agora cria uma conversa e mensagem como administrador e verifica que platform owner não consegue ler conversas, mensagens nem participantes diretamente via RLS.
+- Também valida que administrador não pode remover a própria associação pela RPC nem contornar a RPC transacional usando DELETE direto na tabela.
+- A migration de normalização remove a policy de DELETE direto de membros comuns; a remoção autorizada de funcionários fica concentrada no RPC transacional.
+
 ## Próxima sequência de trabalho
 
 1. Comparar cada uma das migrations remotas ausentes com o estado real de constraints, índices, triggers, funções e policies.
 2. Classificar separadamente constraints, índices, policies e funções. FKs compostos observados não comprovam que as policies e funções de autorização também estejam atualizadas.
-3. Comparar os oito arquivos locais sem registro remoto, identificando os quatro pares de intenção semelhante e os quatro arquivos locais sem equivalente remoto; recuperar e inspecionar separadamente `202611090001_foundation`.
+3. Comparar os sete arquivos locais sem registro remoto, incluindo os quatro pares de intenção semelhante e os três arquivos locais sem equivalente remoto; o arquivo histórico `202611090001_foundation.sql` foi recuperado e classificado como fundação obsoleta, fora da branch atual.
 4. Criar migrations corretivas com versões inéditas apenas para efeitos comprovadamente ausentes ou incorretos, sem no-op e sem reaplicar a migration destrutiva de reconstrução do núcleo de locações.
 5. Reexecutar CI e revisar o plano de aplicação. A execução remota exige autorização explícita separada.
 
