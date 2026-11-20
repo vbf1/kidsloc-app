@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect,useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 
 type Role='owner'|'admin'|'manager'|'staff';
 type Rental={id:string;rental_number:number;customer_id:string|null;start_date:string;end_date:string;start_time:string|null;end_time:string|null;status:string;delivery_method:string;delivery_address:string|null;total_amount:number|string;discount:number|string;delivery_fee:number|string};
-type Contract={id:string;contract_number:number;rental_id:string;status:string;created_at:string;contract_snapshot:Record<string,unknown>;token_expires_at:string|null};
+type ContractSnapshot={company?:{name?:string};customer?:Customer;rental?:Rental;items?:Item[];terms?:string};
+type Contract={id:string;contract_number:number;rental_id:string;status:string;created_at:string;contract_snapshot:ContractSnapshot;token_expires_at:string|null};
 type Customer={id:string;name:string;phone:string|null;email:string|null;address:string|null;cpf?:string|null;rg?:string|null;zip?:string|null;neighborhood?:string|null;city_state?:string|null};
 type Item={product_id:string;quantity:number;unit_price:number|string;subtotal:number|string;name:string};
 const money=(v:number|string)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
@@ -17,7 +18,7 @@ function esc(v:unknown){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;'
 
 export default function ContractsPage(){
  const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [rentals,setRentals]=useState<Rental[]>([]);const [customers,setCustomers]=useState<Record<string,Customer>>({});const [contracts,setContracts]=useState<Contract[]>([]);const [itemsByRental,setItemsByRental]=useState<Record<string,Item[]>>({});const [links,setLinks]=useState<Record<string,string>>({});const [selectedRental,setSelectedRental]=useState('');
- async function load(){
+ const load=useCallback(async()=>{
   if(!supabase){setError('Banco não configurado.');setLoading(false);return;}
   const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace('/login/');return;}setEmail(user.email??'');
   const {data:m,error:e}=await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
@@ -38,8 +39,8 @@ export default function ContractsPage(){
   const pnames=Object.fromEntries((pr.data??[]).map(p=>[p.id,p.name]));
   const by:Record<string,Item[]>={};for(const i of ir.data??[]){(by[i.rental_id]??=[]).push({...i,name:pnames[i.product_id]??'Item'});}
   setRentals(rlist);setCustomers(Object.fromEntries((cr.data??[]).map(c=>[c.id,c])));setContracts((co.data??[]) as Contract[]);setItemsByRental(by);setLoading(false);
- }
- useEffect(()=>{void load();},[]);
+ },[router]);
+ useEffect(()=>{void load();},[load]);
  async function createDraft(){
   if(!supabase||!selectedRental)return;const rental=rentals.find(r=>r.id===selectedRental);if(!rental)return;
   const customer=rental.customer_id?customers[rental.customer_id]:null;if(!customer){setError('A locação precisa estar vinculada a um cliente.');return;}
@@ -56,8 +57,8 @@ export default function ContractsPage(){
   setLinks(v=>({...v,[c.id]:url}));setNotice('Link de assinatura gerado. Ele ficará disponível nesta tela enquanto ela estiver aberta.');await load();
  }
  function printContract(c:Contract){
-  const s=c.contract_snapshot as any;const customer=s.customer??{};const rental=s.rental??{};const items=Array.isArray(s.items)?s.items:[];
-  const rows=items.map((i:any)=>'<tr><td>'+esc(i.name)+'</td><td>'+esc(i.quantity)+'</td><td>'+esc(money(i.unit_price))+'</td><td>'+esc(money(i.subtotal))+'</td></tr>').join('');
+  const s=c.contract_snapshot;const customer=s.customer??{};const rental=s.rental??{};const items=s.items??[];
+  const rows=items.map((i)=>'<tr><td>'+esc(i.name)+'</td><td>'+esc(i.quantity)+'</td><td>'+esc(money(i.unit_price))+'</td><td>'+esc(money(i.subtotal))+'</td></tr>').join('');
   const html='<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Contrato #'+esc(c.contract_number)+'</title><style>body{font:14px Arial,sans-serif;color:#222;max-width:800px;margin:40px auto;line-height:1.6}h1{text-align:center}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{border:1px solid #ddd;padding:8px;text-align:left}.sign{display:flex;justify-content:space-between;margin-top:70px;gap:30px}.sign div{width:45%;border-top:1px solid #333;text-align:center;padding-top:8px}@media print{button{display:none}}</style><h1>CONTRATO DE LOCAÇÃO</h1><p><b>Contrato nº:</b> '+esc(c.contract_number)+'</p><h3>LOCADOR</h3><p>'+esc(companyName)+'</p><h3>LOCATÁRIO</h3><p><b>Nome:</b> '+esc(customer.name)+'<br><b>CPF:</b> '+esc(customer.cpf)+'<br><b>RG:</b> '+esc(customer.rg)+'<br><b>Telefone:</b> '+esc(customer.phone)+'<br><b>Endereço:</b> '+esc(customer.address)+' '+esc(customer.city_state)+'</p><h3>OBJETO E PERÍODO</h3><p>Locação dos equipamentos abaixo para o período de '+esc(rental.start_date)+' a '+esc(rental.end_date)+', das '+esc(rental.start_time)+' às '+esc(rental.end_time)+'. Entrega: '+esc(rental.delivery_method==='delivery'?'No endereço '+rental.delivery_address:'Retirada pelo cliente')+'.</p><table><thead><tr><th>Item</th><th>Qtd.</th><th>Unitário</th><th>Subtotal</th></tr></thead><tbody>'+rows+'</tbody></table><p><b>Taxa de entrega:</b> '+esc(money(rental.delivery_fee))+' · <b>Desconto:</b> '+esc(money(rental.discount))+' · <b>Total:</b> '+esc(money(rental.total_amount))+'</p><h3>CONDIÇÕES</h3><p>'+esc(s.terms)+'</p><p>As partes declaram que leram e concordam com as condições deste contrato.</p><div class="sign"><div>LOCADOR · '+esc(companyName)+'</div><div>LOCATÁRIO · '+esc(customer.name)+'</div></div><script>window.onload=()=>window.print()</script></html>';
   const w=window.open('','_blank');if(!w){setError('Permita a abertura de pop-ups para imprimir o contrato.');return;}w.document.write(html);w.document.close();
  }
