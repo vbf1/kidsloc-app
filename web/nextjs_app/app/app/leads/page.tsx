@@ -241,10 +241,12 @@ export default function LeadFestaPage() {
         return;
       }
       savedLeadId = data.id;
+      let initialNoteSaved = true;
       if (value.notes) {
-        await supabase.from('lead_activities').insert({
+        const { error: activityError } = await supabase.from('lead_activities').insert({
           company_id: companyId, lead_id: data.id, activity_type: 'note', body: value.notes,
         });
+        initialNoteSaved = !activityError;
       }
     }
     setForm(EMPTY_LEAD);
@@ -252,7 +254,13 @@ export default function LeadFestaPage() {
     setFormErrors({});
     setShowForm(false);
     setSelectedLeadId(savedLeadId);
-    setNotice(editingLeadId ? 'Lead atualizado com sucesso.' : 'Lead cadastrado com sucesso.');
+    setNotice(
+      editingLeadId
+        ? 'Lead atualizado com sucesso.'
+        : initialNoteSaved
+          ? 'Lead cadastrado com sucesso.'
+          : 'Lead cadastrado, mas a anotação não entrou no histórico. O texto continua salvo nos dados do lead.',
+    );
     await loadData();
     setSaving(false);
   }
