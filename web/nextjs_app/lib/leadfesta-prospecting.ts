@@ -65,11 +65,11 @@ export function classifyPublicIntent(value: string, hasPublicPhone = false): Int
     score += 15;
     signals.push('Prazo ou urgência mencionada');
   }
-  if (/(r\\$\\s?\\d|orcamento de|ate \\d+ reais|valor maximo|quanto custa|qual o preco)/.test(text)) {
+  if (/(r\$\s?\d|orcamento de|ate \d+ reais|valor maximo|quanto custa|qual o preco)/.test(text)) {
     score += 10;
     signals.push('Orçamento, preço ou limite de valor mencionado');
   }
-  if (/\b(para dia|no dia|dia \\d{1,2}|em \\d{1,2}\\/\\d{1,2}|para o dia)\b/.test(text)) {
+  if (/\b(para dia|no dia|dia \d{1,2}|em \d{1,2}\/\d{1,2}|para o dia)\b/.test(text)) {
     score += 10;
     signals.push('Data ou ocasião específica mencionada');
   }
