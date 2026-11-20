@@ -115,10 +115,10 @@ class _AgendaPageState extends State<AgendaPage> {
                               IconButton(onPressed: () => _shiftMonth(1), icon: const Icon(Icons.chevron_right)),
                             ]),
                             const SizedBox(height: 8),
-                            const Row(
-                              children: [
-                                'Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'
-                              ].map((d) => Expanded(child: Center(child: Text(d, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))))).toList(),
+                            Row(
+                              children: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+                                  .map((d) => Expanded(child: Center(child: Text(d, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))))
+                                  .toList(),
                             ),
                             const SizedBox(height: 8),
                             GridView.builder(
