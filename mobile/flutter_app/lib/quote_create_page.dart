@@ -262,7 +262,7 @@ class _QuoteCreatePageState extends State<QuoteCreatePage> {
                       Expanded(child: TextFormField(
                         initialValue: (item['unit_price'] as double).toStringAsFixed(2),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'Preço unitário (R$)'),
+                        decoration: const InputDecoration(labelText: 'Preço unitário (R\$)'),
                         onChanged: (value) => setState(() => item['unit_price'] = double.tryParse(value.replaceAll(',', '.')) ?? 0),
                       )),
                     ]),
@@ -289,13 +289,13 @@ class _QuoteCreatePageState extends State<QuoteCreatePage> {
                 Expanded(child: TextFormField(
                   controller: _deliveryFee,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Taxa de entrega (R$)'),
+                  decoration: const InputDecoration(labelText: 'Taxa de entrega (R\$)'),
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: TextFormField(
                   controller: _discount,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Desconto (R$)'),
+                  decoration: const InputDecoration(labelText: 'Desconto (R\$)'),
                 )),
               ]),
               TextFormField(
@@ -304,8 +304,8 @@ class _QuoteCreatePageState extends State<QuoteCreatePage> {
                 decoration: const InputDecoration(labelText: 'Observações e condições'),
               ),
               const SizedBox(height: 12),
-              Text('Subtotal: R$ ' + _subtotal.toStringAsFixed(2)),
-              Text('Total: R$ ' + _total.toStringAsFixed(2), style: Theme.of(context).textTheme.titleLarge),
+              Text('Subtotal: R\$ ' + _subtotal.toStringAsFixed(2)),
+              Text('Total: R\$ ' + _total.toStringAsFixed(2), style: Theme.of(context).textTheme.titleLarge),
               if (_error != null) Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
