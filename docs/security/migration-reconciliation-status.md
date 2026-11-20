@@ -111,6 +111,12 @@ A inspeção das definições efetivamente publicadas no Postgres identificou ca
 
 **Risco e ação requerida:** a migration local `20261116090000_normalize_platform_and_company_roles.sql` corrige os comportamentos descritos ao substituir as funções e policies, impedir a associação de platform owner como membro, restringir os papéis e bloquear o acesso global às conversas. Entretanto, essa migration ainda não foi aplicada. Antes da liberação, adicionar testes de regressão para chamadas diretas às três RPCs: tentativa de inserir platform owner em `company_members`; tentativa de convite com `manager`; tentativa de `ensure_team_group` por platform owner; tentativa de leitura de conversa por platform owner; e tentativas de alteração direta de `company_members` por membro comum. Os testes devem validar negação no banco/API, não apenas na interface.
 
+
+### Auditoria de funções `SECURITY DEFINER` — estado remoto
+
+- Foram encontradas 12 funções `SECURITY DEFINER` no schema `public`. Todas definem `search_path` vazio (`SET search_path = ''`) e nenhuma concede `EXECUTE` a `anon`.
+- Oito dessas funções podem ser executadas por `authenticated`; incluem RPCs de onboarding/equipe e helpers de autorização. As validações de identidade e autorização foram revisadas individualmente para `add_company_member`, `invite_company_member` e `ensure_team_group`.
+- `manage_company_member(uuid, uuid, text, text)` ainda não existe no remoto; será criada pela sequência local após a revisão do histórico. A Edge Function publicada `manage-employees` ainda é a implementação antiga e não foi atualizada em produção.
 ### Divergência da regra de cargos e acesso do platform owner
 
 - O constraint remoto `company_members_role_check` ainda aceita `owner`, `admin`, `manager` e `staff`; a migration local de normalização pretende migrar vínculos `owner` para `admin`, `manager` para `staff` e restringir o constraint a `admin`/ `staff`.
