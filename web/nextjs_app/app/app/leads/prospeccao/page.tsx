@@ -408,7 +408,7 @@ export default function LeadProspectingPage() {
       </section>}
       </details>
 
-      <section className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4"><p className="text-sm font-bold text-blue-950">Sobre os dados e a privacidade</p><p className="mt-1 text-sm leading-6 text-blue-900/80">A pesquisa consulta a base pública OpenStreetMap. Só os resultados que você selecionar serão gravados no CRM da empresa ativa. Cada empresa mantém sua própria lista; nenhuma busca ou importação mistura dados entre empresas. Os dados do mapa podem estar incompletos ou desatualizados.</p><p className="mt-2 text-xs text-blue-900/70">Dados cartográficos © contribuidores do OpenStreetMap.</p></section>
+      <section className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4"><p className="text-sm font-bold text-blue-950">Sobre os dados e a privacidade</p><p className="mt-1 text-sm leading-6 text-blue-900/80">A pesquisa por intenção abre resultados públicos nos buscadores; os dados só são registrados após revisão manual. A pesquisa complementar de estabelecimentos consulta o OpenStreetMap. Oportunidades e contatos ficam isolados no CRM da empresa ativa; nenhuma busca ou importação mistura dados entre empresas. Não são acessados perfis ou mensagens privadas.</p><p className="mt-2 text-xs text-blue-900/70">Dados cartográficos © contribuidores do OpenStreetMap.</p></section>
     </div>
   </AppShell>;
 }
