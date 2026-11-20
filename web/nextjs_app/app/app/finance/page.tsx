@@ -26,7 +26,9 @@ export default function FinancePage(){
   if(tr.error||pr.error)setError('Não foi possível carregar o financeiro.');else{setTransactions((tr.data??[]) as Tx[]);setPayments((pr.data??[]) as Payment[]);}
   setLoading(false);
  }
- useEffect(()=>{void load();},[]);
+ // This effect starts the asynchronous finance data request.
+ // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(()=>{void load();},[]);
  const paymentTotals=useMemo(()=>{const m=new Map<string,number>();for(const p of payments)if(p.transaction_id)m.set(p.transaction_id,(m.get(p.transaction_id)??0)+Number(p.amount));return m;},[payments]);
  const totals=useMemo(()=>transactions.reduce((a,t)=>{const paid=paymentTotals.get(t.id)??(t.status==='paid'?Number(t.amount):0);if(t.transaction_type==='income'){a.income+=Number(t.amount);a.received+=paid;}else a.expense+=Number(t.amount);return a;},{income:0,received:0,expense:0}),[transactions,paymentTotals]);
  async function saveTx(e:FormEvent){e.preventDefault();if(!supabase||!companyId||!canEdit)return;const value=Number(amount);if(!description.trim()||!Number.isFinite(value)||value<=0){setError('Informe uma descrição e um valor maior que zero.');return;}setSaving(true);const {error:e2}=await supabase.from('financial_transactions').insert({company_id:companyId,transaction_type:type,description:description.trim(),category:category.trim()||null,amount:value,due_date:dueDate||null,status:'pending'});if(e2)setError(e2.message);else{setNotice('Lançamento financeiro criado.');setShowForm(false);setDescription('');setAmount('');setCategory('');await load();}setSaving(false);}
