@@ -113,7 +113,7 @@ class _FinancePageState extends State<FinancePage> {
   Future<void> _openReceive(Map<String, dynamic> row) async {
     final id = row['id'].toString();
     final amount = _money(row['amount']);
-    final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0);
+    final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0.0);
     final balance = amount - paid;
     if (balance <= 0 || !_canManage) return;
     final result = await showDialog<_PaymentData>(
@@ -237,14 +237,13 @@ class _TransactionFormState extends State<_TransactionForm> {
   final _description = TextEditingController();
   final _category = TextEditingController();
   final _amount = TextEditingController();
-  final _notes = TextEditingController();
   String _type = 'income';
   DateTime _due = DateTime.now();
   bool _saving = false;
 
   @override
   void dispose() {
-    _description.dispose(); _category.dispose(); _amount.dispose(); _notes.dispose();
+    _description.dispose(); _category.dispose(); _amount.dispose();
     super.dispose();
   }
 
@@ -334,6 +333,16 @@ class _PaymentDialogState extends State<_PaymentDialog> {
     super.dispose();
   }
 
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('Registrar recebimento'),
@@ -343,6 +352,11 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         final n = double.tryParse((v ?? '').replaceAll(',', '.'));
         return n == null || n <= 0 || n > widget.balance ? 'Informe um valor até o saldo pendente.' : null;
       }),
+      OutlinedButton.icon(
+        onPressed: _pickDate,
+        icon: const Icon(Icons.calendar_today),
+        label: Text('Data do recebimento: ${_date.day.toString().padLeft(2, '0')}/${_date.month.toString().padLeft(2, '0')}/${_date.year}'),
+      ),
       DropdownButtonFormField<String>(initialValue: _method, decoration: const InputDecoration(labelText: 'Forma de pagamento'), items: const [
         DropdownMenuItem(value: 'pix', child: Text('Pix')),
         DropdownMenuItem(value: 'cash', child: Text('Dinheiro')),
