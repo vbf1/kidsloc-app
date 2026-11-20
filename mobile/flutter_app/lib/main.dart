@@ -763,11 +763,34 @@ class _RecordsPageState extends State<_RecordsPage> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final result = await Supabase.instance.client.from(widget.table).select('*')
+      final client = Supabase.instance.client;
+      final result = await client.from(widget.table).select('*')
           .eq('company_id', widget.companyId).limit(100);
+      final rows = result.map((row) => Map<String, dynamic>.from(row)).toList();
+      if (widget.table == 'financial_transactions') {
+        try {
+          final payments = await client.from('payments')
+              .select('transaction_id,amount').eq('company_id', widget.companyId);
+          final paidByTransaction = <String, double>{};
+          for (final payment in payments) {
+            final id = payment['transaction_id']?.toString();
+            if (id != null) {
+              paidByTransaction[id] = (paidByTransaction[id] ?? 0) +
+                  (payment['amount'] as num).toDouble();
+            }
+          }
+          for (final row in rows) {
+            row['_paid_amount'] = paidByTransaction[row['id'].toString()] ?? 0.0;
+          }
+        } catch (_) {
+          for (final row in rows) {
+            row['_paid_amount'] = 0.0;
+          }
+        }
+      }
       if (!mounted) return;
       setState(() {
-        _rows = result.map((row) => Map<String, dynamic>.from(row)).toList();
+        _rows = rows;
         _rows.sort((a, b) => (a['name'] ?? a['description'] ?? '').toString()
             .toLowerCase().compareTo((b['name'] ?? b['description'] ?? '').toString().toLowerCase()));
         _loading = false;
@@ -904,6 +927,115 @@ class _RecordsPageState extends State<_RecordsPage> {
     for (final controller in fields.values) { controller.dispose(); }
   }
 
+  Future<void> _registerPayment(Map<String, dynamic> row) async {
+    final total = (row['amount'] as num?)?.toDouble() ?? 0;
+    final paid = (row['_paid_amount'] as num?)?.toDouble() ?? 0;
+    final remaining = total - paid;
+    final amount = TextEditingController(text: remaining.toStringAsFixed(2));
+    final notes = TextEditingController();
+    String method = 'pix';
+    DateTime paidAt = DateTime.now();
+    final formKey = GlobalKey<FormState>();
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, refresh) => AlertDialog(
+          title: const Text('Registrar recebimento'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('Saldo pendente: R\$ ' + remaining.toStringAsFixed(2)),
+              TextFormField(
+                controller: amount,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Valor recebido (R\$)'),
+                validator: (value) {
+                  final parsed = double.tryParse((value ?? '').replaceAll(',', '.'));
+                  if (parsed == null || parsed <= 0) return 'Informe um valor maior que zero.';
+                  if (parsed > remaining) return 'O valor ultrapassa o saldo pendente.';
+                  return null;
+                },
+              ),
+              DropdownButtonFormField<String>(
+                value: method,
+                decoration: const InputDecoration(labelText: 'Forma de pagamento'),
+                items: const [
+                  DropdownMenuItem(value: 'pix', child: Text('Pix')),
+                  DropdownMenuItem(value: 'cash', child: Text('Dinheiro')),
+                  DropdownMenuItem(value: 'credit_card', child: Text('Cartão de crédito')),
+                  DropdownMenuItem(value: 'debit_card', child: Text('Cartão de débito')),
+                  DropdownMenuItem(value: 'bank_transfer', child: Text('Transferência')),
+                  DropdownMenuItem(value: 'other', child: Text('Outro')),
+                ],
+                onChanged: (value) => refresh(() => method = value ?? 'pix'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: dialogContext,
+                    initialDate: paidAt,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) refresh(() => paidAt = picked);
+                },
+                icon: const Icon(Icons.calendar_today),
+                label: Text('Data: ' + paidAt.day.toString().padLeft(2, '0') + '/' +
+                    paidAt.month.toString().padLeft(2, '0') + '/' + paidAt.year.toString()),
+              ),
+              TextFormField(
+                controller: notes,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Observações (opcional)'),
+              ),
+            ])),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Registrar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (saved == true) {
+      setState(() => _saving = true);
+      try {
+        await Supabase.instance.client.rpc('register_financial_payment', params: {
+          'p_transaction_id': row['id'],
+          'p_amount': double.parse(amount.text.replaceAll(',', '.')),
+          'p_payment_method': method,
+          'p_paid_at': paidAt.year.toString().padLeft(4, '0') + '-' +
+              paidAt.month.toString().padLeft(2, '0') + '-' +
+              paidAt.day.toString().padLeft(2, '0'),
+          'p_notes': notes.text.trim(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Recebimento registrado.')),
+          );
+          await _load();
+        }
+      } on PostgrestException catch (error) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message)),
+        );
+      } catch (_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível registrar o recebimento.')),
+        );
+      } finally {
+        if (mounted) setState(() => _saving = false);
+      }
+    }
+    amount.dispose();
+    notes.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(widget.title), actions: [
@@ -936,12 +1068,29 @@ class _RecordsPageState extends State<_RecordsPage> {
               if (status != null) 'Situação: ' + status,
               if (date != null) 'Data: ' + date.toString().split('T').first,
               if (amount != null) 'Valor: R\$ ' + amount.toString(),
+              if (widget.table == 'financial_transactions' && row['_paid_amount'] != null)
+                'Recebido: R\$ ' + (row['_paid_amount'] as num).toStringAsFixed(2),
               if (row['active'] == false) 'Inativo',
             ];
+            final isReceivable = widget.table == 'financial_transactions' &&
+                row['transaction_type'] == 'income' && row['status'] != 'cancelled' &&
+                ((row['amount'] as num?)?.toDouble() ?? 0) >
+                    ((row['_paid_amount'] as num?)?.toDouble() ?? 0);
             return Card(child: ListTile(
               title: Text(_title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
               subtitle: details.isEmpty ? null : Text(details.join(' · '), maxLines: 3, overflow: TextOverflow.ellipsis),
-              trailing: _editable ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined)) : null,
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (_editable) IconButton(
+                  tooltip: 'Editar',
+                  onPressed: _saving ? null : () => _openEditor(row),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                if (isReceivable) IconButton(
+                  tooltip: 'Registrar recebimento',
+                  onPressed: _saving ? null : () => _registerPayment(row),
+                  icon: const Icon(Icons.payments_outlined),
+                ),
+              ]),
             ));
           },
         )),
