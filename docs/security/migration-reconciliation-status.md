@@ -399,3 +399,17 @@ A investigação foi aprofundada com o catálogo de extensões e a documentaçã
 - A ação preventiva correta é continuar instalando extensões no schema `extensions` quando suportado e verificar a propriedade dos objetos após upgrades; não tentar revogar ou alterar diretamente os defaults internos de `supabase_admin`.
 
 **Reclassificação:** a ACL padrão de `supabase_admin` deixa de ser tratada como alteração pendente do projeto. É um comportamento interno documentado do Supabase, sem objetos públicos atuais afetados. O efeito dos defaults de `postgres` continua confirmado como restrito para `anon`; o SQL original da migration remota não foi recuperado, então a equivalência histórica exata permanece não comprovada.
+
+
+### Correção da herança de EXECUTE para novas funções — 20/11/2026
+
+Uma revisão mais profunda de `pg_default_acl` identificou uma nuance que a checagem anterior por schema não cobria:
+
+- O ACL padrão específico de `public` para funções criadas por `postgres` não inclui `anon`, mas não havia entrada global de default ACL para funções de `postgres`.
+- No PostgreSQL, a ausência dessa revogação global mantém o EXECUTE padrão de `PUBLIC`; como `anon` herda privilégios de `PUBLIC`, uma função nova criada por `postgres` poderia ficar executável anonimamente, mesmo sem grant direto a `anon` no ACL específico do schema.
+- A documentação oficial do Supabase confirma que um REVOKE limitado a `IN SCHEMA public` não remove o EXECUTE global de `PUBLIC`; a revogação precisa ser global: https://supabase.com/kb/troubleshooting/cant-change-the-default-privileges-of-supabase_admin-in-the-public-schema-448af9 e https://supabase.com/docs/guides/api/securing-your-api.
+- **Correção incluída na branch:** a migration local `20261116090000_normalize_platform_and_company_roles.sql` agora executa `ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`. Os grants diretos de RPCs necessários permanecem explícitos; a alteração não revoga EXECUTE de funções já existentes.
+- **Teste incluído:** `platform_company_role_model.test.sql` passou de 38 para 39 verificações e agora exige uma entrada global de default ACL sem EXECUTE para `PUBLIC`.
+- As 18 funções públicas existentes continuam sem EXECUTE efetivo para `anon`; esta correção trata a exposição potencial de funções futuras criadas por `postgres`.
+
+A alteração está somente na branch e aguarda CI com reset do banco local, E2E e pgTAP. Não foi executada no projeto remoto. A migration remota `20261113134849_tighten_public_schema_default_privileges` continua sem SQL original recuperável; a análise do catálogo agora distingue corretamente ACL de schema e ACL global.
