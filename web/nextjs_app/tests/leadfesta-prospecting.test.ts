@@ -81,6 +81,19 @@ describe('LeadFesta prospecting helpers', () => {
     expect(classifyPublicIntent('Preciso contratar um contador')).toMatchObject({ classification: 'buyer' });
   });
 
+  it('scores buyer intent transparently using only public post signals', () => {
+    expect(classifyPublicIntent('Estou procurando um fotógrafo para casamento')).toMatchObject({
+      classification: 'buyer', score: 55, priority: 'low',
+    });
+    expect(classifyPublicIntent('Preciso contratar um eletricista urgente para hoje, orçamento de R$ 300, para dia 22', true)).toMatchObject({
+      classification: 'buyer', score: 100, priority: 'high',
+    });
+    expect(classifyPublicIntent('Alugo brinquedos para festas')).toMatchObject({
+      classification: 'vendor', score: 0, priority: 'low',
+    });
+    expect(classifyPublicIntent('')).toMatchObject({ classification: 'unclear', score: 0 });
+  });
+
   it('identifies service providers and keeps ambiguous posts for human review', () => {
     expect(classifyPublicIntent('Alugo brinquedos para festas')).toMatchObject({ classification: 'vendor' });
     expect(classifyPublicIntent('Oferecemos serviços de fotografia')).toMatchObject({ classification: 'vendor' });
