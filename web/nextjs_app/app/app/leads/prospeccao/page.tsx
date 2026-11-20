@@ -5,7 +5,8 @@ import type { FormEvent } from 'react';
 import { AppShell } from '../../../../components/app-shell';
 import { supabase } from '../../../../lib/supabase';
 
-type CompanyOption = { id: string; name: string };\ntype Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'owner' };
+type CompanyOption = { id: string; name: string };
+type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'owner' };
 type Stage = { id: string; name: string; position: number };
 type LeadDraft = { name: string; phone: string; email: string; website: string; address: string; notes: string };
 
@@ -17,7 +18,8 @@ const secondary = 'inline-flex min-h-11 items-center justify-center rounded-xl b
 const emptyDraft: LeadDraft = { name: '', phone: '', email: '', website: '', address: '', notes: '' };
 
 export default function LeadProspectingPage() {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);\n  const [companies, setCompanies] = useState<CompanyOption[]>([]);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState('');
   const [city, setCity] = useState('Contagem, MG');
@@ -62,7 +64,8 @@ export default function LeadProspectingPage() {
           const relation = Array.isArray(membership.companies) ? membership.companies[0] : membership.companies;
           companyId = membership.company_id;
           companyName = relation?.name ?? 'Sua empresa';
-          role = membership.role as 'admin' | 'owner';\n          setCompanies([{ id: companyId, name: companyName }]);
+          role = membership.role as 'admin' | 'owner';
+          setCompanies([{ id: companyId, name: companyName }]);
         }
         if (!companyId) throw new Error('Nenhuma empresa disponível para prospecção.');
         const { data: available, error: featureError } = await supabase.rpc('leadfesta_is_available', { p_company_id: companyId });
@@ -142,7 +145,9 @@ export default function LeadProspectingPage() {
       phone: phoneDigits ? draft.phone.trim() : null,
       email: draft.email.trim() || null,
       source: 'Google Maps',
-      notes: noteParts.join('\n\n') || null,
+      notes: noteParts.join('
+
+') || null,
       updated_at: new Date().toISOString(),
     });
     if (insertError) setError('Não foi possível salvar o lead. Confira os dados e tente novamente.');
@@ -168,7 +173,10 @@ export default function LeadProspectingPage() {
       {notice && <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-      {workspace?.role === 'owner' && companies.length > 1 && <label className="block max-w-md text-sm font-semibold">Empresa ativa\n        <select className={field} value={workspace.companyId} onChange={async (event) => { const nextId = event.target.value; const selected = companies.find((company) => company.id === nextId); if (!selected || !supabase) return; setWorkspace({ ...workspace, companyId: nextId, companyName: selected.name }); setStages([]); const { data } = await supabase.from('lead_pipeline_stages').select('id,name,position').eq('company_id', nextId).order('position').limit(1); setStages((data ?? []) as Stage[]); setNotice('Empresa ativa alterada para ' + selected.name + '.'); }}>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select>\n      </label>}\n      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
+      {workspace?.role === 'owner' && companies.length > 1 && <label className="block max-w-md text-sm font-semibold">Empresa ativa
+        <select className={field} value={workspace.companyId} onChange={async (event) => { const nextId = event.target.value; const selected = companies.find((company) => company.id === nextId); if (!selected || !supabase) return; setWorkspace({ ...workspace, companyId: nextId, companyName: selected.name }); setStages([]); const { data } = await supabase.from('lead_pipeline_stages').select('id,name,position').eq('company_id', nextId).order('position').limit(1); setStages((data ?? []) as Stage[]); setNotice('Empresa ativa alterada para ' + selected.name + '.'); }}>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select>
+      </label>}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
         <section className={panel}>
           <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-purple-100 text-xl">⌕</span><div><h2 className="text-lg font-bold">1. Buscar no Google Maps</h2><p className="text-sm text-gray-500">Informe o tipo de negócio e a cidade.</p></div></div>
           <label className="mt-5 block text-sm font-semibold">Segmento / tipo de empresa
