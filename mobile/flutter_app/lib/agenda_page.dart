@@ -24,7 +24,6 @@ class _AgendaPageState extends State<AgendaPage> {
   }
 
   DateTime _parse(dynamic value) => DateTime.parse(value.toString().split('T').first);
-  String _key(DateTime value) => '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
   String _label(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
 
   Future<void> _load() async {
