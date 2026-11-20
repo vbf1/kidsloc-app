@@ -105,7 +105,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
         {moreOpen && <>
           <button type="button" aria-label="Fechar menu Mais" onClick={() => setMoreOpen(false)}
             className="fixed inset-0 z-40 bg-slate-950/20" />
-          <section aria-label="Mais opções de navegação" className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-md overflow-hidden rounded-2xl border border-purple-100 bg-white p-2 shadow-[0_12px_40px_rgba(37,20,70,0.18)]">
+          <section id="mobile-more-menu" aria-label="Mais opções de navegação" className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-md overflow-hidden rounded-2xl border border-purple-100 bg-white p-2 shadow-[0_12px_40px_rgba(37,20,70,0.18)]">
             <div className="px-3 pb-2 pt-2">
               <p className="text-sm font-bold text-gray-900">Mais opções</p>
               <p className="mt-0.5 text-xs text-gray-500">Acesse os outros módulos do KidsLoc</p>
@@ -129,8 +129,8 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
           <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
             {primaryItems.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
               className={item.active
-                ? 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
-                : 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
+                ? 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
+                : 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
               <NavIcon name={item.icon} />
               <span className="max-w-full truncate px-1">{item.shortLabel}</span>
               {item.active && <span className="absolute bottom-0 h-0.5 w-7 rounded-full bg-[#8054d8]" />}
