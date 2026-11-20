@@ -212,3 +212,17 @@ Uma nova leitura direta de `pg_policies`, `pg_constraint` e `pg_trigger` confirm
 - As migrations remotas `20261117011036` e `20261117014514` não podem ser reconstruídas com segurança como SQL original. O catálogo observado permite descrever os efeitos atuais: DELETE autorizado por policy para owner/admin; ausência de policy RLS de UPDATE e de trigger de usuário para impedir alteração direta de cargo. Os grants SQL de UPDATE existem, mas RLS sem policy impede a escrita por membros comuns; a policy `platform_owner_all` ainda é a exceção global até a normalização local.
 - A decisão segura permanece: preservar as versões remotas no ledger; não usar `migration repair` para fingir equivalência; não criar arquivos placeholder com os IDs remotos; e manter a sequência local reproduzível como fonte de estado desejado. Qualquer baseline ou migration corretiva futura deve ser criada somente após comparar o schema completo e executar uma validação em banco isolado, sem aplicar no projeto de produção nesta etapa.
 
+
+
+## Rechecagem do efeito de remover o vínculo global — 20/11/2026
+
+Consulta somente leitura ao catálogo remoto confirmou que a migration de normalização removerá o único vínculo de platform owner da empresa **Festejando**, mantendo a empresa cadastrada, mas sem membros. Os vínculos de Sonho Kids Brinquedos e Nobre Paladar permanecem e serão convertidos de `owner` para `admin`.
+
+Foram identificadas três FKs que referenciam `company_members(company_id, user_id)`:
+- `fcm_device_tokens(company_id, user_id)`: `ON DELETE CASCADE`.
+- `team_conversation_members(company_id, user_id)`: `ON DELETE CASCADE`.
+- `rental_responsibles(company_id, user_id)`: `ON DELETE SET NULL (user_id)`.
+
+Na empresa Festejando, a consulta específica encontrou zero registros relacionados nas três tabelas filhas (tokens FCM, participantes de conversa e responsáveis de locação). A auditoria anterior também encontrou zero registros nas 25 tabelas públicas operacionais com `company_id`. Portanto, a remoção não deve apagar dados operacionais conhecidos dessa empresa; ainda assim, a empresa ficará sem administrador e precisará de uma decisão antes de qualquer implantação: manter como empresa legada vazia, atribuir outro administrador válido ou remover a empresa em uma operação futura separada (não incluída nesta migration).
+
+Nenhuma linha foi alterada. Esta verificação foi somente leitura e não autoriza a aplicação da migration.
