@@ -137,7 +137,7 @@ select ok(
   'activity creation timestamp cannot be backdated by the client'
 );
 
-select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000001'), 1, 'admin can read own company activity history');
+select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000001'), 2, 'admin can read own company activity history including the stage-change audit');
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000002'), 0, 'admin cannot read another company activity history');
 select throws_ok(
   'select public.set_leadfesta_entitlement(''21000000-0000-4000-8000-000000000002'', true)',
