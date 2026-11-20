@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect,useMemo,useState } from 'react';
+import { useEffect,useMemo,useState } from 'react';\nimport type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
@@ -27,7 +27,7 @@ export default function FinancePage(){
  useEffect(()=>{void load();},[]);
  const paymentTotals=useMemo(()=>{const m=new Map<string,number>();for(const p of payments)if(p.transaction_id)m.set(p.transaction_id,(m.get(p.transaction_id)??0)+Number(p.amount));return m;},[payments]);
  const totals=useMemo(()=>transactions.reduce((a,t)=>{const paid=paymentTotals.get(t.id)??(t.status==='paid'?Number(t.amount):0);if(t.transaction_type==='income'){a.income+=Number(t.amount);a.received+=paid;}else a.expense+=Number(t.amount);return a;},{income:0,received:0,expense:0}),[transactions,paymentTotals]);
- async function saveTx(e:React.FormEvent){e.preventDefault();if(!supabase||!companyId||!canEdit)return;const value=Number(amount);if(!description.trim()||!Number.isFinite(value)||value<=0){setError('Informe uma descrição e um valor maior que zero.');return;}setSaving(true);const {error:e2}=await supabase.from('financial_transactions').insert({company_id:companyId,transaction_type:type,description:description.trim(),category:category.trim()||null,amount:value,due_date:dueDate||null,status:'pending'});if(e2)setError(e2.message);else{setNotice('Lançamento financeiro criado.');setShowForm(false);setDescription('');setAmount('');setCategory('');await load();}setSaving(false);}
+ async function saveTx(e:FormEvent){e.preventDefault();if(!supabase||!companyId||!canEdit)return;const value=Number(amount);if(!description.trim()||!Number.isFinite(value)||value<=0){setError('Informe uma descrição e um valor maior que zero.');return;}setSaving(true);const {error:e2}=await supabase.from('financial_transactions').insert({company_id:companyId,transaction_type:type,description:description.trim(),category:category.trim()||null,amount:value,due_date:dueDate||null,status:'pending'});if(e2)setError(e2.message);else{setNotice('Lançamento financeiro criado.');setShowForm(false);setDescription('');setAmount('');setCategory('');await load();}setSaving(false);}
  async function registerPayment(e:React.FormEvent){e.preventDefault();if(!supabase||!receiving)return;const value=Number(receiveAmount);if(!Number.isFinite(value)||value<=0){setError('Informe um valor válido.');return;}setSaving(true);const {error:e2}=await supabase.rpc('register_financial_payment',{p_transaction_id:receiving.id,p_amount:value,p_payment_method:method,p_paid_at:receiveDate,p_notes:null});if(e2)setError(e2.message);else{setNotice('Recebimento registrado com sucesso.');setReceiving(null);setReceiveAmount('');await load();}setSaving(false);}
  async function signOut(){if(supabase){await supabase.auth.signOut();router.push('/login/');}}
  if(loading)return <main className="grid min-h-screen place-items-center">Carregando financeiro...</main>;
