@@ -23,6 +23,17 @@ type RentalFormProps = {
 };
 const inputClass = 'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100 disabled:bg-gray-50';
 const labelClass = 'block text-sm font-medium text-gray-700';
+function TimeField({ value, disabled, onChange }: { value: string; disabled: boolean; onChange: (value: string) => void }) {
+  const [hour = '09', minute = '00'] = (value || '09:00').split(':');
+  return <div className="mt-1 grid min-w-0 grid-cols-2 gap-2">
+    <select aria-label="Hora" value={hour} disabled={disabled} onChange={(event) => onChange(event.target.value + ':' + minute)} className={inputClass}>
+      {Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0')).map(option => <option key={option} value={option}>{option} h</option>)}
+    </select>
+    <select aria-label="Minutos" value={minute} disabled={disabled} onChange={(event) => onChange(hour + ':' + event.target.value)} className={inputClass}>
+      {Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0')).map(option => <option key={option} value={option}>{option} min</option>)}
+    </select>
+  </div>;
+}
 function moneyInput(value: number): string {
   return value.toFixed(2).replace('.', ',');
 }
@@ -148,11 +159,11 @@ export function RentalForm({
             {fieldErrors.end_date && <FieldFeedback id="rental-end-date-error">{fieldErrors.end_date}</FieldFeedback>}
           </label>
           <label className={labelClass}>Horário inicial *
-            <input type="time" value={values.start_time} onChange={(event) => updateField('start_time', event.target.value)} className={inputClass} disabled={saving} />
+            <TimeField value={values.start_time} disabled={saving} onChange={(value) => updateField('start_time', value)} />
             {fieldErrors.start_time && <FieldFeedback id="rental-start-time-error">{fieldErrors.start_time}</FieldFeedback>}
           </label>
           <label className={labelClass}>Horário final *
-            <input type="time" value={values.end_time} onChange={(event) => updateField('end_time', event.target.value)} className={inputClass} disabled={saving} />
+            <TimeField value={values.end_time} disabled={saving} onChange={(value) => updateField('end_time', value)} />
             {fieldErrors.end_time && <FieldFeedback id="rental-end-time-error">{fieldErrors.end_time}</FieldFeedback>}
           </label>
         </div>

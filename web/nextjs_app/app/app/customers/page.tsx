@@ -1,13 +1,13 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { CustomerForm } from '../../../components/customer-form';
 import { CustomerList } from '../../../components/customer-list';
+import { WorkspaceModal } from '../../../components/workspace-modal';
 import { matchesCustomerSearch, normalizeCustomer, type CustomerFormValues, type CustomerRecord } from '../../../lib/customers';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
-import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
 
 type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
@@ -52,9 +52,8 @@ export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
-  const [formScrollRequest, setFormScrollRequest] = useState(0);
-  const formContainerRef = useRef<HTMLDivElement>(null);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
+  const [viewingCustomer, setViewingCustomer] = useState<CustomerRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
@@ -129,10 +128,9 @@ export default function CustomersPage() {
     return () => { active = false; };
   }, [companyId, page, pageSize, searchTerm, refreshIndex]);
 
-  useScrollIntoViewOnChange(formContainerRef, formOpen ? `${editingCustomer?.id ?? 'new'}-${formScrollRequest}` : null);
 
-  function openNewCustomer() { setEditingCustomer(null); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
-  function openEditCustomer(customer: CustomerRecord) { setEditingCustomer(customer); setFormError(''); setFormOpen(true); setFormScrollRequest((current) => current + 1); setNotice(''); }
+  function openNewCustomer() { setEditingCustomer(null); setFormError(''); setFormOpen(true); setNotice(''); }
+  function openEditCustomer(customer: CustomerRecord) { setEditingCustomer(customer); setFormError(''); setFormOpen(true);  setNotice(''); }
   function closeForm() { if (saving) return; setFormOpen(false); setEditingCustomer(null); setFormError(''); }
 
   async function saveCustomer(values: CustomerFormValues) {
@@ -202,16 +200,17 @@ export default function CustomersPage() {
           {!formOpen && <button type="button" onClick={openNewCustomer} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Novo cliente</button>}
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
-        {formOpen && (
-          <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7">
-            <CustomerForm key={editingCustomer?.id ?? 'new-customer'} initialValues={editingCustomer ? {
-              name: editingCustomer.name, phone: editingCustomer.phone ?? '', email: editingCustomer.email ?? '',
-              cpf: editingCustomer.cpf ?? '', rg: editingCustomer.rg ?? '', zip: editingCustomer.zip ?? '',
-              address: editingCustomer.address ?? '', neighborhood: editingCustomer.neighborhood ?? '',
-              city_state: editingCustomer.city_state ?? '', notes: editingCustomer.notes ?? '',
-            } : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveCustomer} />
-          </div>
-        )}
+        <WorkspaceModal open={formOpen} title={editingCustomer ? 'Editar cliente' : 'Novo cliente'} description="Mantenha os dados e contatos organizados em um só lugar." onClose={closeForm} size="lg">
+          <CustomerForm key={editingCustomer?.id ?? 'new-customer'} initialValues={editingCustomer ? {
+            name: editingCustomer.name, phone: editingCustomer.phone ?? '', email: editingCustomer.email ?? '',
+            cpf: editingCustomer.cpf ?? '', rg: editingCustomer.rg ?? '', zip: editingCustomer.zip ?? '',
+            address: editingCustomer.address ?? '', neighborhood: editingCustomer.neighborhood ?? '',
+            city_state: editingCustomer.city_state ?? '', notes: editingCustomer.notes ?? '',
+          } : undefined} saving={saving} error={formError} onCancel={closeForm} onSubmit={saveCustomer} />
+        </WorkspaceModal>
+        <WorkspaceModal open={Boolean(viewingCustomer)} title={viewingCustomer ? viewingCustomer.name : 'Dados do cliente'} description="Informações completas do cadastro." onClose={() => setViewingCustomer(null)} size="lg">
+          {viewingCustomer && <div className="space-y-5"><div className="rounded-2xl bg-purple-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-purple-600">Contato principal</p><p className="mt-1 text-xl font-bold text-gray-900">{viewingCustomer.phone || 'Telefone não informado'}</p><p className="mt-1 text-sm text-gray-600">{viewingCustomer.email || 'E-mail não informado'}</p></div><dl className="grid gap-4 sm:grid-cols-2">{[['CPF',viewingCustomer.cpf],['RG',viewingCustomer.rg],['CEP',viewingCustomer.zip],['Endereço',viewingCustomer.address],['Bairro',viewingCustomer.neighborhood],['Cidade / UF',viewingCustomer.city_state]].map(([label,value]) => <div key={label}><dt className="text-xs font-semibold text-gray-400">{label}</dt><dd className="mt-1 break-words text-sm text-gray-800">{value || 'Não informado'}</dd></div>)}<div className="sm:col-span-2"><dt className="text-xs font-semibold text-gray-400">Observações</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{viewingCustomer.notes || 'Nenhuma observação'}</dd></div></dl><div className="flex justify-end gap-2 border-t border-gray-100 pt-4"><button type="button" onClick={() => setViewingCustomer(null)} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700">Fechar</button><button type="button" onClick={() => { const selected=viewingCustomer; setViewingCustomer(null); openEditCustomer(selected); }} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white">Editar cliente</button></div></div>}
+        </WorkspaceModal>
         <form onSubmit={submitSearch} className="mb-4 flex flex-col gap-2 rounded-2xl border border-purple-100 bg-white p-3 sm:flex-row">
           <label htmlFor="customer-search" className="sr-only">Pesquisar clientes por nome, telefone, e-mail ou CPF</label>
           <input id="customer-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)}
@@ -226,7 +225,7 @@ export default function CustomersPage() {
           <p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button>
         </div>}
         <CustomerList customers={customers} loading={listLoading} totalCount={totalCount} page={page}
-          pageSize={pageSize} onPageChange={changePage} onEdit={openEditCustomer} />
+          pageSize={pageSize} onPageChange={changePage} onEdit={openEditCustomer} onView={setViewingCustomer} />
       </section>
     </AppShell>
   );

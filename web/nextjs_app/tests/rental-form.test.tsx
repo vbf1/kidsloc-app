@@ -25,8 +25,10 @@ function fillRequiredFields() {
   fireEvent.click(screen.getByRole('option', { name: /Ana Souza/ }));
   fireEvent.change(screen.getByLabelText('Data inicial *'), { target: { value: '2026-11-20' } });
   fireEvent.change(screen.getByLabelText('Data final *'), { target: { value: '2026-11-20' } });
-  fireEvent.change(screen.getByLabelText('Horário inicial *'), { target: { value: '09:00' } });
-  fireEvent.change(screen.getByLabelText('Horário final *'), { target: { value: '18:00' } });
+  fireEvent.change(screen.getAllByLabelText('Hora')[0], { target: { value: '09' } });
+  fireEvent.change(screen.getAllByLabelText('Minutos')[0], { target: { value: '00' } });
+  fireEvent.change(screen.getAllByLabelText('Hora')[1], { target: { value: '18' } });
+  fireEvent.change(screen.getAllByLabelText('Minutos')[1], { target: { value: '00' } });
 }
 
 describe('RentalForm', () => {

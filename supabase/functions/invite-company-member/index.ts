@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
   const companyId = input.companyId;
   const email = input.email?.trim().toLowerCase();
   const role = input.role ?? 'staff';
-  if (!companyId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email ?? '') || !['admin', 'manager', 'staff'].includes(role)) {
+  if (!companyId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email ?? '') || !['admin', 'staff'].includes(role)) {
     return json({ error: 'Informe empresa, e-mail válido e cargo permitido.' }, 400);
   }
 

@@ -159,3 +159,16 @@ body { background: var(--kl-canvas); color: var(--kl-ink); }
   .kl-member-row > :last-child { width: 100%; }
   .kl-member-row .kl-select-root { flex: 1 1 150px; }
 }
+
+/* Modal de trabalho KidsLoc: painel próprio, centralizado e responsivo. */
+.kl-modal-backdrop { position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgb(24 17 39 / 54%); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); animation: kl-fade-in .18s ease-out; }
+.kl-modal-panel { display: flex; width: 100%; max-height: min(92dvh, 980px); flex-direction: column; overflow: hidden; border: 1px solid #e9e2f4; border-radius: 26px; background: #fff; box-shadow: 0 28px 90px rgb(25 15 47 / 28%); animation: kl-modal-in .24s cubic-bezier(.2,.8,.2,1); }
+.kl-modal-header { position: relative; display: flex; flex: none; align-items: flex-start; justify-content: space-between; gap: 18px; border-bottom: 1px solid #f0ebf6; padding: 22px 26px 18px; background: linear-gradient(135deg,#fff 0%,#faf7ff 100%); }
+.kl-modal-eyebrow { color: #8054d8; font-size: 9px; font-weight: 850; letter-spacing: .18em; }
+.kl-modal-title { margin-top: 7px; font-size: clamp(20px,3vw,26px); font-weight: 800; letter-spacing: -.035em; color: #262238; }
+.kl-modal-close { display: grid; width: 40px; height: 40px; flex: none; place-items: center; border: 1px solid #e9e3f3; border-radius: 13px; background: #fff; color: #716d80; font-size: 25px; line-height: 1; transition: .18s; }
+.kl-modal-close:hover { transform: rotate(90deg); border-color: #d8c8f2; background: #f5f0ff; color: #6840bd; }
+.kl-modal-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 24px 26px 28px; }
+@keyframes kl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kl-modal-in { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (max-width: 640px) { .kl-modal-backdrop { align-items: flex-end; padding: 8px; } .kl-modal-panel { max-height: 94dvh; border-radius: 24px 24px 18px 18px; } .kl-modal-header { padding: 18px 18px 15px; } .kl-modal-content { padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); } }

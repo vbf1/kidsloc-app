@@ -1,0 +1,208 @@
+begin;
+
+create extension if not exists pgtap with schema extensions;
+
+select plan(26);
+
+select has_table('public', 'profiles', 'profiles table exists');
+select has_table('public', 'companies', 'companies table exists');
+select has_table('public', 'company_members', 'company membership table exists');
+
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass),
+  'RLS is enabled on profiles'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.companies'::regclass),
+  'RLS is enabled on companies'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.company_members'::regclass),
+  'RLS is enabled on company_members'
+);
+
+select ok(
+  not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and policyname = 'company_members_all'
+      and tablename in (
+        'customers','documents','financial_transactions','stock_movements',
+        'maintenance_records','product_units','rentals','rental_items',
+        'rental_item_units','rental_events','rental_responsibles'
+      )
+  ),
+  'broad company-wide ALL policies are removed from sensitive operational tables'
+);
+
+select ok(
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'rentals'
+      and policyname = 'rentals_update_creator_assigned_admin'
+      and cmd = 'UPDATE'
+  ),
+  'rental updates are restricted to creators and assigned users'
+);
+
+select ok(
+  (select count(*) = 3 from pg_policies
+   where schemaname = 'public'
+     and (
+       (tablename = 'rental_items' and policyname = 'rental_items_select_creator_or_assigned')
+       or (tablename = 'rental_item_units' and policyname = 'rental_item_units_select_creator_or_assigned')
+       or (tablename = 'rental_responsibles' and policyname = 'rental_responsibles_select_creator_or_assigned')
+     )),
+  'rental child records have creator/assignee read policies'
+);
+
+select ok(
+  (select count(*) = 5 from pg_policies
+   where schemaname = 'public'
+     and cmd = 'DELETE'
+     and policyname in (
+       'documents_delete_owner_admin','financial_transactions_delete_owner_admin',
+       'stock_movements_delete_owner_admin','maintenance_records_delete_owner_admin',
+       'product_units_delete_owner_admin'
+     )),
+  'sensitive finance, document, stock and unit deletion is admin-only'
+);
+
+select ok(
+  position('r.created_by' in pg_get_functiondef('public.can_manage_rental(uuid,uuid)'::regprocedure)) > 0,
+  'rental creator is included in the can_manage_rental authorization helper'
+);
+
+select ok(
+  (select permissive = 'PERMISSIVE' from pg_policies
+   where schemaname = 'public'
+     and tablename = 'rental_responsibles'
+     and policyname = 'rental_responsibles_scope_select'),
+  'rental responsible visibility uses the explicit scoped policy'
+);
+
+insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
+values
+  ('10000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated',
+   'foundation-owner@example.test', '', now(), now()),
+  ('10000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated',
+   'foundation-staff@example.test', '', now(), now()),
+  ('10000000-0000-4000-8000-000000000003', 'authenticated', 'authenticated',
+   'foundation-outsider@example.test', '', now(), now());
+
+select is(
+  (select count(*)::int
+   from pg_trigger t
+   join pg_class c on c.oid = t.tgrelid
+   join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'auth'
+     and c.relname = 'users'
+     and not t.tgisinternal
+     and t.tgfoid = 'public.handle_new_user()'::regprocedure),
+  1,
+  'exactly one auth trigger creates profiles'
+);
+
+select is(
+  (select count(*)::int from public.profiles
+   where id = '10000000-0000-4000-8000-000000000001'),
+  1,
+  'new auth user receives a profile'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+
+select lives_ok(
+  $$ select public.create_company('  Empresa   de Teste  ') $$,
+  'authenticated user can create the first company'
+);
+
+select is(
+  (select count(*)::int from public.company_members
+   where user_id = '10000000-0000-4000-8000-000000000001' and role = 'admin'),
+  1,
+  'company creator becomes company admin'
+);
+
+select is(
+  (select name from public.companies
+   where created_by = '10000000-0000-4000-8000-000000000001'),
+  'Empresa de Teste',
+  'company name whitespace is normalized'
+);
+select throws_ok(
+  $$ insert into public.companies (name, created_by)
+     values ('Bypass attempt', auth.uid()) $$,
+  '42501',
+  'new row violates row-level security policy for table "companies"',
+  'authenticated user cannot bypass company onboarding RPC'
+);
+
+select throws_ok(
+  $$ insert into public.company_members (company_id, user_id, role)
+     select id, auth.uid(), 'admin'
+     from public.companies
+     where created_by = auth.uid() $$,
+  '42501',
+  'new row violates row-level security policy for table "company_members"',
+  'authenticated user cannot directly create company memberships'
+);
+
+select throws_ok(
+  $$ select public.create_company('Segunda Empresa') $$,
+  '23505',
+  'Esta conta já está vinculada a uma empresa.',
+  'same account cannot create a second company'
+);
+
+select throws_ok(
+  $$ select public.create_company('A') $$,
+  '22023',
+  'Nome da empresa inválido.',
+  'company name shorter than two characters is rejected'
+);
+
+reset role;
+insert into public.company_members (company_id, user_id, role)
+select id, '10000000-0000-4000-8000-000000000002', 'staff'
+from public.companies
+where created_by = '10000000-0000-4000-8000-000000000001';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+
+select throws_ok(
+  $$ select public.create_company('Empresa do Funcionário') $$,
+  '23505',
+  'Esta conta já está vinculada a uma empresa.',
+  'account already linked as staff cannot create another company'
+);
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+
+select is(
+  (select count(*)::int from public.companies),
+  0,
+  'user outside the company cannot read its data'
+);
+
+reset role;
+select ok(
+  not has_function_privilege('anon', 'public.create_company(text)', 'EXECUTE'),
+  'anonymous role cannot execute company creation'
+);
+select ok(
+  not has_table_privilege('anon', 'public.companies', 'SELECT'),
+  'anonymous role cannot read company data'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.companies', 'TRUNCATE'),
+  'authenticated role cannot truncate company data'
+);
+
+select * from finish();
+rollback;

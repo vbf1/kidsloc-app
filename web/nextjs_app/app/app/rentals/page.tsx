@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { RentalForm } from '../../../components/rental-form';
 import { RentalList } from '../../../components/rental-list';
+import { WorkspaceModal } from '../../../components/workspace-modal';
 import { SearchablePicker } from '../../../components/searchable-picker';
 import {
   EMPTY_RENTAL, matchesRentalSearch,
@@ -12,7 +13,6 @@ import {
   type RentalMember, type RentalProduct, type RentalRecord, type RentalStatus,
 } from '../../../lib/rentals';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
-import { useScrollIntoViewOnChange } from '../../../lib/use-scroll-into-view';
 import { supabase } from '../../../lib/supabase';
 
 type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
@@ -63,8 +63,7 @@ export default function RentalsPage() {
     setPagination({ page: nextPage, pageSize });
   }
   const [formOpen, setFormOpen] = useState(false);
-  const [formScrollRequest, setFormScrollRequest] = useState(0);
-  const formContainerRef = useRef<HTMLDivElement>(null);
+  const [viewingRental, setViewingRental] = useState<RentalRecord | null>(null);
   const [editingRental, setEditingRental] = useState<RentalRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -178,8 +177,6 @@ export default function RentalsPage() {
     return () => { active = false; };
   }, [companyId, currentUserId, email, refreshIndex]);
 
-  useScrollIntoViewOnChange(formContainerRef, formOpen ? `${editingRental?.id ?? 'new'}-${formScrollRequest}` : null);
-
   const filteredRentals = useMemo(() => rentals.filter((rental) =>
     (statusFilter === 'all' || rental.status === statusFilter) && matchesRentalSearch(rental, searchTerm)
   ), [rentals, searchTerm, statusFilter]);
@@ -192,7 +189,6 @@ export default function RentalsPage() {
     setFormError('');
     setNotice('');
     setFormOpen(true);
-    setFormScrollRequest((current) => current + 1);
     setPage(0);
     setNewFormDefaults({
       ...EMPTY_RENTAL, start_date: today, end_date: today,
@@ -205,7 +201,7 @@ export default function RentalsPage() {
     setFormError('');
     setNotice('');
     setFormOpen(true);
-    setFormScrollRequest((current) => current + 1);
+    
   }
   function closeForm() {
     if (saving) return;
@@ -300,7 +296,7 @@ export default function RentalsPage() {
           {!formOpen && <button type="button" onClick={openNewRental} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Nova locação</button>}
         </div>
         {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
-        {formOpen && <div ref={formContainerRef} className="mb-6 scroll-mt-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7">
+        <WorkspaceModal open={formOpen} title={editingRental ? 'Editar locação #' + editingRental.rental_number : 'Nova locação'} description="Organize cliente, período, equipamentos, valores e responsáveis." onClose={closeForm} size="xl">
           <RentalForm key={editingRental?.id ?? 'new-rental'} initialValues={editingRental ? {
             customer_id: editingRental.customer_id ?? '',
             start_date: editingRental.start_date, end_date: editingRental.end_date,
@@ -316,7 +312,22 @@ export default function RentalsPage() {
           } : newFormDefaults} isEditing={Boolean(editingRental)} saving={saving} error={formError}
             customers={customers} products={products} members={members} currentUserId={currentUserId}
             onCancel={closeForm} onSubmit={saveRental} />
-        </div>}
+        </WorkspaceModal>
+        <WorkspaceModal open={Boolean(viewingRental)} title={viewingRental ? 'Locação #' + viewingRental.rental_number : 'Detalhes da locação'} description="Resumo completo do registro selecionado." onClose={() => setViewingRental(null)} size="lg">
+          {viewingRental && <div className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-purple-50 p-4">
+              <div><p className="text-xs font-semibold uppercase tracking-wide text-purple-600">Cliente</p><h3 className="mt-1 text-xl font-bold text-gray-900">{viewingRental.customer_name}</h3></div>
+              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-purple-700">{viewingRental.status === 'completed' ? 'Concluída' : viewingRental.status === 'confirmed' ? 'Confirmada' : viewingRental.status === 'ongoing' ? 'Em andamento' : viewingRental.status === 'cancelled' ? 'Cancelada' : 'Pendente'}</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-gray-100 p-4"><p className="text-xs text-gray-500">Período</p><p className="mt-1 font-semibold text-gray-900">{viewingRental.start_date} – {viewingRental.end_date}</p><p className="mt-1 text-sm text-gray-500">{viewingRental.start_time?.slice(0,5) ?? '—'} às {viewingRental.end_time?.slice(0,5) ?? '—'}</p></div>
+              <div className="rounded-xl border border-gray-100 p-4"><p className="text-xs text-gray-500">Entrega ou retirada</p><p className="mt-1 font-semibold text-gray-900">{viewingRental.delivery_method === 'delivery' ? 'Entrega' : 'Retirada'}</p>{viewingRental.delivery_address && <p className="mt-1 text-sm text-gray-500">{viewingRental.delivery_address}</p>}</div>
+            </div>
+            <div><h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-purple-700">Itens da locação</h3><div className="divide-y divide-gray-100 rounded-xl border border-gray-100">{viewingRental.items.map(item => <div key={item.id} className="flex justify-between gap-3 p-3 text-sm"><span className="text-gray-700">{item.product_name} × {item.quantity}</span><strong className="text-gray-900">{item.unit_price === 0 ? 'Incluído no combo' : 'R$ ' + Number(item.subtotal).toFixed(2).replace('.', ',')}</strong></div>)}</div></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Responsáveis</p><p className="mt-1 text-sm font-semibold text-gray-900">{viewingRental.responsible_names.join(', ') || 'Não definidos'}</p></div><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Valor total</p><p className="mt-1 text-2xl font-bold text-gray-900">R$ {Number(viewingRental.total_amount).toFixed(2).replace('.', ',')}</p></div></div>
+            <div className="flex flex-col-reverse justify-end gap-2 border-t border-gray-100 pt-4 sm:flex-row"><button type="button" onClick={() => setViewingRental(null)} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700">Fechar</button><button type="button" onClick={() => { const selected = viewingRental; setViewingRental(null); openEditRental(selected); }} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white">Editar locação</button></div>
+          </div>}
+        </WorkspaceModal>
         <form onSubmit={submitSearch} className="mb-4 rounded-2xl border border-purple-100 bg-white p-3">
           <label htmlFor="rental-search" className="sr-only">Pesquisar locações</label>
           <input id="rental-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por número, cliente, item ou responsável" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
@@ -335,7 +346,7 @@ export default function RentalsPage() {
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
         <RentalList rentals={visibleRentals} loading={listLoading} totalCount={filteredRentals.length} page={page} pageSize={pageSize}
-          onPageChange={(next) => setPage(Math.max(0, Math.min(next, pageCount - 1)))} onEdit={openEditRental} />
+          onPageChange={(next) => setPage(Math.max(0, Math.min(next, pageCount - 1)))} onEdit={openEditRental} onView={setViewingRental} />
         {!listLoading && filteredRentals.length > 0 && <p className="mt-3 text-right text-xs text-gray-400">Exibindo somente locações às quais sua conta tem acesso.</p>}
       </section>
     </AppShell>

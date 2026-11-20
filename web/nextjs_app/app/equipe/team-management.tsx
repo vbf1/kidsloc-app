@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { supabase } from '@/lib/supabase';
 import { SelectField } from '@/components/ui/select-field';
 import { AppShell } from '@/components/app-shell';
+import { WorkspaceModal } from '@/components/workspace-modal';
 
 type Role = 'owner' | 'admin' | 'manager' | 'staff';
 type Company = { id: string; name: string; role: Role };
@@ -23,6 +24,8 @@ export default function TeamManagement() {
   const [companyId, setCompanyId] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
   const [inviteRole, setInviteRole] = useState<Role>('staff');
   const [busy, setBusy] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -156,6 +159,7 @@ export default function TeamManagement() {
       }
       setMessage(data?.invited ? 'Convite enviado por e-mail.' : 'Usuário adicionado à equipe.');
       setInviteEmail('');
+      setInviteOpen(false);
       await loadMembers();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível concluir o convite.');
@@ -168,8 +172,8 @@ export default function TeamManagement() {
     if (!supabase || !companyId || !activeCompany) return;
     setBusy(true); setError(''); setMessage('');
     try {
-      const { error: updateError } = await supabase.rpc('add_company_member', {
-        p_company_id: companyId, p_user_id: member.user_id, p_role: role,
+      const { error: updateError } = await supabase.rpc('manage_company_member', {
+        p_company_id: companyId, p_user_id: member.user_id, p_action: 'change_role', p_role: role,
       });
       if (updateError) throw updateError;
       setMessage('Cargo atualizado.');
@@ -183,12 +187,14 @@ export default function TeamManagement() {
 
   async function removeMember(member: Member) {
     if (!supabase || !activeCompany || member.role === 'owner') return;
-    if (!window.confirm(`Remover ${member.name} da empresa? O acesso aos dados desta empresa será encerrado imediatamente.`)) return;
     setBusy(true); setError(''); setMessage('');
     try {
-      const { error: deleteError } = await supabase.from('company_members').delete().eq('id', member.id).eq('company_id', companyId);
+      const { error: deleteError } = await supabase.rpc('manage_company_member', {
+        p_company_id: companyId, p_user_id: member.user_id, p_action: 'remove', p_role: null,
+      });
       if (deleteError) throw deleteError;
       setMessage('Funcionário removido. O acesso aos dados da empresa foi revogado.');
+      setMemberToRemove(null);
       await loadMembers();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível remover o funcionário.');
@@ -229,12 +235,16 @@ export default function TeamManagement() {
         <>
           <section className="kl-page-heading"><div><p className="kl-eyebrow">Administração</p><h1 className="kl-title">Equipe da empresa</h1><p className="kl-subtitle">Gerencie os acessos e os cargos dos colaboradores.</p></div><div className="w-full sm:w-64"><label className="kl-field-label">Empresa</label><SelectField ariaLabel="Empresa" value={companyId} onChange={setCompanyId} options={companies.map((company) => ({ value: company.id, label: company.name }))} /></div></section>
           <section className="kl-card mb-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">Seu acesso</h2><p className="mt-1 text-sm text-gray-500">Cargo: {activeCompany ? roleLabels[activeCompany.role] : '—'}</p></div><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-800">{members.length} membro(s)</span></div></section>
-          {canManage && <section className="kl-card mb-4"><h2 className="font-semibold">Adicionar funcionário</h2><p className="mt-1 text-sm text-gray-500">Enviaremos um convite para o e-mail informado. Se a pessoa já tiver conta, ela será vinculada à empresa.</p>
-            <form onSubmit={invite} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_190px_auto]"><input required type="email" placeholder="E-mail do funcionário" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="kl-input" /><SelectField ariaLabel="Cargo do novo funcionário" value={inviteRole} onChange={(value) => setInviteRole(value as Role)} options={[{ value: 'staff', label: 'Funcionário' }, ...(activeCompany?.role === 'owner' ? [{ value: 'manager', label: 'Gerente' }, { value: 'admin', label: 'Administrador' }] : [])]} /><button disabled={busy} className="kl-button-primary">Enviar convite</button></form>
-          </section>}
+          {canManage && <section className="kl-card mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Adicionar funcionário</h2><p className="mt-1 text-sm text-gray-500">Convide alguém para acessar esta empresa.</p></div><button type="button" onClick={() => setInviteOpen(true)} className="kl-button-primary">Adicionar funcionário</button></section>}
+          <WorkspaceModal open={inviteOpen} title="Adicionar funcionário" description="Enviaremos um convite para o e-mail informado. Se a pessoa já tiver conta, ela será vinculada à empresa." onClose={() => { if (!busy) setInviteOpen(false); }} size="md">
+            <form onSubmit={invite} className="space-y-4"><label className="block text-sm font-semibold text-gray-700">E-mail do funcionário<input required type="email" autoComplete="email" placeholder="nome@empresa.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="kl-input mt-2" /></label><div><label className="mb-2 block text-sm font-semibold text-gray-700">Cargo</label><SelectField ariaLabel="Cargo do novo funcionário" value={inviteRole} onChange={(value) => setInviteRole(value as Role)} options={[{ value: 'staff', label: 'Funcionário' }, ...(activeCompany?.role === 'owner' ? [{ value: 'admin', label: 'Administrador' }] : [])]} /></div><div className="flex justify-end gap-2 border-t border-gray-100 pt-4"><button type="button" disabled={busy} onClick={() => setInviteOpen(false)} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Cancelar</button><button disabled={busy} className="kl-button-primary">{busy ? 'Enviando…' : 'Enviar convite'}</button></div></form>
+          </WorkspaceModal>
+          <WorkspaceModal open={Boolean(memberToRemove)} title="Remover funcionário?" description={memberToRemove ? 'Confirme a remoção de ' + memberToRemove.name + ' da empresa.' : ''} onClose={() => { if (!busy) setMemberToRemove(null); }} size="md">
+            {memberToRemove && <div className="space-y-5"><div className="rounded-2xl border border-red-100 bg-red-50 p-4"><p className="text-sm font-semibold text-red-800">O acesso aos dados desta empresa será encerrado imediatamente.</p><p className="mt-1 text-xs text-red-700">Essa ação não exclui a conta da pessoa no KidsLoc.</p></div><div className="flex justify-end gap-2"><button type="button" disabled={busy} onClick={() => setMemberToRemove(null)} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700">Cancelar</button><button type="button" disabled={busy} onClick={() => void removeMember(memberToRemove)} className="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Removendo…' : 'Confirmar remoção'}</button></div></div>}
+          </WorkspaceModal>
           <section className="kl-card overflow-visible !p-0"><div className="border-b border-[#f0edf4] px-5 py-4"><h2 className="kl-card-title">Membros cadastrados</h2><p className="mt-1 text-xs text-gray-500">Pessoas com acesso à empresa</p></div>
             {members.length === 0 ? <p className="p-6 text-sm text-gray-500">Nenhum membro encontrado.</p> : <div className="divide-y">{members.map((member) => <div key={member.id} className="kl-member-row"><div className="min-w-0"><p className="font-medium">{member.name}</p><p className="mt-1 text-xs text-gray-500">{member.phone || 'Telefone não informado'} · Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}</p></div>
-              <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' || !canManage || (activeCompany?.role === 'admin' && member.role !== 'staff') ? <span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span> : <><SelectField ariaLabel={`Cargo de ${member.name}`} value={member.role} onChange={(value) => void changeRole(member, value as Role)} className="min-w-36" options={[...(activeCompany?.role === 'owner' ? [{ value: 'admin', label: 'Administrador' }, { value: 'manager', label: 'Gerente' }] : []), { value: 'staff', label: 'Funcionário' }]} /><button disabled={busy} onClick={() => removeMember(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></>}</div>
+              <div className="flex flex-wrap items-center gap-2">{member.role === 'owner' || !canManage || activeCompany?.role === 'admin' ? <><span className="rounded-full bg-gray-100 px-3 py-2 text-sm">{roleLabels[member.role]}</span>{activeCompany?.role === 'admin' && member.role === 'staff' && <button disabled={busy} onClick={() => setMemberToRemove(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button>}</> : <><SelectField ariaLabel={`Cargo de ${member.name}`} value={member.role} onChange={(value) => void changeRole(member, value as Role)} className="min-w-36" options={[{ value: 'admin', label: 'Administrador' }, { value: 'staff', label: 'Funcionário' }]} /><button disabled={busy} onClick={() => setMemberToRemove(member)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remover</button></>}</div>
             </div>)}</div>}
           </section>
           <p className="mt-4 px-1 text-xs leading-5 text-gray-400">A remoção é aplicada no banco de dados; as políticas de segurança bloqueiam o acesso do membro removido aos dados da empresa.</p>
