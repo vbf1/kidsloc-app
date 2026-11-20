@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'quote_create_page.dart';
+import 'rental_create_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -473,6 +474,16 @@ class _HomePageState extends State<HomePage> {
         onPressed: _loading ? null : () async {
           final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
             builder: (_) => QuoteCreatePage(companyId: widget.companyId),
+          ));
+          if (created == true && mounted) _load();
+        },
+        icon: const Icon(Icons.add_circle_outline),
+      ),
+      if (widget.table == 'rentals') IconButton(
+        tooltip: 'Nova locação',
+        onPressed: _loading ? null : () async {
+          final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
+            builder: (_) => RentalCreatePage(companyId: widget.companyId),
           ));
           if (created == true && mounted) _load();
         },
