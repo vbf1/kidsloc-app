@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(4);
+select plan(5);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -18,11 +18,20 @@ values
 insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price)
 values
   ('a3000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'Produto protegido QA', 'toy', 'quantity', 1, 50),
-  ('a3000000-0000-4000-8000-000000000002', 'a2000000-0000-4000-8000-000000000001', 'Produto do administrador QA', 'toy', 'quantity', 1, 50);
+  ('a3000000-0000-4000-8000-000000000002', 'a2000000-0000-4000-8000-000000000001', 'Produto do administrador QA', 'toy', 'quantity', 1, 50),
+  ('a3000000-0000-4000-8000-000000000003', 'a2000000-0000-4000-8000-000000000001', 'Máquina QA', 'machine', 'quantity', 0, 0, 150);
 
 insert into public.customers (id, company_id, name)
 values
   ('a4000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'Cliente protegido QA');
+
+select is(
+  (select count(*)::integer from public.products
+   where id = 'a3000000-0000-4000-8000-000000000003'
+     and item_type = 'machine'),
+  1,
+  'machine catalog items are accepted by the unified catalog constraints'
+);
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000002', true);
