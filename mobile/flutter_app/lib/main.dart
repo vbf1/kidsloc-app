@@ -528,38 +528,209 @@ class _HomePageState extends State<HomePage> {
   );
 }
 
-class _RecordsPage extends StatelessWidget {
-  const _RecordsPage({required this.title, required this.rows});
+class _RecordsPage extends StatefulWidget {
+  const _RecordsPage({required this.title, required this.table, required this.companyId});
   final String title;
-  final List<dynamic> rows;
+  final String table;
+  final String companyId;
+  @override
+  State<_RecordsPage> createState() => _RecordsPageState();
+}
+
+class _RecordsPageState extends State<_RecordsPage> {
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+  List<Map<String, dynamic>> _rows = [];
+  bool get _editable => widget.table == 'customers' || widget.table == 'products';
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final result = await Supabase.instance.client.from(widget.table).select('*')
+          .eq('company_id', widget.companyId).limit(100);
+      if (!mounted) return;
+      setState(() {
+        _rows = result.map((row) => Map<String, dynamic>.from(row)).toList();
+        _rows.sort((a, b) => (a['name'] ?? a['description'] ?? '').toString()
+            .toLowerCase().compareTo((b['name'] ?? b['description'] ?? '').toString().toLowerCase()));
+        _loading = false;
+      });
+    } on PostgrestException catch (_) {
+      if (mounted) setState(() { _error = 'Não foi possível consultar este módulo. Confira sua permissão e tente novamente.'; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Ocorreu um erro ao consultar os registros.'; _loading = false; });
+    }
+  }
+
+  String _title(Map<String, dynamic> row) {
+    for (final key in ['name', 'description', 'title', 'customer_name']) {
+      final value = row[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) return value;
+    }
+    for (final key in ['quote_number', 'rental_number', 'contract_number']) {
+      if (row[key] != null) return widget.title + ' #' + row[key].toString();
+    }
+    return 'Registro';
+  }
+
+  Future<void> _openEditor([Map<String, dynamic>? row]) async {
+    if (!_editable || _saving) return;
+    final isCustomer = widget.table == 'customers';
+    final definitions = isCustomer
+        ? <String, String>{
+            'name': 'Nome completo', 'phone': 'Telefone / WhatsApp',
+            'email': 'E-mail', 'cpf': 'CPF', 'address': 'Endereço', 'notes': 'Observações',
+          }
+        : <String, String>{
+            'name': 'Nome do brinquedo ou serviço', 'description': 'Descrição',
+            'total_quantity': 'Quantidade disponível', 'daily_price': 'Preço por diária (R\$)',
+            'event_price': 'Preço por evento (R\$)',
+          };
+    final fields = <String, TextEditingController>{};
+    for (final entry in definitions.entries) {
+      fields[entry.key] = TextEditingController(text: row?[entry.key]?.toString() ?? '');
+    }
+    String itemType = row?['item_type']?.toString() ?? 'toy';
+    bool active = row?['active'] as bool? ?? true;
+    final formKey = GlobalKey<FormState>();
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, refreshDialog) => AlertDialog(
+          title: Text(row == null ? 'Novo registro' : 'Editar registro'),
+          content: SizedBox(width: 440, child: SingleChildScrollView(
+            child: Form(key: formKey, child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ...definitions.entries.map((entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: TextFormField(
+                  controller: fields[entry.key],
+                  decoration: InputDecoration(labelText: entry.value),
+                  keyboardType: entry.key == 'email' ? TextInputType.emailAddress
+                    : (entry.key == 'phone' || entry.key == 'cpf' || entry.key.contains('price') || entry.key == 'total_quantity')
+                        ? TextInputType.numberWithOptions(decimal: entry.key.contains('price'))
+                        : TextInputType.text,
+                  maxLines: entry.key == 'notes' || entry.key == 'description' ? 3 : 1,
+                  validator: entry.key == 'name' ? (v) => v == null || v.trim().isEmpty ? 'Campo obrigatório.' : null : null,
+                ),
+              )),
+              if (!isCustomer) ...[
+                DropdownButtonFormField<String>(
+                  value: itemType,
+                  decoration: const InputDecoration(labelText: 'Tipo'),
+                  items: const [
+                    DropdownMenuItem(value: 'toy', child: Text('Brinquedo')),
+                    DropdownMenuItem(value: 'machine', child: Text('Máquina')),
+                    DropdownMenuItem(value: 'service', child: Text('Serviço')),
+                  ],
+                  onChanged: (v) => refreshDialog(() => itemType = v ?? 'toy'),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero, title: const Text('Ativo no catálogo'),
+                  value: active, onChanged: (v) => refreshDialog(() => active = v),
+                ),
+              ],
+            ])),
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(dialogContext, true);
+            }, child: const Text('Salvar')),
+          ],
+        ),
+      ),
+    );
+    if (saved == true) {
+      final values = <String, dynamic>{};
+      for (final entry in fields.entries) {
+        final value = entry.value.text.trim();
+        if (isCustomer) {
+          values[entry.key] = value.isEmpty ? null : value;
+        } else if (entry.key == 'total_quantity') {
+          values[entry.key] = int.tryParse(value) ?? 1;
+        } else if (entry.key.contains('price')) {
+          values[entry.key] = double.tryParse(value.replaceAll(',', '.')) ?? 0;
+        } else {
+          values[entry.key] = value.isEmpty ? null : value;
+        }
+      }
+      if (!isCustomer) {
+        values['item_type'] = itemType;
+        values['inventory_mode'] = 'quantity';
+        values['active'] = active;
+        values['total_quantity'] = values['total_quantity'] ?? 1;
+        values['daily_price'] = itemType == 'service' ? 0 : (values['daily_price'] ?? 0);
+        values['event_price'] = itemType == 'service' ? (values['event_price'] ?? 0) : values['event_price'];
+      }
+      values['company_id'] = widget.companyId;
+      values['updated_at'] = DateTime.now().toUtc().toIso8601String();
+      setState(() => _saving = true);
+      try {
+        final client = Supabase.instance.client;
+        if (row == null) {
+          await client.from(widget.table).insert(values);
+        } else {
+          await client.from(widget.table).update(values).eq('id', row['id']).eq('company_id', widget.companyId);
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isCustomer ? 'Cliente salvo.' : 'Item do catálogo salvo.')));
+          await _load();
+        }
+      } on PostgrestException catch (_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível salvar. Confira os campos e suas permissões.')));
+      } catch (_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ocorreu um erro ao salvar o registro.')));
+      } finally {
+        if (mounted) setState(() => _saving = false);
+      }
+    }
+    for (final controller in fields.values) { controller.dispose(); }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: rows.isEmpty
-      ? const Center(child: Text('Nenhum registro encontrado.'))
-      : ListView.separated(
-        padding: const EdgeInsets.all(12),
-        itemCount: rows.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 6),
-        itemBuilder: (context, index) {
-          final row = Map<String, dynamic>.from(rows[index]);
-          final name = row['name'] ?? row['description'] ?? row['title'] ?? 'Registro';
-          final number = row['quote_number'] ?? row['rental_number'] ?? row['contract_number'];
-          final status = row['status'];
-          final date = row['start_date'] ?? row['event_date'] ?? row['due_date'];
-          final amount = row['total_amount'] ?? row['amount'];
-          final titleText = number == null ? name.toString() : title + ' #' + number.toString();
-          final details = <String>[
-            if (status != null) 'Situação: ' + status.toString(),
-            if (date != null) 'Data: ' + date.toString(),
-            if (amount != null) 'Valor: R\$ ' + amount.toString(),
-          ];
-          return Card(child: ListTile(
-            title: Text(titleText, maxLines: 2, overflow: TextOverflow.ellipsis),
-            subtitle: Text(details.join(' · '), maxLines: 2, overflow: TextOverflow.ellipsis),
-          ));
-        },
-      ),
+    appBar: AppBar(title: Text(widget.title), actions: [
+      if (_editable) IconButton(tooltip: 'Novo cadastro', onPressed: _saving ? null : () => _openEditor(), icon: const Icon(Icons.add)),
+      IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+    ]),
+    body: _loading ? const Center(child: CircularProgressIndicator()) :
+      _error != null ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(
+        mainAxisSize: MainAxisSize.min, children: [
+          Text(_error!, textAlign: TextAlign.center), const SizedBox(height: 12),
+          FilledButton(onPressed: _load, child: const Text('Tentar novamente')),
+        ]))) :
+      RefreshIndicator(onRefresh: _load, child: _rows.isEmpty
+        ? ListView(children: [
+            const SizedBox(height: 120),
+            Center(child: Text(_editable ? 'Nenhum registro cadastrado.' : 'Nenhum registro encontrado.')),
+            if (_editable) Center(child: TextButton.icon(onPressed: () => _openEditor(), icon: const Icon(Icons.add), label: const Text('Adicionar primeiro registro'))),
+          ])
+        : ListView.separated(
+          padding: const EdgeInsets.all(12), itemCount: _rows.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 6),
+          itemBuilder: (context, index) {
+            final row = _rows[index];
+            final status = row['status']?.toString();
+            final date = row['start_date'] ?? row['event_date'] ?? row['due_date'] ?? row['created_at'];
+            final amount = row['total_amount'] ?? row['amount'] ?? row['daily_price'] ?? row['event_price'];
+            final details = <String>[
+              if (row['phone'] != null) row['phone'].toString(),
+              if (row['email'] != null) row['email'].toString(),
+              if (status != null) 'Situação: ' + status,
+              if (date != null) 'Data: ' + date.toString().split('T').first,
+              if (amount != null) 'Valor: R\$ ' + amount.toString(),
+              if (row['active'] == false) 'Inativo',
+            ];
+            return Card(child: ListTile(
+              title: Text(_title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
+              subtitle: details.isEmpty ? null : Text(details.join(' · '), maxLines: 3, overflow: TextOverflow.ellipsis),
+              trailing: _editable ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined)) : null,
+            ));
+          },
+        )),
   );
 }
