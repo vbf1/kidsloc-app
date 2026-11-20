@@ -14,6 +14,13 @@ const primary = 'inline-flex min-h-11 items-center justify-center rounded-xl bg-
 const secondary = 'inline-flex min-h-10 items-center justify-center rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50';
 const field = 'mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100';
 
+function toLocalDateTimeInput(value: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 export default function LeadFestaPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [platformOwner, setPlatformOwner] = useState(false);
@@ -26,9 +33,11 @@ export default function LeadFestaPage() {
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
+  const [editingLeadId, setEditingLeadId] = useState('');
   const [form, setForm] = useState<LeadFormValues>(EMPTY_LEAD);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof LeadFormValues, string>>>({});
   const [activityDraft, setActivityDraft] = useState('');
+  const [activityType, setActivityType] = useState<LeadActivity['activity_type']>('note');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [accessMessage, setAccessMessage] = useState('');
@@ -163,22 +172,44 @@ export default function LeadFestaPage() {
     void loadActivities();
   }, [loadActivities]);
 
+  function openLeadForm(lead?: LeadRecord) {
+    if (lead) {
+      setEditingLeadId(lead.id);
+      setForm({
+        name: lead.name,
+        phone: lead.phone ?? '',
+        email: lead.email ?? '',
+        contact_company: lead.contact_company ?? '',
+        source: lead.source,
+        estimated_value: lead.estimated_value === null ? '' : String(lead.estimated_value),
+        expected_close_date: lead.expected_close_date ?? '',
+        next_contact_at: toLocalDateTimeInput(lead.next_contact_at),
+        notes: lead.notes ?? '',
+      });
+    } else {
+      setEditingLeadId('');
+      setForm(EMPTY_LEAD);
+    }
+    setFormErrors({});
+    setShowForm(true);
+  }
+
   async function createLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !companyId || saving) return;
     const errors = validateLead(form);
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
-    if (!stages[0]) {
+    if (!editingLeadId && !stages[0]) {
       setPageError('O funil ainda não possui etapas configuradas.');
       return;
     }
     setSaving(true);
     setNotice('');
+    setPageError('');
     const value = normalizeLead(form);
-    const { data, error } = await supabase.from('leads').insert({
+    const payload = {
       company_id: companyId,
-      stage_id: stages[0].id,
       name: value.name,
       phone: value.phone || null,
       email: value.email || null,
@@ -188,22 +219,40 @@ export default function LeadFestaPage() {
       expected_close_date: value.expected_close_date || null,
       next_contact_at: value.next_contact_at ? new Date(value.next_contact_at).toISOString() : null,
       notes: value.notes || null,
-    }).select('id').single();
-    if (error || !data) {
-      setPageError('Não foi possível salvar o lead. Verifique os dados e tente novamente.');
-      setSaving(false);
-      return;
-    }
-    if (value.notes) {
-      await supabase.from('lead_activities').insert({
-        company_id: companyId, lead_id: data.id, activity_type: 'note', body: value.notes,
-      });
+      updated_at: new Date().toISOString(),
+    };
+    let savedLeadId = editingLeadId;
+    if (editingLeadId) {
+      const { data, error } = await supabase.from('leads').update(payload)
+        .eq('id', editingLeadId).eq('company_id', companyId).select('id').maybeSingle();
+      if (error || !data) {
+        setPageError('Não foi possível atualizar o lead. Verifique os dados e tente novamente.');
+        setSaving(false);
+        return;
+      }
+      savedLeadId = data.id;
+    } else {
+      const { data, error } = await supabase.from('leads').insert({
+        ...payload, stage_id: stages[0].id,
+      }).select('id').single();
+      if (error || !data) {
+        setPageError('Não foi possível salvar o lead. Verifique os dados e tente novamente.');
+        setSaving(false);
+        return;
+      }
+      savedLeadId = data.id;
+      if (value.notes) {
+        await supabase.from('lead_activities').insert({
+          company_id: companyId, lead_id: data.id, activity_type: 'note', body: value.notes,
+        });
+      }
     }
     setForm(EMPTY_LEAD);
+    setEditingLeadId('');
     setFormErrors({});
     setShowForm(false);
-    setSelectedLeadId(data.id);
-    setNotice('Lead cadastrado com sucesso.');
+    setSelectedLeadId(savedLeadId);
+    setNotice(editingLeadId ? 'Lead atualizado com sucesso.' : 'Lead cadastrado com sucesso.');
     await loadData();
     setSaving(false);
   }
@@ -226,16 +275,17 @@ export default function LeadFestaPage() {
     await loadActivities();
   }
 
-  async function addActivity(event: React.FormEvent<HTMLFormElement>) {
+  async function addActivity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !companyId || !selectedLead || !activityDraft.trim() || saving) return;
     setSaving(true);
     const { error } = await supabase.from('lead_activities').insert({
-      company_id: companyId, lead_id: selectedLead.id, activity_type: 'note', body: activityDraft.trim(),
+      company_id: companyId, lead_id: selectedLead.id, activity_type: activityType, body: activityDraft.trim(),
     });
     if (error) setPageError('Não foi possível registrar a atividade.');
     else {
       setActivityDraft('');
+      setActivityType('note');
       await loadActivities();
       setNotice('Histórico atualizado.');
     }
@@ -279,7 +329,7 @@ export default function LeadFestaPage() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">LeadFesta</h1>
           <p className="mt-2 text-sm text-gray-500">Organize oportunidades, acompanhe negociações e mantenha todo o histórico de contatos.</p>
         </div>
-        <button type="button" className={primary} onClick={() => { setShowForm((value) => !value); setFormErrors({}); }}>
+        <button type="button" className={primary} onClick={() => { if (showForm) { setShowForm(false); setEditingLeadId(''); } else openLeadForm(); }}>
           {showForm ? 'Fechar cadastro' : '+ Novo lead'}
         </button>
       </div>
@@ -297,7 +347,7 @@ export default function LeadFestaPage() {
       {(pageError) && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{pageError}</p>}
 
       {showForm && <section className={panel}>
-        <div className="mb-4"><h2 className="text-lg font-bold">Cadastrar oportunidade</h2><p className="mt-1 text-sm text-gray-500">Os campos são flexíveis para empresas de diferentes segmentos.</p></div>
+        <div className="mb-4"><h2 className="text-lg font-bold">{editingLeadId ? 'Editar oportunidade' : 'Cadastrar oportunidade'}</h2><p className="mt-1 text-sm text-gray-500">Os campos são flexíveis para empresas de diferentes segmentos.</p></div>
         <form onSubmit={createLead} className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-semibold">Nome do contato *
             <input className={field} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} maxLength={160} required />
@@ -334,7 +384,7 @@ export default function LeadFestaPage() {
             {formErrors.notes && <span className="mt-1 block text-xs text-red-600">{formErrors.notes}</span>}
           </label>
           <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <button type="submit" className={primary} disabled={saving}>{saving ? 'Salvando...' : 'Salvar lead'}</button>
+            <button type="submit" className={primary} disabled={saving}>{saving ? 'Salvando...' : editingLeadId ? 'Salvar alterações' : 'Salvar lead'}</button>
             <button type="button" className={secondary} onClick={() => setShowForm(false)} disabled={saving}>Cancelar</button>
           </div>
         </form>
@@ -373,7 +423,7 @@ export default function LeadFestaPage() {
           {selectedLead ? <>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div><p className="text-xs font-bold uppercase tracking-wide text-[#8054d8]">Detalhes da oportunidade</p><h2 className="mt-1 text-xl font-bold">{selectedLead.name}</h2><p className="mt-1 text-sm text-gray-500">{selectedLead.contact_company || 'Pessoa física / organização não informada'}</p></div>
-              {selectedLead.converted_customer_id ? <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">Convertido em cliente</span> : <button type="button" className={secondary} onClick={() => void convertLead()} disabled={saving}>Converter em cliente</button>}
+              {selectedLead.converted_customer_id ? <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">Convertido em cliente</span> : <button type="button" className={secondary} onClick={() => openLeadForm(selectedLead)} disabled={saving}>Editar lead</button>}{selectedLead.converted_customer_id ? null : <button type="button" className={secondary} onClick={() => void convertLead()} disabled={saving}>Converter em cliente</button>}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-3 text-sm">
               <div><p className="text-xs text-gray-400">Telefone</p><p className="mt-1 break-words font-medium">{selectedLead.phone || '—'}</p></div>
@@ -392,6 +442,9 @@ export default function LeadFestaPage() {
             <div className="mt-5 border-t border-gray-100 pt-4">
               <h3 className="font-bold">Histórico de contatos</h3>
               <form onSubmit={addActivity} className="mt-3 space-y-2">
+                <select className={field} value={activityType} onChange={(event) => setActivityType(event.target.value as LeadActivity['activity_type'])} aria-label="Tipo de atividade">
+                  <option value="note">Observação</option><option value="call">Ligação</option><option value="whatsapp">WhatsApp</option><option value="email">E-mail</option><option value="meeting">Reunião</option>
+                </select>
                 <textarea className={field + ' min-h-20 py-3'} value={activityDraft} onChange={(event) => setActivityDraft(event.target.value)} placeholder="Registre uma ligação, conversa, retorno ou observação..." maxLength={4000} required />
                 <button type="submit" className={secondary} disabled={saving || !activityDraft.trim()}>Adicionar ao histórico</button>
               </form>
