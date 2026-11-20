@@ -15,7 +15,7 @@ Status checked: 2026-11-20. This document is a preparation checklist only. It do
 
 ## Mandatory decisions before rollout
 
-1. Decide the treatment of company **Festejando**. The first new migration removes the only platform-owner membership from this company, leaving the company record in place but with no members. Do not run the migration until this is explicitly accepted or the data/membership plan is changed and revalidated.
+1. Preserve the legacy **Festejando** membership. The final SQL in `20261120110000_normalize_platform_and_company_roles.sql` keeps the existing `(company_id, user_id)` row and normalizes its legacy `owner` role to `admin`, just as it does for the other existing company-owner memberships. The pgTAP assertion `legacy platform-owner membership is preserved` verifies the row remains. Do not remove or reassign this membership.
 2. Supabase Auth leaked-password protection is currently disabled. The linked Supabase organization is on the **Free** plan, while Supabase documents this feature as available on **Pro and above**. Enabling it therefore requires a plan upgrade and a cost decision first; do not change the plan or Auth settings without explicit approval. See [Supabase password security](https://supabase.com/docs/guides/auth/password-security).
 3. Obtain explicit approval for production migration execution, Edge Function deployment, and PR merge. Validation success alone is not deployment approval.
 
@@ -25,7 +25,7 @@ Status checked: 2026-11-20. This document is a preparation checklist only. It do
 - Take/verify a recoverable database backup and confirm the recovery procedure.
 - Re-check the remote migration ledger. It must still end at `20261117015419`; if it has changed, stop and reconcile before proceeding.
 - Re-check that all 60 historical migration files still match the remote ledger exactly.
-- Review the exact SQL of the two new migrations and their effects, especially role normalization and the Festejando membership change.
+- Review the exact SQL of the new migrations and their effects, especially role normalization and preservation of the Festejando `(company_id, user_id)` membership.
 - Never re-run `20261107165527_rebuild_rental_core_and_clear_legacy_records.sql`; it is already applied and is destructive.
 - Confirm the branch commit and CI checks are the reviewed versions before using any source files.
 
@@ -34,7 +34,7 @@ Status checked: 2026-11-20. This document is a preparation checklist only. It do
 Only after all mandatory decisions and approvals:
 
 1. Apply `20261120110000_normalize_platform_and_company_roles.sql` once.
-2. Verify the migration ledger records version `20261120110000`; inspect company memberships and confirm the expected admin/staff roles and Festejando outcome.
+2. Verify the migration ledger records version `20261120110000`; inspect company memberships and confirm the Festejando platform-owner link still exists with the normalized `admin` role.
 3. Apply `20261120120000_manage_company_member_transactionally.sql` once.
 4. Verify the ledger records version `20261120120000`; confirm both new RPCs have the intended grants and transactional checks.
 5. Deploy the branch versions of Edge Functions:
@@ -50,7 +50,7 @@ If any step fails, stop the sequence. Do not continue to the next step or attemp
 
 - Sign in and verify workspace routing for the platform owner.
 - Verify Sonho Kids and Nobre Paladar each retain their expected admin membership and company data.
-- Verify Festejando matches the approved membership decision.
+- Verify the original platform-owner user remains linked to Festejando; only the legacy role label is normalized from `owner` to `admin`.
 - Invite a staff member; verify an administrator cannot invite another administrator.
 - Change a staff role and remove a staff member; verify the transactional RPC path is used.
 - Verify a company admin can delete a product while staff cannot.
