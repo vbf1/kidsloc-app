@@ -148,7 +148,7 @@ Consultas somente leitura ao catálogo confirmaram os seguintes efeitos:
 - A migration `20261117011036_allow_authorized_company_member_removal`: a policy `company_members_delete_authorized_admins` está presente. Sua expressão impede apagar registros com papel `owner`; permite remoção por papel `owner` e permite que `admin` remova somente registros `staff`. No modelo novo, após a conversão dos cargos, o administrador da empresa remove apenas funcionários.
 - A migration `20261117014514_prevent_company_members_from_changing_own_role`: não há policy de UPDATE para `company_members` nem trigger de usuário nessa tabela. O papel `authenticated` ainda possui privilégio SQL UPDATE, mas o RLS sem policy de UPDATE bloqueia a alteração direta por membros comuns. A policy `platform_owner_all` continua concedendo acesso total ao proprietário da plataforma. Portanto, a proteção efetiva para administradores/funcionários vem do RLS, não de trigger.
 
-**Novo achado de segurança:** a policy remota `company_members_delete_authorized_admins` permite ao administrador excluir funcionários diretamente pela Data API, contornando o novo RPC transacional `manage_company_member` e os locks de concorrência. A branch foi corrigida para remover essa policy na migration `20261116090000_normalize_platform_and_company_roles.sql`; o caminho de alteração/remoção de membros passa a ser a função transacional. A policy global do platform owner permanece separada.
+**Novo achado de segurança:** a policy remota `company_members_delete_authorized_admins` permite ao administrador excluir funcionários diretamente pela Data API, contornando o novo RPC transacional `manage_company_member` e os locks de concorrência. A branch foi corrigida para remover essa policy e também `platform_owner_all` de `company_members` na migration `20261116090000_normalize_platform_and_company_roles.sql`. A leitura continua pela policy de SELECT; toda escrita, inclusive pelo platform owner, passa pelos RPCs transacionais.
 
 A revisão do catálogo também revelou que o estado remoto não tinha `platform_owner_all` nas tabelas de chat, enquanto a migration histórica `20261107165500_global_platform_owner_and_company_settings` criava essas policies no banco limpo. A migration local `20261116090000` foi corrigida para removê-las explicitamente de `team_conversations`, `team_messages` e `team_conversation_members`, antes de aplicar as policies de isolamento. Os testes diretos de leitura de chat pelo platform owner verificam esse cenário.
 
@@ -156,9 +156,9 @@ Os arquivos SQL originais de `20261117011036` e `20261117014514` não estão no 
 
 ### Testes de isolamento do chat e gerenciamento transacional
 
-- A suíte `platform_company_role_model.test.sql` foi ampliada para **35 verificações**; `foundation.test.sql` agora tem 26 verificações de políticas e `role_permissions.test.sql` tem 4 verificações de exclusão por cargo.
+- A suíte `platform_company_role_model.test.sql` foi ampliada para **36 verificações**; `foundation.test.sql` agora tem 26 verificações de políticas e `role_permissions.test.sql` tem 4 verificações de exclusão por cargo.
 - Além de validar que platform owner não consegue executar `ensure_team_group`, agora cria uma conversa e mensagem como administrador e verifica que platform owner não consegue ler conversas, mensagens nem participantes diretamente via RLS.
-- Também valida que administrador não pode remover a própria associação pela RPC nem contornar a RPC transacional usando DELETE direto na tabela.
+- Também valida que administrador não pode remover a própria associação pela RPC nem contornar a RPC transacional usando DELETE direto na tabela; platform owner também não pode inserir vínculo diretamente na tabela.
 - A migration de normalização remove a policy de DELETE direto de membros comuns; a remoção autorizada de funcionários fica concentrada no RPC transacional.
 
 ## Próxima sequência de trabalho
