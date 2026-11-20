@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(2);
+select plan(4);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -20,6 +20,10 @@ values
   ('a3000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'Produto protegido QA', 'toy', 'quantity', 1, 50),
   ('a3000000-0000-4000-8000-000000000002', 'a2000000-0000-4000-8000-000000000001', 'Produto do administrador QA', 'toy', 'quantity', 1, 50);
 
+insert into public.customers (id, company_id, name)
+values
+  ('a4000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'Cliente protegido QA');
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000002', true);
 delete from public.products where id = 'a3000000-0000-4000-8000-000000000001';
@@ -29,12 +33,26 @@ select is(
   'employee cannot delete company products'
 );
 
+delete from public.customers where id = 'a4000000-0000-4000-8000-000000000001';
+select is(
+  (select count(*)::integer from public.customers where id = 'a4000000-0000-4000-8000-000000000001'),
+  1,
+  'employee cannot delete company customers'
+);
+
 select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000001', true);
 delete from public.products where id = 'a3000000-0000-4000-8000-000000000001';
 select is(
   (select count(*)::integer from public.products where id = 'a3000000-0000-4000-8000-000000000001'),
   0,
   'company admin can delete company products'
+);
+
+delete from public.customers where id = 'a4000000-0000-4000-8000-000000000001';
+select is(
+  (select count(*)::integer from public.customers where id = 'a4000000-0000-4000-8000-000000000001'),
+  0,
+  'company admin can delete company customers'
 );
 
 reset role;
