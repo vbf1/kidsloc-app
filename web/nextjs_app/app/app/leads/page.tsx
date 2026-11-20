@@ -222,6 +222,7 @@ export default function LeadFestaPage() {
       updated_at: new Date().toISOString(),
     };
     let savedLeadId = editingLeadId;
+    let initialNoteSaved = true;
     if (editingLeadId) {
       const { data, error } = await supabase.from('leads').update(payload)
         .eq('id', editingLeadId).eq('company_id', companyId).select('id').maybeSingle();
@@ -241,7 +242,6 @@ export default function LeadFestaPage() {
         return;
       }
       savedLeadId = data.id;
-      let initialNoteSaved = true;
       if (value.notes) {
         const { error: activityError } = await supabase.from('lead_activities').insert({
           company_id: companyId, lead_id: data.id, activity_type: 'note', body: value.notes,
