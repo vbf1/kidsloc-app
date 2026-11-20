@@ -444,4 +444,4 @@ Verificações remotas após a aplicação:
 - As funções de gestão de membros mantêm EXECUTE negado a `anon` e concedido a `authenticated`.
 - Edge Functions `manage-employees` e `invite-company-member` estão ativas na versão 3, ambas com JWT verification habilitada.
 
-O entitlement LeadFesta permanece desativado por padrão; a ativação por empresa deve ser decidida pelo platform owner. A publicação do frontend ainda depende do merge das PRs e do workflow de GitHub Pages.
+O entitlement LeadFesta permanece desativado por padrão; a ativação por empresa deve ser decidida pelo platform owner. As PRs #87 e #88 foram mescladas e o workflow de GitHub Pages publicou o frontend com sucesso em 20/11/2026 no commit `fb2eb3a78f4436711b311ee6693a8cc9655e3dbb`.
