@@ -311,14 +311,14 @@ drop policy if exists company_members_delete_authorized_admins on public.company
 -- Reconcile company-wide operational policies to the deployed role model.
 -- The initial foundation grants company_members_all on these tables; remove
 -- those broad policies before applying explicit per-operation permissions.
-do $
+do $policy$
 declare v_table text;
 begin
   foreach v_table in array array['documents','financial_transactions','stock_movements','maintenance_records','product_units'] loop
     execute format('drop policy if exists company_members_all on public.%I', v_table);
   end loop;
 end;
-$;
+$policy$;
 
 drop policy if exists documents_select_company_members on public.documents;
 create policy documents_select_company_members on public.documents
