@@ -10,6 +10,7 @@ type Role = 'owner' | 'admin' | 'manager' | 'staff';
 type Customer = { id: string; name: string; phone: string | null };
 type Product = { id: string; name: string; daily_price: number | string; event_price: number | string | null; item_type: string };
 type QuoteItem = { product_id: string; quantity: number; unit_price: number };
+type QuoteLine = { quote_id: string; description: string; quantity: number; unit_price: number | string; subtotal: number | string };
 type Quote = { id: string; quote_number: number; customer_id: string | null; status: string; issue_date: string; valid_until: string | null; event_date: string | null; total_amount: number | string; notes: string | null };
 
 const money = (value: number | string) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
@@ -29,6 +30,7 @@ export default function QuotesPage() {
   const [customers,setCustomers] = useState<Customer[]>([]);
   const [products,setProducts] = useState<Product[]>([]);
   const [quotes,setQuotes] = useState<Quote[]>([]);
+  const [quoteLines,setQuoteLines] = useState<Record<string,QuoteLine[]>>({});
   const [names,setNames] = useState<Record<string,string>>({});
   const [showForm,setShowForm] = useState(false);
   const [customerId,setCustomerId] = useState('');
@@ -64,6 +66,15 @@ export default function QuotesPage() {
     if (cr.error || pr.error || qr.error) setError('Não foi possível carregar os dados de orçamento.');
     else {
       setCustomers(cr.data ?? []); setProducts(pr.data ?? []); setQuotes((qr.data ?? []) as Quote[]);
+      const quoteIds = (qr.data ?? []).map(q => q.id);
+      if (quoteIds.length) {
+        const { data: lines, error: linesError } = await supabase.from('rental_quote_items').select('quote_id,description,quantity,unit_price,subtotal').eq('company_id', m.company_id).in('quote_id', quoteIds);
+        if (!linesError) {
+          const grouped: Record<string,QuoteLine[]> = {};
+          for (const line of lines ?? []) (grouped[line.quote_id] ??= []).push(line as QuoteLine);
+          setQuoteLines(grouped);
+        }
+      }
       setNames(Object.fromEntries((cr.data ?? []).map(x=>[x.id,x.name])));
     }
     setLoading(false);
@@ -78,6 +89,7 @@ export default function QuotesPage() {
     const product=products.find(p=>p.id===productId);
     const qty=Number(quantity), price=Number(unitPrice);
     if (!product || !Number.isInteger(qty) || qty<1 || !Number.isFinite(price) || price<0) { setError('Confira o item, a quantidade e o preço.'); return; }
+    if (items.some(item => item.product_id === product.id)) { setError('Este item já foi adicionado ao orçamento. Ajuste a quantidade na linha existente ou remova antes de adicionar novamente.'); return; }
     setItems(current=>[...current,{product_id:product.id,quantity:qty,unit_price:price}]);
     setProductId(''); setQuantity('1'); setUnitPrice(''); setError('');
   }
@@ -124,10 +136,10 @@ export default function QuotesPage() {
         <div className="flex items-center justify-between"><h2 className="text-lg font-bold">Novo orçamento</h2><button type="button" onClick={()=>setShowForm(false)} className="text-sm text-gray-500">Fechar</button></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-semibold text-gray-700">Cliente<select required value={customerId} onChange={e=>setCustomerId(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"><option value="">Selecione</option>{customers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-          <label className="text-sm font-semibold text-gray-700">Data do evento<input type="date" value={eventDate} onChange={e=>setEventDate(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>
+          <label className="text-sm font-semibold text-gray-700">Data do evento<input required type="date" value={eventDate} onChange={e=>setEventDate(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>
           <label className="text-sm font-semibold text-gray-700">Válido até<input type="date" min={today()} value={validUntil} onChange={e=>setValidUntil(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>
-          <label className="text-sm font-semibold text-gray-700">Horário<input type="text" value={startTime} onChange={e=>setStartTime(e.target.value)} placeholder="09:00" className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>
-          <label className="text-sm font-semibold text-gray-700">Término<input type="text" value={endTime} onChange={e=>setEndTime(e.target.value)} placeholder="18:00" className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>
+          <label className="text-sm font-semibold text-gray-700">Horário<input required type="time" value={startTime} onChange={e=>setStartTime(e.target.value)} placeholder="09:00" className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>
+          <label className="text-sm font-semibold text-gray-700">Término<input required type="time" value={endTime} onChange={e=>setEndTime(e.target.value)} placeholder="18:00" className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>
           <label className="text-sm font-semibold text-gray-700">Entrega ou retirada<select value={deliveryMethod} onChange={e=>setDeliveryMethod(e.target.value as 'delivery'|'customer_pickup')} className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"><option value="delivery">Entrega</option><option value="customer_pickup">Retirada pelo cliente</option></select></label>
           {deliveryMethod==='delivery' && <label className="text-sm font-semibold text-gray-700 sm:col-span-2">Endereço de entrega<input required value={address} onChange={e=>setAddress(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 p-3 font-normal"/></label>}
         </div>
@@ -143,7 +155,7 @@ export default function QuotesPage() {
         <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row"><button type="button" onClick={()=>setShowForm(false)} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold">Cancelar</button><button disabled={busy} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{busy?'Salvando...':'Salvar orçamento'}</button></div>
       </form>}
       <div className="space-y-3">{quotes.map(q=><article key={q.id} className="rounded-2xl border border-purple-100 bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold text-purple-700">ORÇAMENTO #{q.quote_number}</p><h2 className="mt-1 text-lg font-bold">{names[q.customer_id??'']??'Cliente'}</h2><p className="mt-1 text-xs text-gray-500">Criado em {new Date(q.issue_date+'T00:00:00').toLocaleDateString('pt-BR')} {q.event_date?'· Evento '+new Date(q.event_date+'T00:00:00').toLocaleDateString('pt-BR'):''}</p></div><div className="text-right"><p className="text-xl font-bold">{money(q.total_amount)}</p><span className="text-xs font-semibold text-gray-500">{statusLabel[q.status]??q.status}</span></div></div>
-        <div className="mt-3 flex flex-wrap gap-2">{q.status==='draft'&&<button onClick={()=>void updateStatus(q.id,'sent')} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold">Marcar como enviado</button>}{q.status==='sent'&&<><button onClick={()=>void updateStatus(q.id,'accepted')} className="rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">Aprovar</button><button onClick={()=>void updateStatus(q.id,'rejected')} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold">Recusar</button></>}{q.status==='accepted'&&<button onClick={()=>void convertQuote(q.id)} className="rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white">Converter em locação</button>}</div>
+        <div className="mt-3 divide-y divide-gray-100 rounded-xl border border-gray-100">{(quoteLines[q.id]??[]).map((line,index)=><div key={index} className="flex justify-between gap-3 px-3 py-2 text-sm"><span className="text-gray-700">{line.description} × {line.quantity}</span><strong>{money(line.subtotal)}</strong></div>)}</div><div className="mt-3 flex flex-wrap gap-2">{q.status==='draft'&&<button onClick={()=>void updateStatus(q.id,'sent')} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold">Marcar como enviado</button>}{q.status==='sent'&&<><button onClick={()=>void updateStatus(q.id,'accepted')} className="rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">Aprovar</button><button onClick={()=>void updateStatus(q.id,'rejected')} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold">Recusar</button></>}{q.status==='accepted'&&<button onClick={()=>void convertQuote(q.id)} className="rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white">Converter em locação</button>}</div>
       </article>)}{!quotes.length&&<div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500">Nenhum orçamento cadastrado ainda.</div>}</div>
     </section>
   </AppShell>;
