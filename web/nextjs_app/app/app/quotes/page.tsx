@@ -97,7 +97,14 @@ export default function QuotesPage() {
   }
   const [refreshHack,setRefreshHack]=useState(0);
   useEffect(()=>{ if(companyId && refreshHack) void load(); },[refreshHack,companyId]);
-  async function convertQuote(id:string) {\n    if (!supabase || !companyId) return;\n    setError('');\n    const { data, error:err } = await supabase.rpc('convert_rental_quote_to_rental', { p_quote_id: id });\n    if (err) setError(err.message || 'Não foi possível converter o orçamento em locação.');\n    else { setNotice('Orçamento convertido em locação com sucesso.'); setRefreshHack(x=>x+1); }\n  }\n  async function updateStatus(id:string,status:string) {
+  async function convertQuote(id:string) {
+    if (!supabase || !companyId) return;
+    setError('');
+    const { data, error:err } = await supabase.rpc('convert_rental_quote_to_rental', { p_quote_id: id });
+    if (err) setError(err.message || 'Não foi possível converter o orçamento em locação.');
+    else { setNotice('Orçamento convertido em locação com sucesso.'); setRefreshHack(x=>x+1); }
+  }
+  async function updateStatus(id:string,status:string) {
     if (!supabase) return;
     const {error:err}=await supabase.from('rental_quotes').update({status}).eq('id',id).eq('company_id',companyId);
     if(err) setError('Não foi possível atualizar a situação do orçamento.');
