@@ -16,7 +16,8 @@ function NavIcon({ name }: { name: NavItem['icon'] }) {
       {name === 'toy' && <><path d="M5 9.5 12 5l7 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5z" /><path d="M9 20v-6h6v6M8 9h.01M16 9h.01" /></>}
       {name === 'calendar' && <><rect x="3.5" y="5" width="17" height="16" rx="2" /><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h3" /></>}
       {name === 'team' && <><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h.5M16 13v7M12.5 16.5h7" /><path d="M16 10a2.5 2.5 0 1 0-1.5-4.5" /></>}
-      {name === 'funnel' && <><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" /><path d="M7 7h10" /></>}\n      {name === 'map-pin' && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>}\n      {name === 'map-pin' && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>}
+      {name === 'funnel' && <><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" /><path d="M7 7h10" /></>}
+      {name === 'map-pin' && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>}
     </svg>
   );
 }
@@ -38,14 +39,18 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isProducts = pathname.endsWith('/app/products') || pathname.endsWith('/app/products/');
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
   const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
-  const isLeadFesta = pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/');
-  const isDashboard = !isCustomers && !isProducts && !isRentals && !isTeam && !isLeadFesta;
+  const isLeadFesta = (pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/')) && !pathname.includes('/prospeccao');
+  const isProspecting = pathname.includes('/app/leads/prospeccao');
+  const isDashboard = !isCustomers && !isProducts && !isRentals && !isTeam && !isLeadFesta && !isProspecting;
   const items: NavItem[] = [
     { label: 'Visão geral', shortLabel: 'Início', href: basePath + '/app/', active: isDashboard, icon: 'home' },
     { label: 'Clientes', shortLabel: 'Clientes', href: basePath + '/app/customers/', active: isCustomers, icon: 'users' },
     { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
     { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
-    ...(leadFestaEnabled ? [\n      { label: 'LeadFesta', shortLabel: 'Leads', href: basePath + '/app/leads/', active: isLeadFesta, icon: 'funnel' as const },\n      { label: 'Prospectar empresas', shortLabel: 'Prospectar', href: basePath + '/app/leads/prospeccao/', active: isProspecting, icon: 'map-pin' as const },\n    ] : []),
+    ...(leadFestaEnabled ? [
+      { label: 'LeadFesta', shortLabel: 'Leads', href: basePath + '/app/leads/', active: isLeadFesta, icon: 'funnel' as const },
+      { label: 'Prospectar empresas', shortLabel: 'Prospectar', href: basePath + '/app/leads/prospeccao/', active: isProspecting, icon: 'map-pin' as const },
+    ] : []),
     ...(role === 'owner' || role === 'admin' ? [{ label: 'Gerenciar equipe', shortLabel: 'Equipe', href: basePath + '/equipe/', active: isTeam, icon: 'team' as const }] : []),
   ];
   return (
