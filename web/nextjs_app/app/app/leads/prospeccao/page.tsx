@@ -146,7 +146,7 @@ export default function LeadProspectingPage() {
       phone: phoneDigits ? draft.phone.trim() : null,
       email: draft.email.trim() || null,
       source: 'Google Maps',
-      notes: noteParts.join('\\n\\n') || null,
+      notes: noteParts.join('\n\n') || null,
       updated_at: new Date().toISOString(),
     });
     if (insertError) setError('Não foi possível salvar o lead. Confira os dados e tente novamente.');
