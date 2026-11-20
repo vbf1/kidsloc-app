@@ -15,10 +15,10 @@ values
   ('a2000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'admin'),
   ('a2000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000002', 'staff');
 
-insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price)
+insert into public.products (id, company_id, name, item_type, inventory_mode, total_quantity, daily_price, event_price)
 values
-  ('a3000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'Produto protegido QA', 'toy', 'quantity', 1, 50),
-  ('a3000000-0000-4000-8000-000000000002', 'a2000000-0000-4000-8000-000000000001', 'Produto do administrador QA', 'toy', 'quantity', 1, 50),
+  ('a3000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'Produto protegido QA', 'toy', 'quantity', 1, 50, null),
+  ('a3000000-0000-4000-8000-000000000002', 'a2000000-0000-4000-8000-000000000001', 'Produto do administrador QA', 'toy', 'quantity', 1, 50, null),
   ('a3000000-0000-4000-8000-000000000003', 'a2000000-0000-4000-8000-000000000001', 'Máquina QA', 'machine', 'quantity', 0, 0, 150);
 
 insert into public.customers (id, company_id, name)
