@@ -69,7 +69,7 @@ export function classifyPublicIntent(value: string, hasPublicPhone = false): Int
     score += 10;
     signals.push('Orçamento, preço ou limite de valor mencionado');
   }
-  if (/\b(para dia|no dia|dia \d{1,2}|em \d{1,2}\/\d{1,2}|para o dia)\b/.test(text)) {
+  if (/\b(para dia|no dia|dia [0-9]{1,2}|em [0-9]{1,2}\/[0-9]{1,2}|para o dia)\b/.test(text)) {
     score += 10;
     signals.push('Data ou ocasião específica mencionada');
   }
