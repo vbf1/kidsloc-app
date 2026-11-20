@@ -1,3 +1,29 @@
+
+export type IntentSearchLink = { source: string; description: string; url: string };
+
+export function buildIntentSearchLinks(service: string, location: string): IntentSearchLink[] {
+  const product = service.trim();
+  if (!product) return [];
+  const area = location.trim();
+  const intent = '("procuro" OR "estou procurando" OR "preciso" OR "alguém indica" OR "alguém recomenda" OR "onde encontro" OR "orçamento" OR "quero contratar" OR "quero alugar")';
+  const local = area ? ' "' + area.replace(/"/g, '') + '"' : '';
+  const base = intent + ' "' + product.replace(/"/g, '') + '"' + local;
+  const searches = [
+    { source: 'Web (Google)', description: 'Páginas públicas indexadas na web', query: base },
+    { source: 'Facebook público', description: 'Grupos, páginas e publicações públicas', query: base + ' site:facebook.com' },
+    { source: 'Instagram público', description: 'Perfis e publicações públicas indexadas', query: base + ' site:instagram.com' },
+    { source: 'Reddit', description: 'Discussões e pedidos públicos; confira as regras de uso comercial', query: base + ' site:reddit.com' },
+    { source: 'TikTok público', description: 'Páginas e vídeos públicos indexados', query: base + ' site:tiktok.com' },
+    { source: 'X (Twitter)', description: 'Publicações públicas indexadas', query: base + ' site:x.com OR site:twitter.com' },
+    { source: 'Busca alternativa (DuckDuckGo)', description: 'Pesquisa independente na web', query: base },
+  ];
+  return searches.map((item, index) => ({
+    source: item.source,
+    description: item.description,
+    url: (index === searches.length - 1 ? 'https://duckduckgo.com/?q=' : 'https://www.google.com/search?q=') + encodeURIComponent(item.query),
+  }));
+}
+
 export type OSMElement = {
   type: string;
   id: number;
