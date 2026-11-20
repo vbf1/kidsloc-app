@@ -221,6 +221,15 @@ export default function LeadProspectingPage() {
         item.category ? 'Categoria: ' + item.category : '',
         item.address ? 'Endereço: ' + item.address : '',
         item.website ? 'Site: ' + item.website : '',
+        item.whatsapp ? 'WhatsApp: ' + item.whatsapp : '',
+        item.mobile ? 'Celular: ' + item.mobile : '',
+        item.instagram ? 'Instagram: ' + item.instagram : '',
+        item.facebook ? 'Facebook: ' + item.facebook : '',
+        item.linkedin ? 'LinkedIn: ' + item.linkedin : '',
+        item.openingHours ? 'Horário de funcionamento: ' + item.openingHours : '',
+        item.description ? 'Descrição: ' + item.description : '',
+        item.brand ? 'Marca: ' + item.brand : '',
+        item.operator ? 'Responsável / operador: ' + item.operator : '',
         'Fonte pública: ' + item.osmUrl,
         'Importado pela prospecção do LeadFesta.',
       ].filter(Boolean).join('\\n'),
@@ -286,8 +295,8 @@ export default function LeadProspectingPage() {
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-2"><strong className="text-sm text-gray-900">{item.name}</strong>{duplicate && <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">Possível duplicado</span>}</span>
                 <span className="mt-1 block text-xs text-gray-500">{item.category}{item.address ? ' • ' + item.address : ''}</span>
-                <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">{item.phone && <span>Tel.: {item.phone}</span>}{item.email && <span>{item.email}</span>}{item.website && <span>{item.website}</span>}</span>
-                <span className="mt-2 inline-block text-xs font-semibold text-[#6840bd]" onClick={(event) => event.stopPropagation()}><a href={item.osmUrl} target="_blank" rel="noreferrer">Ver no OpenStreetMap ↗</a></span>
+                <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">{item.phone && <span>Tel.: {item.phone}</span>}{item.mobile && <span>Celular: {item.mobile}</span>}{item.whatsapp && <span>WhatsApp: {item.whatsapp}</span>}{item.email && <span>{item.email}</span>}{item.website && <span>{item.website}</span>}</span>
+                <span className="mt-2 block space-y-1 text-xs text-gray-600">{item.openingHours && <span className="block">Funcionamento: {item.openingHours}</span>}{item.brand && <span className="block">Marca: {item.brand}</span>}{item.operator && <span className="block">Responsável: {item.operator}</span>}{item.description && <span className="block">{item.description}</span>}</span><span className="mt-2 flex flex-wrap gap-3 text-xs font-semibold text-[#6840bd]">{item.instagram && <span>Instagram: {item.instagram}</span>}{item.facebook && <span>Facebook: {item.facebook}</span>}{item.linkedin && <span>LinkedIn: {item.linkedin}</span>}</span><span className="mt-2 inline-block text-xs font-semibold text-[#6840bd]" onClick={(event) => event.stopPropagation()}><a href={item.osmUrl} target="_blank" rel="noreferrer">Ver no OpenStreetMap ↗</a></span>
               </span>
             </label>;
           })}
