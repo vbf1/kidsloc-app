@@ -4,10 +4,6 @@ create extension if not exists pgtap with schema extensions;
 
 select plan(22);
 
-select set_config('test.lead_stage_id', (
-  select id::text from public.lead_pipeline_stages
-  where company_id = '21000000-0000-4000-8000-000000000001' and name = 'Novo'
-), true);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -50,6 +46,11 @@ from public.leads l where l.company_id = '21000000-0000-4000-8000-000000000001';
 insert into public.lead_activities (company_id, lead_id, activity_type, body)
 select l.company_id, l.id, 'note', 'Contato registrado na empresa dois'
 from public.leads l where l.company_id = '21000000-0000-4000-8000-000000000002';
+
+select set_config('test.lead_stage_id', (
+  select id::text from public.lead_pipeline_stages
+  where company_id = '21000000-0000-4000-8000-000000000001' and name = 'Novo'
+), true);
 
 select is(
   (select count(*)::int from public.lead_pipeline_stages where company_id = '21000000-0000-4000-8000-000000000001'),
