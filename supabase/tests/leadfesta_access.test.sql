@@ -72,7 +72,7 @@ select is((select count(*)::int from public.leads where company_id = '21000000-0
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000001'), 1, 'admin can read own company activity history');
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000002'), 0, 'admin cannot read another company activity history');
 select throws_ok(
-  $$ select public.set_leadfesta_entitlement('21000000-0000-4000-8000-000000000002', true) $$,
+  'select public.set_leadfesta_entitlement(''21000000-0000-4000-8000-000000000002'', true)',
   '42501',
   'Somente o proprietário da plataforma pode ativar ou suspender o LeadFesta.',
   'company admin cannot grant itself or another company the paid module'
@@ -86,8 +86,7 @@ select ok(not public.leadfesta_is_available('21000000-0000-4000-8000-00000000000
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 0, 'staff cannot read leads even when the company has the module');
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000001'), 0, 'staff cannot read LeadFesta contact history');
 select throws_ok(
-  $ insert into public.leads (company_id, stage_id, name)
-     values ('21000000-0000-4000-8000-000000000001', current_setting('test.lead_stage_id')::uuid, 'Tentativa de funcionário') $,
+  'insert into public.leads (company_id, stage_id, name) values (''21000000-0000-4000-8000-000000000001'', current_setting(''test.lead_stage_id'')::uuid, ''Tentativa de funcionário''),
   '42501',
   'new row violates row-level security policy for table "leads"',
   'staff cannot insert leads directly through the Data API'
@@ -107,7 +106,7 @@ select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004
 select ok(public.leadfesta_is_available('21000000-0000-4000-8000-000000000002'), 'platform owner has default LeadFesta access without company entitlement');
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000002'), 1, 'platform owner can administer LeadFesta data globally');
 select lives_ok(
-  $$ select public.set_leadfesta_entitlement('21000000-0000-4000-8000-000000000002', true) $$,
+  'select public.set_leadfesta_entitlement(''21000000-0000-4000-8000-000000000002'', true)',
   'platform owner can activate LeadFesta for a company'
 );
 
@@ -117,10 +116,7 @@ select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000003
 
 select ok(public.leadfesta_is_available('21000000-0000-4000-8000-000000000002'), 'company admin gains access after platform owner activates the module');
 select lives_ok(
-  $$ select public.convert_lead_to_customer(
-    '21000000-0000-4000-8000-000000000002',
-    (select id from public.leads where company_id = '21000000-0000-4000-8000-000000000002' limit 1)
-  ) $$,
+  'select public.convert_lead_to_customer(''21000000-0000-4000-8000-000000000002'', (select id from public.leads where company_id = ''21000000-0000-4000-8000-000000000002'' limit 1))',
   'lead converts transactionally into a KidsLoc customer'
 );
 
@@ -139,7 +135,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004', true);
 select lives_ok(
-  $ select public.set_leadfesta_entitlement('21000000-0000-4000-8000-000000000002', false) $,
+  'select public.set_leadfesta_entitlement(''21000000-0000-4000-8000-000000000002'', false)',
   'platform owner can suspend LeadFesta without deleting data'
 );
 
