@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(33);
+select plan(35);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -160,6 +160,18 @@ select lives_ok(
   'company admin can remove an employee transactionally'
 );
 
+select throws_ok(
+  $q$ select public.manage_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000002',
+       'remove',
+       null
+     ) $q$,
+  '42501',
+  'Você não pode alterar ou remover seu próprio acesso',
+  'company admin cannot remove their own membership'
+);
+
 update public.company_members
 set role = 'admin'
 where company_id = 'c2000000-0000-4000-8000-000000000001'
@@ -171,6 +183,18 @@ select is(
      and user_id = 'c1000000-0000-4000-8000-000000000005'),
   'staff',
   'company admin cannot bypass the role-management RPC with direct table UPDATE'
+);
+
+delete from public.company_members
+where company_id = 'c2000000-0000-4000-8000-000000000001'
+  and user_id = 'c1000000-0000-4000-8000-000000000005';
+
+select is(
+  (select count(*)::integer from public.company_members
+   where company_id = 'c2000000-0000-4000-8000-000000000001'
+     and user_id = 'c1000000-0000-4000-8000-000000000005'),
+  1,
+  'company admin cannot bypass transactional member removal with direct table DELETE'
 );
 
 select lives_ok(
