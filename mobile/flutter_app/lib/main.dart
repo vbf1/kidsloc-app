@@ -41,6 +41,43 @@ class KidsLocApp extends StatelessWidget {
       );
 }
 
+class FoundationScreen extends StatelessWidget {
+  const FoundationScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+    body: SafeArea(
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _BrandHeader(),
+              SizedBox(height: 20),
+              Text('Configure a conexão do aplicativo para começar.'),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _BrandHeader extends StatelessWidget {
+  const _BrandHeader();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Icon(Icons.celebration, size: 52, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(height: 10),
+      Text('KidsLoc', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+      Text('Gestão de festas e locações', style: Theme.of(context).textTheme.bodyMedium),
+    ],
+  );
+}
+
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -469,26 +506,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('KidsLoc App'), actions: [
-      if (widget.table == 'rental_quotes') IconButton(
-        tooltip: 'Novo orçamento',
-        onPressed: _loading ? null : () async {
-          final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
-            builder: (_) => QuoteCreatePage(companyId: widget.companyId),
-          ));
-          if (created == true && mounted) _load();
-        },
-        icon: const Icon(Icons.add_circle_outline),
-      ),
-      if (widget.table == 'rentals') IconButton(
-        tooltip: 'Nova locação',
-        onPressed: _loading ? null : () async {
-          final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
-            builder: (_) => RentalCreatePage(companyId: widget.companyId),
-          ));
-          if (created == true && mounted) _load();
-        },
-        icon: const Icon(Icons.add_circle_outline),
-      ),
       IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
       IconButton(tooltip: 'Sair', onPressed: () => Supabase.instance.client.auth.signOut(), icon: const Icon(Icons.logout)),
     ]),
@@ -698,6 +715,26 @@ class _RecordsPageState extends State<_RecordsPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(widget.title), actions: [
+      if (widget.table == 'rental_quotes') IconButton(
+        tooltip: 'Novo orçamento',
+        onPressed: _loading ? null : () async {
+          final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
+            builder: (_) => QuoteCreatePage(companyId: widget.companyId),
+          ));
+          if (created == true && mounted) _load();
+        },
+        icon: const Icon(Icons.add_circle_outline),
+      ),
+      if (widget.table == 'rentals') IconButton(
+        tooltip: 'Nova locação',
+        onPressed: _loading ? null : () async {
+          final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
+            builder: (_) => RentalCreatePage(companyId: widget.companyId),
+          ));
+          if (created == true && mounted) _load();
+        },
+        icon: const Icon(Icons.add_circle_outline),
+      ),
       if (_editable) IconButton(tooltip: 'Novo cadastro', onPressed: _saving ? null : () => _openEditor(), icon: const Icon(Icons.add)),
       IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
     ]),
