@@ -39,7 +39,7 @@ export function AppShell({
           </button>
         </div>
       </header>
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 pb-36 sm:px-6 md:grid-cols-[230px_minmax(0,1fr)] md:py-8 md:pb-8 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 pb-24 sm:px-6 md:grid-cols-[230px_minmax(0,1fr)] md:py-8 md:pb-8 lg:px-8">
         <aside className="min-w-0 md:sticky md:top-6 md:self-start">
           <div className="mb-4 hidden rounded-2xl border border-purple-100 bg-white p-4 md:block">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</p>
