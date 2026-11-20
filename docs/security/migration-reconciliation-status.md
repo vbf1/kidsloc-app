@@ -119,6 +119,13 @@ A inspeção das definições efetivamente publicadas no Postgres identificou ca
 
 **Conclusão parcial:** os efeitos de integridade referencial de remoção de membro e de escopo por empresa estão presentes no banco. Em contrapartida, o modelo de cargos e a separação entre platform owner e membros da empresa continuam divergentes do estado proposto na branch. Não marcar uma migration como reconciliada apenas porque alguns efeitos relacionados já existem; constraints, policies e funções são camadas diferentes.
 
+### Comparação dos quatro pares de migrations com nomes/versões diferentes
+
+- **Catálogo de produtos:** `20261112030000_product_catalog` + `20261113025749_add_machine_catalog_type` + `20261113040000_allow_machine_product_units` formam, em conjunto, o modelo que existe no remoto: tipos `toy`, `machine` e `service`, preços por diária/evento, trigger de regras de catálogo e bloqueio de unidades físicas para serviços. A função remota também contém a proteção adicional de limite de unidades que aparece na migration local `20261113203747_protect_individual_unit_reservations_and_counts`.
+- **Conversas somente leitura do platform owner:** a migration local `20261113050000_platform_owner_readonly_conversations` corresponde ao estado remoto anterior: platform owner pode ler, mas não escrever. A migration local posterior `20261116090000_normalize_platform_and_company_roles` altera a política proposta para bloquear também a leitura; os novos testes pgTAP cobrem esse estado final da branch.
+- **Prevenção de exclusão de clientes:** o par `20261113003334_prevent_customer_deletion` / `20261112050000_prevent_customer_deletion` **não é equivalente no estado final**. O remoto não tem a policy restritiva `customers_prevent_delete_authenticated`; possui uma policy permissiva `customers_delete_owner_admin`, que permite DELETE por owner/admin (além do acesso global do platform owner). O arquivo local `20261112050000` cria uma policy restritiva `USING (false)`, que bloquearia DELETE de todos os usuários authenticated, inclusive administradores. Isso faria o banco limpo da CI divergir da produção. A intenção final precisa ser reconciliada antes de qualquer aplicação; não tratar esse par como equivalente.
+- **Unidades de máquinas:** a função remota `prevent_service_product_units` aceita `toy` e `machine`, rejeita `service`, exige inventário individual e mesma empresa, e também verifica o limite de unidades cadastradas. A cadeia local `20261113040000` + `20261113203747` cobre esses efeitos.
+
 ### Auditoria das migrations remotas de 17/11 — verificação do estado efetivo
 
 Consultas somente leitura ao catálogo confirmaram os seguintes efeitos:
