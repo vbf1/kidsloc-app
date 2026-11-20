@@ -119,6 +119,16 @@ A inspeção das definições efetivamente publicadas no Postgres identificou ca
 
 **Conclusão parcial:** os efeitos de integridade referencial de remoção de membro e de escopo por empresa estão presentes no banco. Em contrapartida, o modelo de cargos e a separação entre platform owner e membros da empresa continuam divergentes do estado proposto na branch. Não marcar uma migration como reconciliada apenas porque alguns efeitos relacionados já existem; constraints, policies e funções são camadas diferentes.
 
+### Auditoria das migrations remotas de 13/11 — políticas e privilégios
+
+- `20261113134849_tighten_public_schema_default_privileges`: no ACL padrão do proprietário `postgres` para o schema `public`, não há concessões padrão a `anon` em tabelas, sequências ou funções. `authenticated` mantém privilégios de tabela sujeitos a RLS. O catálogo atual confirma esse estado; ainda não foi recuperado o SQL original.
+- `20261113135835_restrict_customer_and_product_deletes`: o estado final remoto tem DELETE de clientes permitido somente a owner/admin e DELETE de produtos protegido por policy restritiva owner/admin. A branch agora reproduz a regra de clientes em `20261112050000_prevent_customer_deletion.sql` e mantém a policy restritiva de produtos.
+- `20261113140033_fix_rental_creator_and_assignee_read_access`, `20261113140039_avoid_rental_policy_recursion`, `20261113144522_remove_broad_rental_child_select_policies`, `20261113144740_allow_rental_creator_to_manage_rental` e `20261113152713_allow_authorized_rental_updates`: o estado remoto usa `private.is_team_conversation_member` para evitar recursão no chat e policies explícitas para criador/funcionário designado em locações, itens, unidades, eventos e responsáveis. A branch foi atualizada para reproduzir as políticas de leitura/edição/exclusão por criador ou designado e remove as policies amplas de `company_members_all` nas tabelas-filhas.
+- `20261113141219_restrict_finance_document_and_stock_permissions` e `20261113141653_restrict_product_unit_and_maintenance_deletes`: no remoto, documentos, transações financeiras, movimentações de estoque, manutenção e unidades têm leitura/operações de membro conforme tabela, mas DELETE restrito a owner/admin. A migration local de normalização remove `company_members_all` dessas tabelas e cria policies explícitas, preservando `platform_owner_all`.
+- `20261113142519_revoke_authenticated_maintain_privilege`: o catálogo confirma que `authenticated` não tem privilégio `MAINTAIN` em nenhuma tabela pública auditada.
+
+Essas alterações foram incorporadas à migration local `20261116090000_normalize_platform_and_company_roles.sql` para que um banco limpo reproduza o estado de segurança final observado, em vez de herdar permissões amplas da migration inicial.
+
 ### Comparação dos quatro pares de migrations com nomes/versões diferentes
 
 - **Catálogo de produtos:** `20261112030000_product_catalog` + `20261113025749_add_machine_catalog_type` + `20261113040000_allow_machine_product_units` formam, em conjunto, o modelo que existe no remoto: tipos `toy`, `machine` e `service`, preços por diária/evento, trigger de regras de catálogo e bloqueio de unidades físicas para serviços. A função remota também contém a proteção adicional de limite de unidades que aparece na migration local `20261113203747_protect_individual_unit_reservations_and_counts`.
