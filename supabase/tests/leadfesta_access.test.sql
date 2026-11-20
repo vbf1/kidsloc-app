@@ -4,6 +4,11 @@ create extension if not exists pgtap with schema extensions;
 
 select plan(22);
 
+select set_config('test.lead_stage_id', (
+  select id::text from public.lead_pipeline_stages
+  where company_id = '21000000-0000-4000-8000-000000000001' and name = 'Novo'
+), true);
+
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
   ('20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'lead-admin-one@example.test', '', now(), now()),
@@ -80,10 +85,8 @@ select ok(not public.leadfesta_is_available('21000000-0000-4000-8000-00000000000
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 0, 'staff cannot read leads even when the company has the module');
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000001'), 0, 'staff cannot read LeadFesta contact history');
 select throws_ok(
-  $$ insert into public.leads (company_id, stage_id, name)
-     select '21000000-0000-4000-8000-000000000001', id, 'Tentativa de funcionário'
-     from public.lead_pipeline_stages
-     where company_id = '21000000-0000-4000-8000-000000000001' and name = 'Novo' $$,
+  $ insert into public.leads (company_id, stage_id, name)
+     values ('21000000-0000-4000-8000-000000000001', current_setting('test.lead_stage_id')::uuid, 'Tentativa de funcionário') $,
   '42501',
   'new row violates row-level security policy for table "leads"',
   'staff cannot insert leads directly through the Data API'
