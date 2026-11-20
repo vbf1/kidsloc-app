@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(28);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -160,6 +160,19 @@ select lives_ok(
   'company admin can remove an employee transactionally'
 );
 
+update public.company_members
+set role = 'admin'
+where company_id = 'c2000000-0000-4000-8000-000000000001'
+  and user_id = 'c1000000-0000-4000-8000-000000000005';
+
+select is(
+  (select role from public.company_members
+   where company_id = 'c2000000-0000-4000-8000-000000000001'
+     and user_id = 'c1000000-0000-4000-8000-000000000005'),
+  'staff',
+  'company admin cannot bypass the role-management RPC with direct table UPDATE'
+);
+
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000004', true);
 
 select throws_ok(
@@ -205,6 +218,29 @@ select throws_ok(
   'O proprietário da plataforma não pode criar uma empresa.',
   'platform owner cannot create a company'
 );
+
+select throws_ok(
+  $q$ select public.add_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000005',
+       'manager'
+     ) $q$,
+  'P0001',
+  'Perfil inválido. Use Administrador ou Funcionário.',
+  'legacy manager role is rejected by the direct membership RPC'
+);
+
+select throws_ok(
+  $q$ select public.invite_company_member(
+       'c2000000-0000-4000-8000-000000000001',
+       'c1000000-0000-4000-8000-000000000005',
+       'manager'
+     ) $q$,
+  '22023',
+  'Cargo inválido',
+  'legacy manager role is rejected by the invitation RPC'
+);
+
 
 
 
