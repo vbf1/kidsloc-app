@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
@@ -46,7 +46,7 @@ export default function QuotesPage() {
   const [quantity,setQuantity] = useState('1');
   const [unitPrice,setUnitPrice] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!supabase) { setError('A conexão com o banco não está configurada.'); setLoading(false); return; }
     const { data:{user}, error:authError } = await supabase.auth.getUser();
     if (authError || !user) { router.replace('/login/'); return; }
@@ -66,8 +66,8 @@ export default function QuotesPage() {
       setNames(Object.fromEntries((cr.data ?? []).map(x=>[x.id,x.name])));
     }
     setLoading(false);
-  }
-  useEffect(()=>{ void load(); },[]);
+  }, [router]);
+  useEffect(()=>{ void load(); },[load]);
 
   const subtotal = useMemo(()=>items.reduce((sum,item)=>sum+item.quantity*item.unit_price,0),[items]);
   const total = Math.max(0,subtotal+(Number(deliveryFee)||0)-(Number(discount)||0));
@@ -92,23 +92,21 @@ export default function QuotesPage() {
       p_items:items
     });
     if (saveError) setError(saveError.message || 'Não foi possível salvar o orçamento.');
-    else { setNotice('Orçamento criado com sucesso.'); setShowForm(false); setCustomerId('');setItems([]);setAddress('');setNotes('');setRefreshHack(x=>x+1); }
+    else { setNotice('Orçamento criado com sucesso.'); setShowForm(false); setCustomerId('');setItems([]);setAddress('');setNotes('');await load(); }
     setBusy(false);
   }
-  const [refreshHack,setRefreshHack]=useState(0);
-  useEffect(()=>{ if(companyId && refreshHack) void load(); },[refreshHack,companyId]);
   async function convertQuote(id:string) {
     if (!supabase || !companyId) return;
     setError('');
-    const { data, error:err } = await supabase.rpc('convert_rental_quote_to_rental', { p_quote_id: id });
+    const { error:err } = await supabase.rpc('convert_rental_quote_to_rental', { p_quote_id: id });
     if (err) setError(err.message || 'Não foi possível converter o orçamento em locação.');
-    else { setNotice('Orçamento convertido em locação com sucesso.'); setRefreshHack(x=>x+1); }
+    else { setNotice('Orçamento convertido em locação com sucesso.'); await load(); }
   }
   async function updateStatus(id:string,status:string) {
     if (!supabase) return;
     const {error:err}=await supabase.from('rental_quotes').update({status}).eq('id',id).eq('company_id',companyId);
     if(err) setError('Não foi possível atualizar a situação do orçamento.');
-    else {setNotice('Situação do orçamento atualizada.');setRefreshHack(x=>x+1);}
+    else {setNotice('Situação do orçamento atualizada.');await load();}
   }
   async function signOut(){if(!supabase)return;await supabase.auth.signOut();router.push('/login/');}
 
