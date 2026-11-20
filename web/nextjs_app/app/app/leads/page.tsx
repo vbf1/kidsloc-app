@@ -338,9 +338,12 @@ export default function LeadFestaPage() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">LeadFesta</h1>
           <p className="mt-2 text-sm text-gray-500">Organize oportunidades, acompanhe negociações e mantenha todo o histórico de contatos.</p>
         </div>
-        <button type="button" className={primary} onClick={() => { if (showForm) { setShowForm(false); setEditingLeadId(''); } else openLeadForm(); }}>
-          {showForm ? 'Fechar cadastro' : '+ Novo lead'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/leads/prospeccao/'} className={secondary}>⌕ Prospectar empresas</a>
+          <button type="button" className={primary} onClick={() => { if (showForm) { setShowForm(false); setEditingLeadId(''); } else openLeadForm(); }}>
+            {showForm ? 'Fechar cadastro' : '+ Novo lead'}
+          </button>
+        </div>
       </div>
 
       {platformOwner && <section className={panel}>
