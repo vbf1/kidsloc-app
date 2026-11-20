@@ -172,3 +172,68 @@ body { background: var(--kl-canvas); color: var(--kl-ink); }
 @keyframes kl-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes kl-modal-in { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (max-width: 640px) { .kl-modal-backdrop { align-items: flex-end; padding: 8px; } .kl-modal-panel { max-height: 94dvh; border-radius: 24px 24px 18px 18px; } .kl-modal-header { padding: 18px 18px 15px; } .kl-modal-content { padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); } }
+
+
+/* Correções de responsividade: controles compactos e conteúdo sem overflow. */
+[role="dialog"] input[type="checkbox"],
+[role="dialog"] input[type="radio"],
+[role="alertdialog"] input[type="checkbox"],
+[role="alertdialog"] input[type="radio"] {
+  width: 16px !important;
+  min-width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin-inline: 0;
+}
+.kl-modal-panel,
+.kl-modal-header,
+.kl-modal-content,
+.kl-modal-content > *,
+.kl-modal-content form,
+.kl-modal-content fieldset,
+.kl-modal-content section {
+  min-width: 0;
+  max-width: 100%;
+}
+.kl-modal-content {
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+.kl-modal-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+.kl-modal-content label,
+.kl-modal-content p,
+.kl-modal-content strong,
+.kl-modal-content span {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .kl-modal-backdrop { padding: 8px; }
+  .kl-modal-panel { width: 100%; max-height: 94dvh; border-radius: 22px 22px 16px 16px; }
+  .kl-modal-header { gap: 12px; padding: 17px 16px 14px; }
+  .kl-modal-content { padding: 16px 16px calc(22px + env(safe-area-inset-bottom)); }
+}
+
+
+/* Regras transversais de responsividade para todas as áreas autenticadas. */
+html, body { width: 100%; max-width: 100%; }
+body { overflow-x: clip; }
+.app-shell-root { width: 100%; min-width: 0; overflow-x: clip; }
+.app-shell-layout, .app-shell-main, .app-shell-sidebar { min-width: 0; max-width: 100%; }
+.app-shell-main > *, .app-shell-main section, .app-shell-main article,
+.app-shell-main form, .app-shell-main fieldset { min-width: 0; }
+.app-shell-main :is(h1,h2,h3,p,td,th,label,span) { overflow-wrap: anywhere; }
+.app-shell-main :is(input,select,textarea,button) { max-width: 100%; }
+.app-shell-main [role="alertdialog"] {
+  width: min(100%, 32rem);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+@media (max-width: 767px) {
+  .app-shell-layout { padding-inline: 12px; }
+  .app-shell-main { width: 100%; }
+  .app-shell-main [role="alertdialog"] { padding: 20px; }
+}

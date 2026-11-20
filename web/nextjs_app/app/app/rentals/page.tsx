@@ -332,7 +332,7 @@ export default function RentalsPage() {
           <label htmlFor="rental-search" className="sr-only">Pesquisar locações</label>
           <input id="rental-search" type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Buscar por número, cliente, item ou responsável" className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100" />
           <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-48 text-xs font-semibold text-gray-500">Situação
+            <div className="w-full min-w-0 text-xs font-semibold text-gray-500 sm:w-auto sm:min-w-48">Situação
               <div className="mt-1"><SearchablePicker title="Filtrar por situação" value={statusFilter} options={[
                 { value: 'all', label: 'Todas' }, { value: 'pending', label: 'Pendentes' }, { value: 'confirmed', label: 'Confirmadas' },
                 { value: 'ongoing', label: 'Em andamento' }, { value: 'completed', label: 'Concluídas' }, { value: 'cancelled', label: 'Canceladas' },
