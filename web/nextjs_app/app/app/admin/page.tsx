@@ -358,7 +358,7 @@ export default function PlatformAdminPage() {
         {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <section className={panelClass}>
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Empresas cadastradas</h2><p className="text-sm text-gray-500">{companies.length} empresa(s) encontradas</p></div>
-            <div className="min-w-64 text-sm font-semibold">Selecionar empresa
+            <div className="w-full min-w-0 text-sm font-semibold sm:w-auto sm:min-w-64">Selecionar empresa
               <div className="mt-1"><SearchablePicker title="Selecionar empresa" value={selectedCompanyId} options={[
                 { value: '', label: 'Selecione uma empresa' }, ...companies.map((company) => ({ value: company.id, label: company.name })),
               ]} placeholder="Selecione uma empresa" searchPlaceholder="Buscar empresa..." emptyText="Nenhuma empresa encontrada." disabled={companySaving || customerSaving} onChange={(value) => {
