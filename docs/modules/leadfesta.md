@@ -7,7 +7,7 @@ A primeira implementação funcional foi adicionada em `feat/leadfesta-module` e
 ## Rotas
 
 - `/app/leads/`: CRM da empresa. O menu só mostra o acesso quando o usuário é administrador e o entitlement está ativo.
-- `/app/admin/leadfesta/`: painel do platform owner para ativar ou suspender o adicional por empresa.
+- `/app/admin/leadfesta/`: painel do platform owner para ativar ou suspender o adicional por empresa.\n- `/app/leads/prospeccao/`: prospecção assistida por segmento e cidade, com abertura da pesquisa no Google Maps, preenchimento dos dados selecionados e inclusão no funil com verificação de duplicidade.
 - O painel global do proprietário contém um atalho para a gestão do LeadFesta.
 
 ## Banco de dados
@@ -39,7 +39,7 @@ Seis etapas padrão são criadas para empresas existentes e automaticamente para
 - Detalhes do lead e atualização de etapa.
 - Histórico cronológico de atividades.
 - Conversão em cliente no cadastro existente do KidsLoc.
-- Painel do proprietário para ativar ou suspender o módulo empresa por empresa.
+- Painel do proprietário para ativar ou suspender o módulo empresa por empresa.\n- Prospecção assistida pelo Google Maps: gera a pesquisa por segmento/região, permite registrar os dados públicos selecionados e salva a oportunidade na etapa inicial do funil. Não realiza scraping nem usa API paga; os dados são confirmados pela funcionária.
 
 ## Verificações
 
