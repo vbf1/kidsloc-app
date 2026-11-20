@@ -19,7 +19,7 @@ describe('LeadFesta prospecting helpers', () => {
 
   it('matches a free-text segment against business tags', () => {
     const prospect = mapOSMElement({ type: 'node', id: 1, tags: { name: 'Colégio Horizonte', amenity: 'school' } })!;
-    expect(matchesProspectingSegment(prospect, 'escola', { amenity: 'school' })).toBe(false);
+    expect(matchesProspectingSegment(prospect, 'escola', { amenity: 'school' })).toBe(true);
     expect(matchesProspectingSegment(prospect, 'colégio', { amenity: 'school' })).toBe(true);
     expect(matchesProspectingSegment(prospect, '', {})).toBe(true);
   });
