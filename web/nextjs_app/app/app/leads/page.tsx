@@ -258,21 +258,22 @@ export default function LeadFestaPage() {
   }
 
   async function changeStage(lead: LeadRecord, nextStageId: string) {
-    if (!supabase || !companyId || lead.stage_id === nextStageId) return;
-    const previous = stages.find((stage) => stage.id === lead.stage_id)?.name ?? 'Etapa anterior';
-    const next = stages.find((stage) => stage.id === nextStageId)?.name ?? 'Nova etapa';
-    const { data, error } = await supabase.from('leads').update({ stage_id: nextStageId, updated_at: new Date().toISOString() })
-      .eq('id', lead.id).eq('company_id', companyId).select('id').maybeSingle();
-    if (error || !data) {
-      setPageError('Não foi possível atualizar a etapa deste lead.');
-      return;
-    }
-    await supabase.from('lead_activities').insert({
-      company_id: companyId, lead_id: lead.id, activity_type: 'status_change',
-      body: 'Etapa alterada de "' + previous + '" para "' + next + '".',
+    if (!supabase || !companyId || lead.stage_id === nextStageId || saving) return;
+    setSaving(true);
+    setPageError('');
+    const { error } = await supabase.rpc('update_lead_stage', {
+      p_company_id: companyId,
+      p_lead_id: lead.id,
+      p_stage_id: nextStageId,
     });
-    await loadData();
-    await loadActivities();
+    if (error) {
+      setPageError('Não foi possível atualizar a etapa e registrar o histórico. Nenhuma alteração foi aplicada.');
+    } else {
+      setNotice('Etapa atualizada e registrada no histórico.');
+      await loadData();
+      await loadActivities();
+    }
+    setSaving(false);
   }
 
   async function addActivity(event: FormEvent<HTMLFormElement>) {
