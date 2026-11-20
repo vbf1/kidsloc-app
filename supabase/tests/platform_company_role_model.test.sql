@@ -198,16 +198,16 @@ select is(
 );
 
 select lives_ok(
-  $ select public.ensure_team_group('c2000000-0000-4000-8000-000000000001') $,
+  $sql$ select public.ensure_team_group('c2000000-0000-4000-8000-000000000001') $sql$,
   'company admin can create the internal team group'
 );
 
 select lives_ok(
-  $ insert into public.team_messages (company_id, conversation_id, sender_id, body)
+  $sql$ insert into public.team_messages (company_id, conversation_id, sender_id, body)
      select c.company_id, c.id, (select auth.uid()), 'Mensagem interna de teste'
      from public.team_conversations c
      where c.company_id = 'c2000000-0000-4000-8000-000000000001'
-       and c.conversation_type = 'team' $,
+       and c.conversation_type = 'team' $sql$,
   'company admin can send a team message'
 );
 
