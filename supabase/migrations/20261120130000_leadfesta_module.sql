@@ -212,6 +212,32 @@ cross join (values
 ) as s(name, color, position, is_won, is_lost)
 on conflict (company_id, name) do nothing;
 
+create or replace function private.guard_lead_audit_fields()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  if tg_op = 'INSERT' then
+    new.created_by := (select auth.uid());
+    new.created_at := now();
+  else
+    new.created_by := old.created_by;
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end;
+$function$;
+revoke all on function private.guard_lead_audit_fields() from public, anon, authenticated;
+
+create trigger leads_guard_audit_fields
+before insert or update on public.leads
+for each row execute function private.guard_lead_audit_fields();
+
+create trigger lead_activities_guard_audit_fields
+before insert on public.lead_activities
+for each row execute function private.guard_lead_audit_fields();
+
 create or replace function private.guard_lead_customer_company()
 returns trigger
 language plpgsql
