@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(20);
+select plan(24);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'companies', 'companies table exists');
@@ -19,6 +19,54 @@ select ok(
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.company_members'::regclass),
   'RLS is enabled on company_members'
+);
+
+select ok(
+  not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and policyname = 'company_members_all'
+      and tablename in (
+        'customers','documents','financial_transactions','stock_movements',
+        'maintenance_records','product_units','rentals','rental_items',
+        'rental_item_units','rental_events','rental_responsibles'
+      )
+  ),
+  'broad company-wide ALL policies are removed from sensitive operational tables'
+);
+
+select ok(
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'rentals'
+      and policyname = 'rentals_update_creator_assigned_admin'
+      and cmd = 'UPDATE'
+  ),
+  'rental updates are restricted to creators and assigned users'
+);
+
+select ok(
+  (select count(*) = 3 from pg_policies
+   where schemaname = 'public'
+     and (
+       (tablename = 'rental_items' and policyname = 'rental_items_select_creator_or_assigned')
+       or (tablename = 'rental_item_units' and policyname = 'rental_item_units_select_creator_or_assigned')
+       or (tablename = 'rental_responsibles' and policyname = 'rental_responsibles_select_creator_or_assigned')
+     )),
+  'rental child records have creator/assignee read policies'
+);
+
+select ok(
+  (select count(*) = 5 from pg_policies
+   where schemaname = 'public'
+     and cmd = 'DELETE'
+     and policyname in (
+       'documents_delete_owner_admin','financial_transactions_delete_owner_admin',
+       'stock_movements_delete_owner_admin','maintenance_records_delete_owner_admin',
+       'product_units_delete_owner_admin'
+     )),
+  'sensitive finance, document, stock and unit deletion is admin-only'
 );
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
