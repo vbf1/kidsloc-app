@@ -8,7 +8,7 @@ A primeira implementação funcional foi adicionada em `feat/leadfesta-module` e
 
 - `/app/leads/`: CRM da empresa. O menu só mostra o acesso quando o usuário é administrador e o entitlement está ativo.
 - `/app/admin/leadfesta/`: painel do platform owner para ativar ou suspender o adicional por empresa.
-- `/app/leads/prospeccao/`: prospecção assistida por segmento e cidade, com abertura da pesquisa no Google Maps, preenchimento dos dados selecionados e inclusão no funil com verificação de duplicidade.
+- `/app/leads/prospeccao/`: pesquisa assistida de intenção de compra/contratação em fontes públicas indexadas, com consultas genéricas por produto/serviço e região, revisão manual da publicação original e registro no funil da empresa ativa. Mantém pesquisa complementar separada de estabelecimentos via OpenStreetMap.
 - O painel global do proprietário contém um atalho para a gestão do LeadFesta.
 
 ## Banco de dados
@@ -41,7 +41,8 @@ Seis etapas padrão são criadas para empresas existentes e automaticamente para
 - Histórico cronológico de atividades.
 - Conversão em cliente no cadastro existente do KidsLoc.
 - Painel do proprietário para ativar ou suspender o módulo empresa por empresa.
-- Prospecção assistida pelo Google Maps: gera a pesquisa por segmento/região, permite registrar os dados públicos selecionados e salva a oportunidade na etapa inicial do funil. Não realiza scraping nem usa API paga; os dados são confirmados pela funcionária.
+- Pesquisa de intenção: gera consultas por termos como “procuro”, “preciso”, “alguém indica” e “quero contratar”, direcionadas a buscadores e domínios públicos (web, Facebook, Instagram, Reddit, TikTok e X). A pesquisa abre resultados no navegador; não extrai dados automaticamente nem acessa conteúdo privado. O usuário revisa a publicação e registra manualmente o nome/perfil público, link original, telefone público opcional e trecho relevante. O lead é gravado somente na empresa ativa, com fonte e publicação nas observações e verificação de duplicidade por nome/telefone.
+- Pesquisa complementar de estabelecimentos via OpenStreetMap: permanece separada e identificada como pesquisa de empresas, não de clientes interessados. Resultados sem correspondência com o segmento não são exibidos.
 
 ## Verificações
 
@@ -58,3 +59,12 @@ Seis etapas padrão são criadas para empresas existentes e automaticamente para
 5. Publicar o frontend somente depois da validação das rotas e da autorização real no Supabase.
 
 A CI localiza problemas de código e schema, mas não substitui a validação em produção. Não aplicar migrations, publicar Edge Functions, alterar configurações Auth, fazer upgrade de plano ou integrar PRs automaticamente.
+
+
+## Prospecção por intenção — limites e evolução
+
+- O mecanismo de consultas é independente do segmento: cada empresa informa o produto/serviço e, opcionalmente, a localização.
+- As fontes são abertas em páginas de busca públicas. A presença de uma plataforma na lista não garante que todas as publicações estejam indexadas ou disponíveis sem login.
+- Não se consultam pesquisas privadas de usuários, perfis privados, mensagens privadas ou dados não disponibilizados publicamente.
+- APIs de plataformas com exigência de aprovação, contrato ou autorização comercial não são chamadas nesta versão. Integrações automatizadas só devem ser adicionadas após validação dos termos, custo, consentimento e isolamento multiempresa.
+- A primeira versão prioriza custo zero e revisão humana; os resultados encontrados fora do sistema só viram leads após registro voluntário pelo usuário.
