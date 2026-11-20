@@ -823,7 +823,7 @@ class _RecordsPageState extends State<_RecordsPage> {
             return Card(child: ListTile(
               title: Text(_title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
               subtitle: details.isEmpty ? null : Text(details.join(' · '), maxLines: 3, overflow: TextOverflow.ellipsis),
-              trailing: widget.table == 'rental_quotes'
+              trailing: widget.table == 'rental_quotes' && ['draft', 'sent', 'accepted'].contains(status)
                   ? PopupMenuButton<String>(
                       enabled: !_saving,
                       onSelected: (action) {
