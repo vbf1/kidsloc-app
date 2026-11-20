@@ -245,3 +245,20 @@ Os três workflows associados a esse commit terminaram com sucesso:
 - `Supabase migration checks` — sucesso, incluindo type-check, `supabase db reset`, Auth/onboarding E2E e pgTAP.
 
 Essa aprovação valida a reconstrução local da branch; não prova igualdade total com o banco remoto nem autoriza implantação.
+
+
+### Rechecagem de privilégios padrão e catálogo de produtos — 20/11/2026
+
+A auditoria dos privilégios padrão foi refinada por proprietário dos objetos, para não generalizar o resultado:
+
+- Para objetos criados por `postgres` no schema `public`, os privilégios padrão consultados não concedem acesso a `anon` em tabelas, sequências ou funções.
+- Existem, porém, ACLs padrão separadas para `supabase_admin` que incluem `anon` em tabelas, sequências e funções. Isso não se traduz em acesso aos objetos atuais auditados: as 28 tabelas e 2 sequências públicas encontradas pertencem a `postgres` e `anon` não possui SELECT/INSERT/UPDATE/DELETE nelas; nenhuma das 18 funções públicas auditadas concede EXECUTE a `anon`.
+- Assim, o estado atual dos objetos públicos está fechado a `anon`, mas a ACL padrão de `supabase_admin` continua sendo uma questão separada a esclarecer. Não marcar a migration `20261113134849_tighten_public_schema_default_privileges` como reconciliada apenas pela ausência de grants nos objetos atuais.
+
+A comparação adicional do catálogo de produtos confirmou que o estado remoto corresponde à cadeia local `20261112030000`, `20261113025749`, `20261113040000` e `20261113203747`:
+- Constraints aceitam `toy`, `machine` e `service` e impõem as regras de preço/inventário esperadas.
+- `enforce_product_catalog_rules` impede reduzir a quantidade total abaixo das unidades físicas cadastradas e impede alterar tipo/controle quando há histórico ou unidades.
+- `prevent_service_product_units` bloqueia serviços, exige controle individual e mesma empresa, trava o produto com `FOR UPDATE` e limita a quantidade de unidades cadastradas ao estoque total.
+- Os triggers correspondentes estão presentes no remoto. A função e os triggers observados correspondem ao SQL da cadeia local, inclusive à proteção incremental de contagem.
+
+Nenhum dado ou privilégio foi alterado nesta verificação.
