@@ -68,9 +68,9 @@ class _FinancePageState extends State<FinancePage> {
     }
   }
 
-  double get _income => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold(0, (s, e) => s + _money(e['amount']));
+  double get _income => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold<double>(0, (s, e) => s + _money(e['amount']));
   double get _expenses => _transactions.where((e) => e['transaction_type'] == 'expense' && e['status'] != 'cancelled').fold(0, (s, e) => s + _money(e['amount']));
-  double get _pending => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold(0, (s, e) {
+  double get _pending => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold<double>(0, (s, e) {
     final amount = _money(e['amount']);
     final paid = _paidByTransaction[e['id'].toString()] ?? (e['status'] == 'paid' ? amount : 0);
     return s + (amount - paid).clamp(0, double.infinity);
