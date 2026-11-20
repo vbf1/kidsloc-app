@@ -69,11 +69,13 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
       </div>
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-purple-100 bg-white/95 px-2 pt-2 shadow-[0_-8px_30px_rgba(37,20,70,0.08)] backdrop-blur-lg md:hidden"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
-        <div className="mx-auto grid max-w-xl gap-1" style={{ gridTemplateColumns: 'repeat(' + items.length + ', minmax(0, 1fr))' }}>
+        <div className="mx-auto grid max-w-xl grid-cols-4 gap-1">
           {items.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
-            className={item.active ? 'flex min-w-0 flex-col items-center gap-1 rounded-xl bg-purple-50 px-1 py-2 text-[10px] font-bold text-[#6840bd]' : 'flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium text-gray-500 transition active:bg-purple-50'}>
+            className={item.active
+              ? 'flex min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-purple-50 px-1 py-2 text-[11px] font-bold leading-tight text-[#6840bd]'
+              : 'flex min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium leading-tight text-gray-600 transition active:bg-purple-50'}>
             <NavIcon name={item.icon} />
-            <span className="max-w-full truncate">{item.shortLabel}</span>
+            <span className="max-w-full whitespace-normal text-center">{item.shortLabel}</span>
             <span className={item.active ? 'h-1 w-4 rounded-full bg-[#ffd34e]' : 'h-1 w-4'} />
           </a>)}
         </div>
