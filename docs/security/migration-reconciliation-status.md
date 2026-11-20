@@ -191,3 +191,14 @@ Uma nova leitura direta de `pg_policies`, `pg_constraint` e `pg_trigger` confirm
 
 **Implicação:** o estado remoto continua divergente do modelo final da branch em constraints, policies de chat, escrita de memberships e RPCs. As migrations locais `20261116090000` e `20261119090000` cobrem parte dessas correções no banco reconstruído e nos testes, mas ainda não foram aplicadas ao projeto remoto. Não executar repair, push ou deploy nesta etapa.
 
+
+
+### Rechecagem pontual de escrita em `company_members` — 19/11, leitura direta do catálogo
+
+- A policy remota `company_members_delete_authorized_admins` está ativa para `authenticated`. Sua expressão efetiva permite ao papel antigo `owner` excluir qualquer vínculo que não seja `owner`, e permite a `admin` excluir apenas linhas cujo cargo seja `staff`.
+- A policy remota `platform_owner_all` também está ativa para `authenticated`, com comando `ALL` e condição `is_platform_owner()` tanto em USING quanto em WITH CHECK. Ela é o caminho de escrita global do platform owner até a migration de normalização removê-la.
+- `authenticated` possui grants SQL de SELECT/INSERT/UPDATE/DELETE na tabela. Esses grants, isoladamente, não autorizam a operação: INSERT e UPDATE continuam sem policy RLS específica para esse papel; DELETE é controlado pela policy acima; o platform owner recebe a exceção da policy ALL.
+- Não há triggers de usuário em `company_members`. O constraint remoto continua aceitando `owner`, `admin`, `manager` e `staff`.
+- A consulta de privilégios de rotina confirmou EXECUTE para `authenticated` em `add_company_member` e `invite_company_member`; `manage_company_member` ainda não existe no remoto.
+- A migration `20261116090000` remove as duas policies de escrita direta; `20261119090000` endurece a RPC transacional, rejeitando cargo não nulo em remoção e impedindo que o vínculo do platform owner seja alvo de gerenciamento. A sequência local é coerente com os testes, mas não está implantada.
+
