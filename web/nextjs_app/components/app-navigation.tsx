@@ -1,11 +1,18 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
 type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
 type AppNavigationProps = { basePath: string; role?: CompanyRole; companyId?: string };
-type NavItem = { label: string; shortLabel: string; href: string; active: boolean; icon: 'home' | 'users' | 'toy' | 'calendar' | 'team' | 'funnel' | 'map-pin' };
+type NavItem = {
+  label: string;
+  shortLabel: string;
+  href: string;
+  active: boolean;
+  icon: 'home' | 'users' | 'toy' | 'calendar' | 'team' | 'funnel' | 'map-pin';
+};
 
 function NavIcon({ name }: { name: NavItem['icon'] }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -22,9 +29,19 @@ function NavIcon({ name }: { name: NavItem['icon'] }) {
   );
 }
 
+function MoreIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      {open ? <path d="m6 6 12 12M18 6 6 18" /> : <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>}
+    </svg>
+  );
+}
+
 export function AppNavigation({ basePath, role, companyId }: AppNavigationProps) {
   const pathname = usePathname() ?? '';
   const [leadFestaEnabled, setLeadFestaEnabled] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
   useEffect(() => {
     let active = true;
     if (companyId && (role === 'owner' || role === 'admin') && supabase) {
@@ -35,6 +52,16 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
     return () => { active = false; };
   }, [companyId, role]);
 
+  useEffect(() => { setMoreOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [moreOpen]);
+
   const isCustomers = pathname.endsWith('/app/customers') || pathname.endsWith('/app/customers/');
   const isProducts = pathname.endsWith('/app/products') || pathname.endsWith('/app/products/');
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
@@ -42,6 +69,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isLeadFesta = (pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/')) && !pathname.includes('/prospeccao');
   const isProspecting = pathname.includes('/app/leads/prospeccao');
   const isDashboard = !isCustomers && !isProducts && !isRentals && !isTeam && !isLeadFesta && !isProspecting;
+
   const items: NavItem[] = [
     { label: 'Visão geral', shortLabel: 'Início', href: basePath + '/app/', active: isDashboard, icon: 'home' },
     { label: 'Clientes', shortLabel: 'Clientes', href: basePath + '/app/customers/', active: isCustomers, icon: 'users' },
@@ -53,6 +81,11 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
     ] : []),
     ...(role === 'owner' || role === 'admin' ? [{ label: 'Gerenciar equipe', shortLabel: 'Equipe', href: basePath + '/equipe/', active: isTeam, icon: 'team' as const }] : []),
   ];
+
+  const primaryItems = items.slice(0, 3);
+  const moreItems = items.slice(3);
+  const moreIsActive = moreItems.some((item) => item.active);
+
   return (
     <nav aria-label="Navegação principal">
       <div className="hidden md:block">
@@ -67,17 +100,51 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
           </a>)}
         </div>
       </div>
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-purple-100 bg-white/95 px-2 pt-2 shadow-[0_-8px_30px_rgba(37,20,70,0.08)] backdrop-blur-lg md:hidden"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
-        <div className="mx-auto grid max-w-xl grid-cols-4 gap-1">
-          {items.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
-            className={item.active
-              ? 'flex min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl bg-purple-50 px-1 py-2 text-[11px] font-bold leading-tight text-[#6840bd]'
-              : 'flex min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium leading-tight text-gray-600 transition active:bg-purple-50'}>
-            <NavIcon name={item.icon} />
-            <span className="max-w-full whitespace-normal text-center">{item.shortLabel}</span>
-            <span className={item.active ? 'h-1 w-4 rounded-full bg-[#ffd34e]' : 'h-1 w-4'} />
-          </a>)}
+
+      <div className="md:hidden">
+        {moreOpen && <>
+          <button type="button" aria-label="Fechar menu Mais" onClick={() => setMoreOpen(false)}
+            className="fixed inset-0 z-40 bg-slate-950/20" />
+          <section aria-label="Mais opções de navegação" className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-md overflow-hidden rounded-2xl border border-purple-100 bg-white p-2 shadow-[0_12px_40px_rgba(37,20,70,0.18)]">
+            <div className="px-3 pb-2 pt-2">
+              <p className="text-sm font-bold text-gray-900">Mais opções</p>
+              <p className="mt-0.5 text-xs text-gray-500">Acesse os outros módulos do KidsLoc</p>
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              {moreItems.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
+                className={item.active
+                  ? 'flex min-h-14 items-center gap-3 rounded-xl bg-purple-50 px-3 py-3 text-sm font-semibold text-[#6840bd]'
+                  : 'flex min-h-14 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:bg-purple-50'}>
+                <span className={item.active ? 'grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[#6840bd]' : 'grid size-9 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-600'}>
+                  <NavIcon name={item.icon} />
+                </span>
+                <span className="leading-tight">{item.label}</span>
+              </a>)}
+            </div>
+          </section>
+        </>}
+
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200/80 bg-white/95 px-3 pt-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+          style={{ paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom))' }}>
+          <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+            {primaryItems.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
+              className={item.active
+                ? 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
+                : 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
+              <NavIcon name={item.icon} />
+              <span className="max-w-full truncate px-1">{item.shortLabel}</span>
+              {item.active && <span className="absolute bottom-0 h-0.5 w-7 rounded-full bg-[#8054d8]" />}
+            </a>)}
+            <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen}
+              aria-controls="mobile-more-menu" aria-label={moreOpen ? 'Fechar mais opções' : 'Abrir mais opções'}
+              className={moreOpen || moreIsActive
+                ? 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
+                : 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
+              <MoreIcon open={moreOpen} />
+              <span>Mais</span>
+              {moreIsActive && <span className="h-0.5 w-7 rounded-full bg-[#8054d8]" />}
+            </button>
+          </div>
         </div>
       </div>
     </nav>
