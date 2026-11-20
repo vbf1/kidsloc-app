@@ -47,7 +47,7 @@ export default function LeadProspectingPage() {
         let companyName = '';
         let role: 'admin' | 'owner' = 'admin';
         if (isOwner === true) {
-          const { data: companies, error: companiesError } = await supabase.from('companies').select('id,name').order('name').limit(1);
+          const { data: companies, error: companiesError } = await supabase.from('companies').select('id,name').order('name');
           if (companiesError) throw companiesError;
           setCompanies((companies ?? []) as CompanyOption[]);
           companyId = companies?.[0]?.id ?? '';
