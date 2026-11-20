@@ -46,18 +46,12 @@ begin
 end;
 $$;
 
--- The connected KidsLoc project historically used
--- on_auth_user_created_profile. Drop both known names before creating one
--- canonical trigger so applying this migration cannot leave duplicate
--- profile-creation triggers behind.
 drop trigger if exists on_auth_user_created_profile on auth.users;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created_profile
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
--- Preserve platform-owner access on projects that already define the
--- private helper, while allowing this foundation to run on a clean local DB.
 create or replace function public.is_platform_owner_for_company()
 returns boolean
 language plpgsql
@@ -133,7 +127,6 @@ begin
       using errcode = '22023';
   end if;
 
-  -- Serialize onboarding attempts for the same account to prevent races.
   perform pg_advisory_xact_lock(hashtextextended(v_user_id::text, 0));
 
   if exists (
@@ -200,8 +193,6 @@ create policy members_select_same_company on public.company_members
 for select to authenticated
 using (public.is_company_member(company_id));
 
--- RLS governs normal row access. Do not grant TRUNCATE, REFERENCES or TRIGGER
--- to client roles because those privileges are not protected by row policies.
 revoke all on public.profiles, public.companies, public.company_members from anon;
 revoke all on public.profiles, public.companies, public.company_members from authenticated;
 grant select, update on public.profiles to authenticated;
