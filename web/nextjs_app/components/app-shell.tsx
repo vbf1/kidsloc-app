@@ -26,7 +26,7 @@ export function AppShell({
   children,
 }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#f8f7fc] text-gray-900">
+    <div className="app-shell-root min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <a href={basePath + '/app/'} className="flex min-w-0 items-center gap-3" aria-label="KidsLoc, página inicial">
@@ -39,8 +39,8 @@ export function AppShell({
           </button>
         </div>
       </header>
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 pb-24 sm:px-6 md:grid-cols-[230px_minmax(0,1fr)] md:py-8 md:pb-8 lg:px-8">
-        <aside className="min-w-0 md:sticky md:top-6 md:self-start">
+      <div className="app-shell-layout mx-auto grid max-w-7xl gap-6 px-3 py-6 pb-24 sm:px-6 md:grid-cols-[230px_minmax(0,1fr)] md:py-8 md:pb-8 lg:px-8">
+        <aside className="app-shell-sidebar min-w-0 md:sticky md:top-6 md:self-start">
           <div className="mb-4 hidden rounded-2xl border border-purple-100 bg-white p-4 md:block">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</p>
             <p className="mt-1 break-words font-bold text-gray-900">{companyName}</p>
@@ -48,7 +48,7 @@ export function AppShell({
           </div>
           <AppNavigation basePath={basePath} role={role} companyId={companyId} />
         </aside>
-        <main className="min-w-0">{children}</main>
+        <main className="app-shell-main min-w-0">{children}</main>
       </div>
     </div>
   );
