@@ -64,16 +64,18 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isCustomers = pathname.endsWith('/app/customers') || pathname.endsWith('/app/customers/');
   const isProducts = pathname.endsWith('/app/products') || pathname.endsWith('/app/products/');
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
+  const isQuotes = pathname.endsWith('/app/quotes') || pathname.endsWith('/app/quotes/');
   const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
   const isLeadFesta = (pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/')) && !pathname.includes('/prospeccao');
   const isProspecting = pathname.includes('/app/leads/prospeccao');
-  const isDashboard = !isCustomers && !isProducts && !isRentals && !isTeam && !isLeadFesta && !isProspecting;
+  const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isTeam && !isLeadFesta && !isProspecting;
 
   const items: NavItem[] = [
     { label: 'Visão geral', shortLabel: 'Início', href: basePath + '/app/', active: isDashboard, icon: 'home' },
     { label: 'Clientes', shortLabel: 'Clientes', href: basePath + '/app/customers/', active: isCustomers, icon: 'users' },
     { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
     { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
+    { label: 'Orçamentos', shortLabel: 'Orçamentos', href: basePath + '/app/quotes/', active: isQuotes, icon: 'toy' },
     ...(leadFestaEnabled ? [
       { label: 'LeadFesta', shortLabel: 'Leads', href: basePath + '/app/leads/', active: isLeadFesta, icon: 'funnel' as const },
       { label: 'Prospectar empresas', shortLabel: 'Prospectar', href: basePath + '/app/leads/prospeccao/', active: isProspecting, icon: 'map-pin' as const },
