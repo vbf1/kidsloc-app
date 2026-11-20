@@ -308,6 +308,12 @@ grant execute on function public.manage_company_member(uuid, uuid, text, text) t
 -- Keep the platform-owner ALL policy; remove the direct company-admin DELETE path.
 drop policy if exists company_members_delete_authorized_admins on public.company_members;
 
+-- Remove the broad platform-owner policies created by the earlier global-access migration.
+-- The platform owner is not a company chat participant and must not inherit chat access.
+drop policy if exists platform_owner_all on public.team_conversations;
+drop policy if exists platform_owner_all on public.team_messages;
+drop policy if exists platform_owner_all on public.team_conversation_members;
+
 -- Company admins, not a separate company-owner role, administer team chat.
 drop policy if exists team_members_delete_owner on public.team_conversation_members;
 create policy team_members_delete_admin
