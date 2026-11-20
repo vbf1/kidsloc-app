@@ -41,6 +41,8 @@ export default function ContractsPage(){
   const by:Record<string,Item[]>={};for(const i of ir.data??[]){(by[i.rental_id]??=[]).push({...i,name:pnames[i.product_id]??'Item'});}
   setRentals(rlist);setCustomers(Object.fromEntries((cr.data??[]).map(c=>[c.id,c])));setContracts((co.data??[]) as Contract[]);setItemsByRental(by);setLoading(false);
  },[router]);
+ // This effect starts an asynchronous data request; state updates occur after the request resolves.
+ // eslint-disable-next-line react-hooks/set-state-in-effect
  useEffect(()=>{void load();},[load]);
  async function createDraft(){
   if(!supabase||!selectedRental)return;const rental=rentals.find(r=>r.id===selectedRental);if(!rental)return;
