@@ -1,7 +1,7 @@
 name: Supabase migration checks
 on:
   pull_request:
-    paths: ['.github/workflows/supabase-check.yml']
+    paths: ['supabase/**', '.github/workflows/supabase-check.yml']
   workflow_dispatch:
 jobs:
   validate:
