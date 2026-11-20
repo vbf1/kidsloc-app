@@ -169,7 +169,7 @@ export default function LeadProspectingPage() {
             return matchesProspectingSegment(item, segment, raw?.tags ?? {});
           })
         : unique;
-      const ordered = matching.length > 0 ? matching : unique;
+      const ordered = matching;
       const { data: existing, error: existingError } = await supabase.from('leads')
         .select('id,name,phone,contact_company').eq('company_id', workspace.companyId).limit(500);
       if (existingError) throw new Error('A busca encontrou empresas, mas não foi possível conferir duplicados no seu CRM.');
@@ -179,9 +179,9 @@ export default function LeadProspectingPage() {
       if (ordered.length === 0) {
         setNotice('A base aberta não retornou estabelecimentos nomeados nessa região. Tente aumentar o raio ou outra localidade.');
       } else if (segment.trim() && matching.length === 0) {
-        setNotice('Encontrei estabelecimentos na região, mas a base não classifica esse segmento de forma padronizada. Exibindo os resultados próximos para você selecionar.');
+        setNotice('Nenhum estabelecimento correspondeu ao segmento informado. Os resultados de outros segmentos foram ocultados para evitar contatos sem relação com sua pesquisa.');
       } else {
-        setNotice('Busca concluída. Confira os dados disponíveis e selecione as empresas que deseja importar.');
+        setNotice('Busca de estabelecimentos concluída. Confira os dados disponíveis e selecione as empresas que deseja importar.');
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível concluir a pesquisa.');
@@ -254,7 +254,7 @@ export default function LeadProspectingPage() {
   return <AppShell companyName={workspace?.companyName ?? ''} email={workspace?.email ?? ''} role={workspace?.role} companyId={workspace?.companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={false} onSignOut={() => { void supabase?.auth.signOut().then(() => window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/login/')); }}>
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • captação de oportunidades</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Prospectar empresas</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Pesquise negócios por segmento e localização, selecione os resultados e importe vários contatos para o seu funil.</p></div>
+        <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • captação de oportunidades</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Pesquisar estabelecimentos</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Localize estabelecimentos cadastrados em bases públicas por segmento e região. Esta pesquisa ainda não identifica pessoas procurando contratar serviços.</p></div>
         <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/leads/'} className={secondary}>← Voltar ao CRM</a>
       </div>
 
@@ -266,7 +266,7 @@ export default function LeadProspectingPage() {
       </label>}
 
       <section className={panel}>
-        <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-purple-100 text-xl">⌕</span><div><h2 className="text-lg font-bold">Buscar empresas automaticamente</h2><p className="text-sm text-gray-500">A pesquisa usa dados públicos do OpenStreetMap, sem chave ou API paga.</p></div></div>
+        <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-purple-100 text-xl">⌕</span><div><h2 className="text-lg font-bold">Buscar estabelecimentos</h2><p className="text-sm text-gray-500">A pesquisa usa dados públicos do OpenStreetMap, sem chave ou API paga.</p></div></div>
         <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_180px_auto] md:items-end">
           <label className="text-sm font-semibold">Segmento / tipo de negócio
             <input className={field} value={segment} onChange={(event) => setSegment(event.target.value)} placeholder="Ex.: escolas, clínicas, oficinas, buffets" maxLength={100} />
@@ -279,7 +279,7 @@ export default function LeadProspectingPage() {
           </label>
           <button type="button" className={primary} onClick={() => { void searchBusinesses(); }} disabled={searching || !city.trim()}>{searching ? 'Pesquisando...' : 'Buscar empresas'}</button>
         </div>
-        <p className="mt-3 text-xs leading-5 text-gray-500">A base aberta tem cobertura variável e nem sempre informa telefone, e-mail ou site. O segmento ajuda a priorizar os resultados; quando a categoria não está padronizada no mapa, exibimos os estabelecimentos próximos para conferência.</p>
+        <p className="mt-3 text-xs leading-5 text-gray-500">A base aberta tem cobertura variável e nem sempre informa telefone, e-mail ou site. Quando nenhum resultado corresponde ao segmento informado, não exibimos estabelecimentos de outras categorias. Esta base identifica locais e empresas, não clientes com intenção de contratação.</p>
       </section>
 
       {results.length > 0 && <section className={panel}>
