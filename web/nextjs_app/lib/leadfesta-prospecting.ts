@@ -11,23 +11,23 @@ export function classifyPublicIntent(value: string): IntentSignal {
   if (!text) return { classification: 'unclear', reason: 'Cole um trecho público para analisar os sinais de intenção.' };
 
   const buyerPatterns = [
-    /\\b(procuro|procurando|busco|buscando)\\b/,
-    /\\b(preciso|necessito)\\b/,
-    /\\b(alguem indica|alguem recomenda|alguma indicacao|alguma recomendacao)\\b/,
-    /\\b(onde encontro|onde acho|onde consigo)\\b/,
-    /\\b(quero contratar|gostaria de contratar|preciso contratar)\\b/,
-    /\\b(quero alugar|preciso alugar|gostaria de alugar)\\b/,
-    /\\b(orcamento para|cotacao para)\\b/,
-    /\\b(quem faz|quem trabalha com)\\b/,
+    /\b(procuro|procurando|busco|buscando)\b/,
+    /\b(preciso|necessito)\b/,
+    /\b(alguem indica|alguem recomenda|alguma indicacao|alguma recomendacao)\b/,
+    /\b(onde encontro|onde acho|onde consigo)\b/,
+    /\b(quero contratar|gostaria de contratar|preciso contratar)\b/,
+    /\b(quero alugar|preciso alugar|gostaria de alugar)\b/,
+    /\b(orcamento para|cotacao para)\b/,
+    /\b(quem faz|quem trabalha com)\b/,
   ];
   const vendorPatterns = [
-    /\\b(alugo|alugamos|locamos|locacao de)\\b/,
-    /\\b(ofereco|oferecemos|vendemos|vendo)\\b/,
-    /\\b(trabalho com|trabalhamos com|atuo com)\\b/,
-    /\\b(sou fornecedor|somos fornecedores|sou prestador|somos prestadores)\\b/,
-    /\\b(temos disponivel|tenho disponivel|disponivel para locacao)\\b/,
-    /\\b(faca seu orcamento|peca seu orcamento|contrate nossos)\\b/,
-    /\\b(atendemos|atendo na regiao)\\b/,
+    /\b(alugo|alugamos|locamos|locacao de)\b/,
+    /\b(ofereco|oferecemos|vendemos|vendo)\b/,
+    /\b(trabalho com|trabalhamos com|atuo com)\b/,
+    /\b(sou fornecedor|somos fornecedores|sou prestador|somos prestadores)\b/,
+    /\b(temos disponivel|tenho disponivel|disponivel para locacao)\b/,
+    /\b(faca seu orcamento|peca seu orcamento|contrate nossos)\b/,
+    /\b(atendemos|atendo na regiao)\b/,
   ];
   const buyer = buyerPatterns.some((pattern) => pattern.test(text));
   const vendor = vendorPatterns.some((pattern) => pattern.test(text));
