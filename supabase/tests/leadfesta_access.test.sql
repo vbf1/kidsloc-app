@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(33);
+select plan(34);
 
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -151,6 +151,17 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000002', true);
 
 select ok(not public.leadfesta_is_available('21000000-0000-4000-8000-000000000001'), 'staff does not inherit the admin entitlement');
+select throws_ok(
+  $sql$select public.update_lead_stage(
+    '21000000-0000-4000-8000-000000000001',
+    (select id from public.leads where company_id = '21000000-0000-4000-8000-000000000001' limit 1),
+    current_setting('test.lead_stage_id')::uuid
+  )$sql$,
+  '42501',
+  'Você não tem acesso ao LeadFesta desta empresa.',
+  'staff cannot bypass LeadFesta access through the transactional stage RPC'
+);
+
 select is((select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000001'), 0, 'staff cannot read leads even when the company has the module');
 select is((select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000001'), 0, 'staff cannot read LeadFesta contact history');
 select throws_ok(
