@@ -10,6 +10,7 @@ type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
 type Workspace = {
   email: string;
   companyName: string;
+  companyId: string;
   role: CompanyRole;
 };
 
@@ -53,7 +54,7 @@ export default function AppHomePage() {
 
       const { data, error } = await supabase
         .from('company_members')
-        .select('role, companies(name)')
+        .select('company_id, role, companies(name)')
         .eq('user_id', user.id)
         .limit(1)
         .maybeSingle();
@@ -76,6 +77,7 @@ export default function AppHomePage() {
       setWorkspace({
         email: user.email ?? 'E-mail não informado',
         companyName,
+        companyId: data.company_id,
         role: data.role as CompanyRole,
       });
     } catch {
@@ -131,6 +133,7 @@ export default function AppHomePage() {
       companyName={workspace.companyName}
       email={workspace.email}
       role={workspace.role}
+      companyId={workspace.companyId}
       basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
       signingOut={signingOut}
       onSignOut={signOut}

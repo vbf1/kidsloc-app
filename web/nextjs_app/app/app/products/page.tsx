@@ -266,7 +266,7 @@ export default function ProductsPage() {
   if (accessError) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5"><section className="w-full max-w-md rounded-2xl border border-purple-100 bg-white p-6 shadow-sm"><h1 className="text-xl font-bold">Não foi possível abrir o catálogo</h1><p role="alert" className="mt-3 text-sm leading-6 text-gray-600">{accessError}</p><button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-semibold text-white">Tentar novamente</button></section></main>;
   if (!companyId) return null;
   return (
-    <AppShell companyName={companyName} email={email} role={role} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
+    <AppShell companyName={companyName} email={email} role={role} companyId={companyId ?? undefined} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
       <section aria-labelledby="products-title">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Gestão da empresa</p><h1 id="products-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Catálogo</h1><p className="mt-2 text-sm text-gray-500">Organize brinquedos, máquinas, serviços, preços e disponibilidade.</p></div>

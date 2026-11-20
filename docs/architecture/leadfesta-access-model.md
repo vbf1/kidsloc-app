@@ -43,6 +43,10 @@ Não implementar regras, campos, funis ou nomenclaturas que pressuponham locaç�
 7. O proprietário da plataforma já consegue utilizar o módulo por padrão, sem ativação adicional.
 8. O modelo funciona para empresas de ramos diferentes, sem pressupor Sonho Kids ou Nobre Paladar.
 
-## Estado
+## Estado da implementação
 
-Este documento registra os requisitos aprovados para orientar a implementação futura. Não cria tabelas, não habilita o módulo e não altera o banco remoto. A implementação funcional começa somente depois da fundação e da reconciliação de migrations estarem seguras.
+Os requisitos acima foram implementados inicialmente na branch `feat/leadfesta-module`, sobre a branch de fundação validada `chore/foundation-reconciliation-verify`.
+
+A implementação inclui entitlement privado por empresa, políticas RLS, RPCs de autorização e gestão, funil de leads, histórico de atividades, conversão transacional em cliente, interface CRM e painel de ativação do platform owner. O detalhamento técnico e as rotas estão em `docs/modules/leadfesta.md`.
+
+A implementação está em validação por CI e revisão. Ela não cria ou habilita entitlements em produção, não aplica migrations remotas e não publica o frontend. Empresas existentes permanecem sem LeadFesta ativo até que o platform owner conceda o adicional após o rollout.

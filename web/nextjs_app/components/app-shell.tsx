@@ -8,6 +8,7 @@ type AppShellProps = {
   companyName: string;
   email: string;
   role?: CompanyRole;
+  companyId?: string;
   basePath: string;
   signingOut: boolean;
   onSignOut: () => void;
@@ -18,6 +19,7 @@ export function AppShell({
   companyName,
   email,
   role,
+  companyId,
   basePath,
   signingOut,
   onSignOut,
@@ -27,7 +29,7 @@ export function AppShell({
     <div className="min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <a href={`${basePath}/app/`} className="flex min-w-0 items-center gap-3" aria-label="KidsLoc, página inicial">
+          <a href={basePath + '/app/'} className="flex min-w-0 items-center gap-3" aria-label="KidsLoc, página inicial">
             <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
             <span className="truncate text-xl font-bold tracking-tight">KidsLoc <span className="text-[#8054d8]">App</span></span>
           </a>
@@ -44,7 +46,7 @@ export function AppShell({
             <p className="mt-1 break-words font-bold text-gray-900">{companyName}</p>
             <p className="mt-2 break-all text-xs leading-5 text-gray-500">{email}</p>
           </div>
-          <AppNavigation basePath={basePath} role={role} />
+          <AppNavigation basePath={basePath} role={role} companyId={companyId} />
         </aside>
         <main className="min-w-0">{children}</main>
       </div>

@@ -189,7 +189,7 @@ export default function CustomersPage() {
   if (!companyId) return null;
 
   return (
-    <AppShell companyName={companyName} email={email} role={role} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
+    <AppShell companyName={companyName} email={email} role={role} companyId={companyId ?? undefined} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
       <section aria-labelledby="customers-title">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
