@@ -49,6 +49,7 @@ export default function LeadProspectingPage() {
         if (isOwner === true) {
           const { data: companies, error: companiesError } = await supabase.from('companies').select('id,name').order('name').limit(1);
           if (companiesError) throw companiesError;
+          setCompanies((companies ?? []) as CompanyOption[]);
           companyId = companies?.[0]?.id ?? '';
           companyName = companies?.[0]?.name ?? '';
           role = 'owner';
@@ -145,9 +146,7 @@ export default function LeadProspectingPage() {
       phone: phoneDigits ? draft.phone.trim() : null,
       email: draft.email.trim() || null,
       source: 'Google Maps',
-      notes: noteParts.join('
-
-') || null,
+      notes: noteParts.join('\\n\\n') || null,
       updated_at: new Date().toISOString(),
     });
     if (insertError) setError('Não foi possível salvar o lead. Confira os dados e tente novamente.');
