@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(24);
+select plan(26);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'companies', 'companies table exists');
@@ -67,6 +67,19 @@ select ok(
        'product_units_delete_owner_admin'
      )),
   'sensitive finance, document, stock and unit deletion is admin-only'
+);
+
+select ok(
+  position('r.created_by' in pg_get_functiondef('public.can_manage_rental(uuid,uuid)'::regprocedure)) > 0,
+  'rental creator is included in the can_manage_rental authorization helper'
+);
+
+select ok(
+  (select permissive = 'PERMISSIVE' from pg_policies
+   where schemaname = 'public'
+     and tablename = 'rental_responsibles'
+     and policyname = 'rental_responsibles_scope_select'),
+  'rental responsible visibility uses the explicit scoped policy'
 );
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
