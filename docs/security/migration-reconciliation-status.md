@@ -396,7 +396,7 @@ A auditoria descobriu que o ledger remoto guarda o SQL executado em `supabase_mi
 
 A migration `20261120110000` também contém a revogação global do EXECUTE padrão de `PUBLIC` para funções futuras criadas por `postgres`, e a suíte pgTAP valida essa configuração. A migration `20261120120000` mantém o gerenciamento transacional de membros.
 
-**Validação pendente:** executar novamente o CI completo após esta reconstituição, incluindo `supabase db reset`, E2E de Auth/onboarding e os testes pgTAP. Até essa validação terminar, a fundação não deve ser marcada como pronta. O estado remoto permanece inalterado.
+**Validação final concluída no commit de código `7fdc7050e7b4f0aa7942b288112448245b92d7e`:** Web PR checks passaram; type-check das Edge Functions passou; `supabase db reset` passou; E2E Auth/onboarding passou; pgTAP passou com **73 testes no total** (`foundation.test.sql`, `platform_company_role_model.test.sql` com 42 verificações e `role_permissions.test.sql`). O workflow separado de GitHub Pages foi cancelado e não executou deploy; o build/verificações Web independentes passaram. O estado remoto permanece inalterado.
 
 
 ### Correção da policy de exclusão do catálogo — 20/11/2026
