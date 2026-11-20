@@ -53,8 +53,8 @@ values
 select is(
   (select count(*)::integer from public.company_members
    where user_id = 'c1000000-0000-4000-8000-000000000001'),
-  0,
-  'platform owner has no company membership'
+  1,
+  'legacy platform-owner company membership is preserved'
 );
 
 select ok(
