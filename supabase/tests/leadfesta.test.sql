@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(17);
 
 select has_table('public', 'lead_pipeline_stages', 'LeadFesta pipeline stages table exists');
 select has_table('public', 'leads', 'LeadFesta leads table exists');
@@ -17,6 +17,7 @@ select ok((select relrowsecurity from pg_class where oid = 'private.company_feat
 select has_function('public', 'leadfesta_is_available', array['uuid'], 'availability is checked through a database function');
 select has_function('public', 'set_leadfesta_entitlement', array['uuid','boolean'], 'platform owner has a dedicated entitlement RPC');
 select has_function('public', 'convert_lead_to_customer', array['uuid','uuid'], 'lead conversion is transactional');
+select has_function('public', 'update_lead_stage', array['uuid','uuid','uuid'], 'stage changes and their history are transactional');
 
 select ok(not has_function_privilege('anon', 'public.set_leadfesta_entitlement(uuid,boolean)', 'EXECUTE'), 'anonymous users cannot enable or suspend LeadFesta');
 select ok(not has_table_privilege('anon', 'public.leads', 'SELECT'), 'anonymous users cannot read lead data');
