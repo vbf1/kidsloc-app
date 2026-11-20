@@ -334,3 +334,12 @@ Nenhum dado, policy, função ou privilégio foi alterado no Supabase remoto. Es
 - A migration local `20261116090000_normalize_platform_and_company_roles.sql` foi endurecida: para ator que não seja platform owner, agora lê e bloqueia com `SELECT ... FOR UPDATE` o vínculo do próprio ator e confirma que seu cargo ainda é `admin` antes de continuar. Isso serializa a autorização com a RPC transacional de alteração/remoção, que também bloqueia a linha do ator/alvo.
 - A lógica de destino foi preservada: somente platform owner pode atribuir `admin`; administrador de empresa só gerencia `staff`; contas registradas como platform owner não podem ser vinculadas como membros. A RPC continua no código para compatibilidade, mas não é usada pela UI atual.
 - Esta alteração está somente na branch. Ainda precisa passar pelo reset do banco local, pgTAP e workflows CI; não foi aplicada no Supabase remoto.
+
+### Pré-condições de normalização de cargos e singleton — 20/11/2026
+
+Consulta somente leitura ao remoto confirmou:
+- `private.platform_owners` contém exatamente 1 linha e 1 usuário distinto; portanto, o índice único parcial/constraint singleton proposto não encontrará duplicidade no estado observado.
+- `company_members` contém exatamente 3 vínculos, todos com papel `owner`; não há vínculos remotos com `admin`, `manager` ou `staff` neste momento.
+- Os três vínculos correspondem às empresas Sonho Kids Brinquedos, Nobre Paladar e Festejando. A conta registrada como platform owner possui 1 vínculo, na Festejando; os outros dois vínculos owner serão convertidos para admin.
+- Assim, após a normalização prevista, Sonho Kids Brinquedos e Nobre Paladar terão um admin cada; Festejando continuará cadastrada, porém sem membros, salvo decisão de atribuir outro administrador antes da implantação.
+- Essa verificação confirma que o índice singleton não falha por duplicidade e quantifica a conversão de cargos, mas não resolve a decisão operacional sobre Festejando. Nenhuma linha foi alterada.
