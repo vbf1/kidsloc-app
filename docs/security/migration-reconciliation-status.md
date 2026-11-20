@@ -68,10 +68,10 @@ Os quatro arquivos que aparecem como pares têm versões remotas diferentes, emb
 - Foram encontrados FKs compostos que vinculam `company_id` ao registro pai em áreas importantes: inventário, locações, clientes, pagamentos, documentos, ocorrências e equipe.
 - Esses FKs compostos são evidência de proteções de integridade entre empresas no estado remoto; ainda é necessário comparar integralmente suas definições com as migrations que os criaram.
 - `company_members` ainda possui **3 vínculos com o papel `owner`**.
-- A função remota `invite_company_member(uuid, uuid, text)` ainda aceita os papéis antigos `owner`, `admin`, `manager` e `staff`.
+- A função remota `invite_company_member(uuid, uuid, text)` ainda aceita os papéis antigos `admin`, `manager` e `staff`; a função `add_company_member(uuid, uuid, text)` também aceita `manager`.
 - A função remota `is_company_member(uuid)` ainda trata o platform owner como membro global para fins de autorização.
 - `has_company_role(uuid, text[])` ainda mapeia o platform owner para o papel `owner`.
-- A função remota `ensure_team_group(uuid)` ainda permite que o platform owner acione criação/garantia do grupo e adiciona membros atuais da empresa.
+- A função remota `ensure_team_group(uuid)` ainda permite que o platform owner acione a garantia do grupo, embora as policies atuais impeçam o platform owner de inserir mensagens.
 - A migration `20261116090000_normalize_platform_and_company_roles.sql` não está registrada no histórico remoto; por isso, seu novo modelo de cargos não pode ser considerado ativo em produção.
 - A Edge Function `manage-employees` publicada não foi alterada por esta análise; sua publicação permanece pendente de autorização explícita.
 
@@ -80,17 +80,35 @@ Os quatro arquivos que aparecem como pares têm versões remotas diferentes, emb
 Consultas somente leitura adicionais em 2026-11-19 confirmaram que o isolamento estrutural por `company_id` está presente em diversos relacionamentos, mas isso não significa que as permissões estejam no modelo novo:
 
 - A policy `platform_owner_all` em `public.company_members` concede `ALL` ao platform owner.
-- A policy `team_conversations_select` ainda permite leitura por `has_company_role(company_id, ['owner'])`; a função `is_company_member(company_id)` também trata o platform owner como membro global.
+- A policy `team_conversations_select` permite leitura por `has_company_role(company_id, ['owner'])`; como `is_company_member(company_id)` também trata o platform owner como membro global, o platform owner consegue ler conversas e mensagens de empresas. As policies de escrita de mensagens e participação bloqueiam o platform owner. Isso corresponde a um modelo de leitura global somente, não ao isolamento mais restrito definido pela migration local de normalização.
 - As policies de `team_conversation_members` ainda contêm exceções baseadas em `owner` e bypass explícito para platform owner.
-- `ensure_team_group(uuid)` ainda aceita o platform owner sem membership real e adiciona os membros atuais da empresa ao grupo.
-- `add_company_member(uuid, uuid, text)` ainda aceita `manager`; `invite_company_member(uuid, uuid, text)` também aceita `manager` e autoriza o papel `owner` como ator.
+- `add_company_member(uuid, uuid, text)` ainda aceita `manager`; `invite_company_member(uuid, uuid, text)` também aceita `manager` e autoriza um ator com papel `owner`.
 - As funções acima são `SECURITY DEFINER`; suas validações de identidade e autorização e os privilégios EXECUTE precisam ser revisados como endpoints privilegiados, não apenas como helpers internos.
+- A função remota `public.manage_company_member(uuid, uuid, text, text)` ainda não existe no catálogo; o fluxo transacional de alteração/remoção presente na branch depende da migration local posterior.
 
-**Conclusão parcial:** as migrations remotas ausentes de 17 de novembro que criaram FKs compostos parecem ter efeitos relevantes presentes no banco. Em contrapartida, o modelo de autorização para membros e conversas continua antigo. Não marcar uma migration como reconciliada apenas porque os FKs existem; constraints e policies são camadas diferentes.
+### Remoção de funcionário e revogação de acesso — verificação concluída
+
+Consultas somente leitura no catálogo do Postgres confirmaram uma proteção importante já ativa:
+
+- Existe a FK composta `team_members_company_member_fkey` em `team_conversation_members`: `(company_id, user_id) REFERENCES company_members(company_id, user_id) ON DELETE CASCADE`.
+- Portanto, ao excluir o vínculo do funcionário em `company_members`, o banco remove automaticamente os vínculos correspondentes em `team_conversation_members`. Isso evita que a pessoa continue como participante de conversas após a remoção.
+- As policies de leitura de `team_conversations`, `team_messages` e `team_conversation_members` também verificam `is_company_member(company_id)`; o acesso a dados da empresa é reavaliado no banco, não depende apenas de esconder a interface.
+- Não foram encontrados triggers de usuário em `company_members` nem em `team_conversation_members`; a limpeza de participantes é garantida pela FK composta, não por trigger.
+- A FK de participação tem `ON DELETE CASCADE`; a FK composta que referencia `team_conversations(company_id, id)` também tem `ON DELETE CASCADE`. A integridade entre empresa, conversa e participante está presente no estado remoto.
+
+**Conclusão específica:** o mecanismo estrutural de remoção do participante do chat está ativo e foi confirmado no catálogo. A migration remota `20261117010919_revoke_company_data_access_after_member_removal` não deve ser considerada ausente em efeito apenas porque seu arquivo não está na branch; a FK composta correspondente existe. Ainda falta comparar a definição completa dessa migration remota com a FK e as policies atuais para reconciliar o histórico com segurança.
+
+### Divergência da regra de cargos e acesso do platform owner
+
+- O constraint remoto `company_members_role_check` ainda aceita `owner`, `admin`, `manager` e `staff`; a migration local de normalização pretende migrar vínculos `owner` para `admin`, `manager` para `staff` e restringir o constraint a `admin`/ `staff`.
+- O estado remoto atual ainda permite leitura de conversas pelo platform owner, mas não escrita. A migration local `20261116090000_normalize_platform_and_company_roles.sql` altera esse comportamento e bloqueia o acesso do platform owner ao conteúdo das conversas. Essa diferença precisa ser mantida explícita na revisão de segurança e no plano de implantação.
+- A migration local `20261116090000` já cria uma versão inicial de `manage_company_member`; `20261119090000` redefine a mesma função com validações adicionais (por exemplo, exige `p_role` nulo na remoção e impede gerenciar a conta do platform owner). A segunda migration é um hardening incremental, não deve ser tratada como função independente.
+
+**Conclusão parcial:** os efeitos de integridade referencial de remoção de membro e de escopo por empresa estão presentes no banco. Em contrapartida, o modelo de cargos e a separação entre platform owner e membros da empresa continuam divergentes do estado proposto na branch. Não marcar uma migration como reconciliada apenas porque alguns efeitos relacionados já existem; constraints, policies e funções são camadas diferentes.
 
 ## Próxima sequência de trabalho
 
-1. Comparar cada uma das 23 migrations remotas ausentes com o estado real de constraints, índices, triggers, funções e policies.
+1. Comparar cada uma das migrations remotas ausentes com o estado real de constraints, índices, triggers, funções e policies.
 2. Classificar separadamente constraints, índices, policies e funções. FKs compostos observados não comprovam que as policies e funções de autorização também estejam atualizadas.
 3. Comparar os oito arquivos locais sem registro remoto, identificando os quatro pares de intenção semelhante e os quatro arquivos locais sem equivalente remoto; recuperar e inspecionar separadamente `202611090001_foundation`.
 4. Criar migrations corretivas com versões inéditas apenas para efeitos comprovadamente ausentes ou incorretos, sem no-op e sem reaplicar a migration destrutiva de reconstrução do núcleo de locações.
