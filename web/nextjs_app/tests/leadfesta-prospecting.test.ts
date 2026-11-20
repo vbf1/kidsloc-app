@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildIntentSearchLinks, isDuplicateProspect, mapOSMElement, matchesProspectingSegment, normalizeProspectingText } from '../lib/leadfesta-prospecting';
+import { buildIntentSearchLinks, classifyPublicIntent, isDuplicateProspect, mapOSMElement, matchesProspectingSegment, normalizeProspectingText } from '../lib/leadfesta-prospecting';
 
 describe('LeadFesta prospecting helpers', () => {
   it('normalizes accents and spacing', () => {
@@ -64,6 +64,20 @@ describe('LeadFesta prospecting helpers', () => {
     expect(decodeURIComponent(links[0].url)).toContain('Contagem, MG');
     expect(links.some((link) => link.source === 'Facebook público')).toBe(true);
     expect(buildIntentSearchLinks('', 'Contagem, MG')).toEqual([]);
+  });
+
+  it('classifies buyer intent across different business sectors', () => {
+    expect(classifyPublicIntent('Estou procurando fotógrafo para casamento')).toMatchObject({ classification: 'buyer' });
+    expect(classifyPublicIntent('Alguém indica uma empresa de limpeza?')).toMatchObject({ classification: 'buyer' });
+    expect(classifyPublicIntent('Preciso contratar um contador')).toMatchObject({ classification: 'buyer' });
+  });
+
+  it('identifies service providers and keeps ambiguous posts for human review', () => {
+    expect(classifyPublicIntent('Alugo brinquedos para festas')).toMatchObject({ classification: 'vendor' });
+    expect(classifyPublicIntent('Oferecemos serviços de fotografia')).toMatchObject({ classification: 'vendor' });
+    expect(classifyPublicIntent('Fotografia para casamento')).toMatchObject({ classification: 'unclear' });
+    expect(classifyPublicIntent('Procuro fotógrafo, também ofereço decoração')).toMatchObject({ classification: 'unclear' });
+    expect(classifyPublicIntent('')).toMatchObject({ classification: 'unclear' });
   });
 
   it('detects duplicates by company name or phone', () => {
