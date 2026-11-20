@@ -14,13 +14,18 @@ export function buildIntentSearchLinks(service: string, location: string): Inten
     { source: 'Instagram público', description: 'Perfis e publicações públicas indexadas', query: base + ' site:instagram.com' },
     { source: 'Reddit', description: 'Discussões e pedidos públicos; confira as regras de uso comercial', query: base + ' site:reddit.com' },
     { source: 'TikTok público', description: 'Páginas e vídeos públicos indexados', query: base + ' site:tiktok.com' },
+    { source: 'YouTube', description: 'Vídeos públicos e descrições indexadas', query: base + ' site:youtube.com' },
+    { source: 'LinkedIn público', description: 'Publicações e páginas públicas', query: base + ' site:linkedin.com/posts' },
     { source: 'X (Twitter)', description: 'Publicações públicas indexadas', query: base + ' site:x.com OR site:twitter.com' },
+    { source: 'Fóruns e comunidades', description: 'Discussões públicas em fóruns e comunidades', query: base + ' (fórum OR comunidade OR discussão)' },
+    { source: 'Classificados públicos (OLX)', description: 'Anúncios e pedidos públicos; confira se o autor procura ou oferece', query: base + ' site:olx.com.br' },
     { source: 'Busca alternativa (DuckDuckGo)', description: 'Pesquisa independente na web', query: base },
+    { source: 'Busca alternativa (Bing)', description: 'Pesquisa independente na web', query: base },
   ];
   return searches.map((item, index) => ({
     source: item.source,
     description: item.description,
-    url: (index === searches.length - 1 ? 'https://duckduckgo.com/?q=' : 'https://www.google.com/search?q=') + encodeURIComponent(item.query),
+    url: (item.source === 'Busca alternativa (DuckDuckGo)' ? 'https://duckduckgo.com/?q=' : item.source === 'Busca alternativa (Bing)' ? 'https://www.bing.com/search?q=' : 'https://www.google.com/search?q=') + encodeURIComponent(item.query),
   }));
 }
 
