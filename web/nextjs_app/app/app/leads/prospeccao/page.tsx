@@ -384,7 +384,6 @@ export default function LeadProspectingPage() {
           <button type="button" className={primary} onClick={() => { void searchBusinesses(); }} disabled={searching || !city.trim()}>{searching ? 'Pesquisando...' : 'Buscar empresas'}</button>
         </div>
         <p className="mt-3 text-xs leading-5 text-gray-500">A base aberta tem cobertura variável e nem sempre informa telefone, e-mail ou site. Quando nenhum resultado corresponde ao segmento informado, não exibimos estabelecimentos de outras categorias. Esta base identifica locais e empresas, não clientes com intenção de contratação.</p>
-      </section>
 
       {results.length > 0 && <section className={panel}>
         <div className="flex flex-wrap items-center justify-between gap-3">
