@@ -261,6 +261,64 @@ create trigger leads_guard_customer_company
 before insert or update of company_id, converted_customer_id on public.leads
 for each row execute function private.guard_lead_customer_company();
 
+create or replace function public.update_lead_stage(
+  p_company_id uuid,
+  p_lead_id uuid,
+  p_stage_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_previous_name text;
+  v_next_name text;
+begin
+  if not public.can_access_leadfesta(p_company_id) then
+    raise exception 'Você não tem acesso ao LeadFesta desta empresa.'
+      using errcode = '42501';
+  end if;
+
+  select s.name into v_next_name
+  from public.lead_pipeline_stages s
+  where s.id = p_stage_id and s.company_id = p_company_id;
+
+  if not found then
+    raise exception 'Etapa não encontrada para esta empresa.' using errcode = 'P0002';
+  end if;
+
+  select s.name into v_previous_name
+  from public.leads l
+  join public.lead_pipeline_stages s
+    on s.id = l.stage_id and s.company_id = l.company_id
+  where l.id = p_lead_id and l.company_id = p_company_id
+  for update of l;
+
+  if not found then
+    raise exception 'Lead não encontrado.' using errcode = 'P0002';
+  end if;
+
+  if v_previous_name = v_next_name then
+    return;
+  end if;
+
+  update public.leads
+  set stage_id = p_stage_id, updated_at = now()
+  where id = p_lead_id and company_id = p_company_id;
+
+  insert into public.lead_activities (company_id, lead_id, activity_type, body)
+  values (
+    p_company_id,
+    p_lead_id,
+    'status_change',
+    'Etapa alterada de "' || v_previous_name || '" para "' || v_next_name || '".'
+  );
+end;
+$function$;
+revoke all on function public.update_lead_stage(uuid, uuid, uuid) from public, anon;
+grant execute on function public.update_lead_stage(uuid, uuid, uuid) to authenticated;
+
 create or replace function public.convert_lead_to_customer(
   p_company_id uuid,
   p_lead_id uuid
