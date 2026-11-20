@@ -435,7 +435,7 @@ class _HomePageState extends State<HomePage> {
         final response = await client.from(module[1])
             .select('id')
             .eq('company_id', companyId);
-        counts[module[0]] = response.count ?? 0;
+        counts[module[0]] = response.length;
       }
       if (!mounted) return;
       setState(() {
