@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(22);
+select plan(25);
 
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -136,6 +136,25 @@ select is(
 );
 
 reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004', true);
+select lives_ok(
+  $ select public.set_leadfesta_entitlement('21000000-0000-4000-8000-000000000002', false) $,
+  'platform owner can suspend LeadFesta without deleting data'
+);
+
+reset role;
+select is(
+  (select count(*)::int from public.leads where company_id = '21000000-0000-4000-8000-000000000002'),
+  1,
+  'suspension preserves the company lead record'
+);
+select is(
+  (select count(*)::int from public.lead_activities where company_id = '21000000-0000-4000-8000-000000000002'),
+  2,
+  'suspension preserves the contact history'
+);
+
 insert into public.companies (id, name, created_by)
 values ('21000000-0000-4000-8000-000000000003', 'LeadFesta Empresa Nova', '20000000-0000-4000-8000-000000000001');
 
