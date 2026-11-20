@@ -86,16 +86,19 @@ export function classifyPublicIntent(value: string, hasPublicPhone = false): Int
   };
 }
 
-export function buildIntentSearchLinks(service: string, location: string): IntentSearchLink[] {
+export type IntentSearchPeriod = 'any' | 'day' | 'week' | 'month' | 'year';
+
+export function buildIntentSearchLinks(service: string, location: string, period: IntentSearchPeriod = 'any'): IntentSearchLink[] {
   const product = service.trim();
   if (!product) return [];
   const area = location.trim();
   const intent = '("procuro" OR "estou procurando" OR "busco" OR "estou buscando" OR "preciso" OR "necessito" OR "alguém indica" OR "alguém recomenda" OR "alguém conhece" OR "alguma indicação" OR "onde encontro" OR "onde consigo" OR "quem faz" OR "orçamento para" OR "cotação para" OR "quero contratar" OR "preciso contratar" OR "quero comprar" OR "preciso comprar" OR "quero alugar" OR "preciso alugar")';
   const local = area ? ' "' + area.replace(/"/g, '') + '"' : '';
   const base = intent + ' "' + product.replace(/"/g, '') + '"' + local;
+  const googlePeriod: Record<Exclude<IntentSearchPeriod, 'any'>, string> = { day: 'd', week: 'w', month: 'm', year: 'y' };
   const searches = [
     { source: 'Web (Google)', description: 'Páginas públicas indexadas na web', query: base },
-    { source: 'Facebook público', description: 'Grupos, páginas e publicações públicas', query: base + ' site:facebook.com' },
+    { source: 'Facebook público', description: 'Grupos, páginas e publicações públicas indexadas', query: base + ' site:facebook.com' },
     { source: 'Instagram público', description: 'Perfis e publicações públicas indexadas', query: base + ' site:instagram.com' },
     { source: 'Reddit', description: 'Discussões e pedidos públicos; confira as regras de uso comercial', query: base + ' site:reddit.com' },
     { source: 'TikTok público', description: 'Páginas e vídeos públicos indexados', query: base + ' site:tiktok.com' },
@@ -105,15 +108,19 @@ export function buildIntentSearchLinks(service: string, location: string): Inten
     { source: 'Fóruns e comunidades', description: 'Discussões públicas em fóruns e comunidades', query: base + ' (fórum OR comunidade OR discussão)' },
     { source: 'Classificados públicos (OLX)', description: 'Anúncios e pedidos públicos; confira se o autor procura ou oferece', query: base + ' site:olx.com.br' },
     { source: 'Busca alternativa (DuckDuckGo)', description: 'Pesquisa independente na web', query: base },
-    { source: 'Busca alternativa (Bing)', description: 'Pesquisa independente na web', query: base },
+    { source: 'Busca alternativa (Bing)', description: period === 'any' ? 'Pesquisa independente na web' : 'Pesquisa independente; ajuste o período nos filtros do buscador', query: base },
   ];
-  return searches.map((item) => ({
-    source: item.source,
-    description: item.description,
-    url: (item.source === 'Busca alternativa (DuckDuckGo)' ? 'https://duckduckgo.com/?q=' : item.source === 'Busca alternativa (Bing)' ? 'https://www.bing.com/search?q=' : 'https://www.google.com/search?q=') + encodeURIComponent(item.query),
-  }));
+  return searches.map((item) => {
+    const query = encodeURIComponent(item.query);
+    if (item.source === 'Busca alternativa (DuckDuckGo)') {
+      const filter = period === 'any' ? '' : '&df=' + googlePeriod[period];
+      return { source: item.source, description: item.description, url: 'https://duckduckgo.com/?q=' + query + filter };
+    }
+    if (item.source === 'Busca alternativa (Bing)') return { source: item.source, description: item.description, url: 'https://www.bing.com/search?q=' + query };
+    const filter = period === 'any' ? '' : '&tbs=qdr:' + googlePeriod[period];
+    return { source: item.source, description: item.description, url: 'https://www.google.com/search?q=' + query + filter };
+  });
 }
-
 export type OSMElement = {
   type: string;
   id: number;
