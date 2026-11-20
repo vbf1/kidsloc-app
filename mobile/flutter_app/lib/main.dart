@@ -615,6 +615,43 @@ class _RecordsPageState extends State<_RecordsPage> {
     return 'Registro';
   }
 
+  Future<void> _updateQuoteStatus(Map<String, dynamic> row, String status) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await Supabase.instance.client.from('rental_quotes')
+          .update({'status': status})
+          .eq('id', row['id'])
+          .eq('company_id', widget.companyId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Situação do orçamento atualizada.')));
+      await _load();
+    } on PostgrestException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível atualizar o orçamento.')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _convertQuote(Map<String, dynamic> row) async {
+    if (_saving || row['status'] != 'accepted') return;
+    setState(() => _saving = true);
+    try {
+      await Supabase.instance.client.rpc('convert_rental_quote_to_rental', params: {'p_quote_id': row['id']});
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Orçamento convertido em locação.')));
+      await _load();
+    } on PostgrestException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível converter o orçamento.')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _openEditor([Map<String, dynamic>? row]) async {
     if (!_editable || _saving) return;
     final isCustomer = widget.table == 'customers';
@@ -786,7 +823,28 @@ class _RecordsPageState extends State<_RecordsPage> {
             return Card(child: ListTile(
               title: Text(_title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
               subtitle: details.isEmpty ? null : Text(details.join(' · '), maxLines: 3, overflow: TextOverflow.ellipsis),
-              trailing: _editable ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined)) : null,
+              trailing: widget.table == 'rental_quotes'
+                  ? PopupMenuButton<String>(
+                      enabled: !_saving,
+                      onSelected: (action) {
+                        if (action == 'sent' || action == 'accepted' || action == 'rejected') {
+                          _updateQuoteStatus(row, action);
+                        } else if (action == 'convert') {
+                          _convertQuote(row);
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        if (status == 'draft') const PopupMenuItem(value: 'sent', child: Text('Marcar como enviado')),
+                        if (status == 'draft' || status == 'sent') ...[
+                          const PopupMenuItem(value: 'accepted', child: Text('Aprovar orçamento')),
+                          const PopupMenuItem(value: 'rejected', child: Text('Recusar orçamento')),
+                        ],
+                        if (status == 'accepted') const PopupMenuItem(value: 'convert', child: Text('Converter em locação')),
+                      ],
+                    )
+                  : _editable
+                      ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined))
+                      : null,
             ));
           },
         )),
