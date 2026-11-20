@@ -204,7 +204,7 @@ export default function LeadProspectingPage() {
       setError('Informe o nome ou perfil público da pessoa e o link da publicação.');
       return;
     }
-    if (!/^https?:\\/\\//i.test(intentPostUrl.trim())) {
+    if (!/^https?:\/\//i.test(intentPostUrl.trim())) {
       setError('O link da publicação precisa começar com http:// ou https://.');
       return;
     }
@@ -243,7 +243,7 @@ export default function LeadProspectingPage() {
           'Publicação original: ' + intentPostUrl.trim(),
           intentText.trim() ? 'Trecho da publicação: ' + intentText.trim() : '',
           'Contato informado manualmente a partir de fonte pública; validar interesse antes da abordagem.',
-        ].filter(Boolean).join('\\n'),
+        ].filter(Boolean).join('\n'),
         updated_at: new Date().toISOString(),
       });
       if (insertError) throw insertError;
@@ -323,7 +323,7 @@ export default function LeadProspectingPage() {
   return <AppShell companyName={workspace?.companyName ?? ''} email={workspace?.email ?? ''} role={workspace?.role} companyId={workspace?.companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={false} onSignOut={() => { void supabase?.auth.signOut().then(() => window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/login/')); }}>
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • captação de oportunidades</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Pesquisar estabelecimentos</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Localize estabelecimentos cadastrados em bases públicas por segmento e região. Esta pesquisa ainda não identifica pessoas procurando contratar serviços.</p></div>
+        <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • captação de oportunidades</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Encontrar clientes interessados</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Pesquise manifestações públicas de pessoas procurando produtos ou serviços e registre oportunidades no funil da empresa ativa.</p></div>
         <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/leads/'} className={secondary}>← Voltar ao CRM</a>
       </div>
 
