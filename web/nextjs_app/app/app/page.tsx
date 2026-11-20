@@ -157,14 +157,14 @@ export default function AppHomePage() {
             <span className="text-xs text-gray-400">Dados atualizados ao abrir esta tela</span>
           </div>
           {statsError && <p role="alert" className="mb-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{statsError}</p>}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             {indicators.map((item) => <a key={item.label} href={item.href}
-              className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm transition hover:border-purple-200 hover:shadow-md">
-              <p className="text-sm font-medium text-gray-500">{item.label}</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+              className="min-w-0 rounded-xl border border-purple-100 bg-white p-3 shadow-sm transition hover:border-purple-200 hover:shadow-md sm:p-4">
+              <p className="text-xs font-medium leading-5 text-gray-500 sm:text-sm">{item.label}</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
                 {statsLoading || item.value === undefined ? <span className="text-lg text-gray-300">...</span> : item.value}
               </p>
-              <span className="mt-3 inline-block text-xs font-semibold text-[#8054d8]">Ver detalhes →</span>
+              <span className="mt-2 inline-block text-[11px] font-semibold text-[#8054d8] sm:text-xs">Ver detalhes →</span>
             </a>)}
           </div>
         </div>
