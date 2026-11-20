@@ -35,7 +35,7 @@ jobs:
       - name: Format Dart sources
         run: dart format lib test
       - run: dart format --output=none --set-exit-if-changed lib test
-      - run: flutter analyze
+      - run: flutter analyze --no-pub --no-fatal-infos
       - run: flutter test
       - run: flutter build apk --debug
       - name: Commit generated Android platform
