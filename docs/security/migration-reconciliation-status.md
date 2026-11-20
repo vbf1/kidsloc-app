@@ -343,3 +343,30 @@ Consulta somente leitura ao remoto confirmou:
 - Os três vínculos correspondem às empresas Sonho Kids Brinquedos, Nobre Paladar e Festejando. A conta registrada como platform owner possui 1 vínculo, na Festejando; os outros dois vínculos owner serão convertidos para admin.
 - Assim, após a normalização prevista, Sonho Kids Brinquedos e Nobre Paladar terão um admin cada; Festejando continuará cadastrada, porém sem membros, salvo decisão de atribuir outro administrador antes da implantação.
 - Essa verificação confirma que o índice singleton não falha por duplicidade e quantifica a conversão de cargos, mas não resolve a decisão operacional sobre Festejando. Nenhuma linha foi alterada.
+
+
+### Revalidação independente de integridade referencial e função de platform owner — 20/11/2026
+
+Nova consulta somente leitura ao catálogo remoto confirmou:
+
+- Existem **26 FKs compostas com escopo empresarial** (incluindo `company_id` na relação); as **26/26 possuem índice válido e pronto** com as colunas da FK no prefixo. Não foi encontrado índice ausente nessa família.
+- Permanecem presentes as FKs compostas que vinculam pagamentos, transações financeiras e locações; o vínculo de pagamento com transação também exige correspondência de `company_id` e `rental_id`, além do identificador da transação.
+- O índice único parcial `team_conversations_one_team_group_per_company_idx` existe e limita a uma conversa do tipo `team` por empresa.
+- A tabela `private.platform_owners` tem RLS habilitado. O ACL observado concede SELECT a `authenticated`, sujeito à policy `platform_owners_select_self`, que limita a leitura ao próprio `auth.uid()`.
+- A função `private.is_platform_owner()` é `SECURITY DEFINER`, tem `search_path` vazio e EXECUTE concedido a `authenticated`, não a `anon`. A implementação consulta a tabela privada pelo usuário autenticado. Não foi encontrada exposição anônima nessa função.
+
+### Busca de SQLs originais ausentes no histórico Git — 20/11/2026
+
+A busca no histórico de commits do repositório para os caminhos abaixo retornou zero commits; portanto, não há cópia desses arquivos recuperável pelo histórico de caminhos do repositório:
+
+- `20261113134849_tighten_public_schema_default_privileges.sql`
+- `20261117005923_enforce_company_scoped_inventory_foreign_keys.sql`
+- `20261117010919_revoke_company_data_access_after_member_removal.sql`
+- `20261117011036_allow_authorized_company_member_removal.sql`
+- `20261117014514_prevent_company_members_from_changing_own_role.sql`
+
+Isso não prova que os SQLs não existam em backups externos ou em outro repositório; apenas confirma que não foram localizados no histórico de caminhos deste repositório. Os efeitos devem continuar sendo descritos a partir do catálogo observado, sem inventar o conteúdo original.
+
+A contagem foi recalculada diretamente em 20/11/2026: **60 migrations remotas**, **44 arquivos locais**, **23 versões remotas sem ID local exato** e **7 arquivos locais sem ID remoto exato**. A divergência de identificadores não foi reparada nem mascarada.
+
+Nenhum dado, privilégio, policy, função, migration ou configuração remota foi alterado nesta revalidação.
