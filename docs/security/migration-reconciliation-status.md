@@ -370,3 +370,19 @@ Isso não prova que os SQLs não existam em backups externos ou em outro reposit
 A contagem foi recalculada diretamente em 20/11/2026: **60 migrations remotas**, **44 arquivos locais**, **23 versões remotas sem ID local exato** e **7 arquivos locais sem ID remoto exato**. A divergência de identificadores não foi reparada nem mascarada.
 
 Nenhum dado, privilégio, policy, função, migration ou configuração remota foi alterado nesta revalidação.
+
+
+### Auditoria ampliada de superfície pública, Storage e Security Advisors — 20/11/2026
+
+Nova rechecagem somente leitura do catálogo e dos Security Advisors:
+
+- O schema `public` contém **28 tabelas base e todas as 28 têm RLS habilitado**. Não foram encontradas views nem materialized views no schema `public`.
+- As **18 funções públicas** observadas não concedem EXECUTE efetivo a `anon`; nenhuma das 28 tabelas concede SELECT/INSERT/UPDATE/DELETE efetivo a `anon`. Isso confirma a ausência de acesso anônimo efetivo nos objetos públicos consultados, sem generalizar essa conclusão para objetos futuros criados por outros proprietários.
+- Os oito avisos do Advisor sobre funções `SECURITY DEFINER` executáveis por `authenticated` correspondem a funções já inventariadas. A inspeção de definições confirmou `search_path = ''` em todas as funções privilegiadas consultadas e ausência de EXECUTE para `anon`. O fato de o Advisor sinalizar execução autenticada não é, isoladamente, prova de vulnerabilidade; cada função precisa manter validação de `auth.uid()` e autorização adequada. As RPCs antigas de membros continuam sendo diferenças reais a corrigir pela sequência local.
+- O aviso `rls_enabled_no_policy` em `rental_event_reminder_deliveries` permanece intencional: tabela de idempotência exclusiva de `service_role`, sem grants efetivos para `anon` ou `authenticated`.
+- Os quatro buckets observados no Storage — `company-branding`, `occurrence-photos`, `product-images` e `rental-contracts` — estão configurados como **privados**. Os limites observados são 5 MiB para branding, 8 MiB para fotos/imagens e 10 MiB para contratos; os tipos MIME permitidos estão restritos a JPEG/PNG, JPEG/PNG/WebP ou PDF conforme o bucket. As policies de `storage.objects` vinculam os caminhos a empresa e registros correspondentes, com regras de autorização por função/associação.
+- O Advisor de performance aponta **26 FKs simples sem índice de cobertura**, distintas das **26 FKs compostas com escopo empresarial** já verificadas e indexadas 26/26. Portanto, a afirmação anterior sobre os índices compostos continua correta, mas não significa que todas as FKs do banco estejam indexadas. Os 26 avisos simples devem ser avaliados por frequência de consulta, cardinalidade e custo de escrita antes de criar índices; nenhum índice foi criado nesta auditoria.
+- O Advisor também aponta 18 índices sem uso observado e 69 ocorrências de policies permissivas sobrepostas. São avisos de análise, não autorização para remover índices ou policies: a amostra de uso pode ser curta, e várias sobreposições decorrem deliberadamente das policies globais do platform owner ou de políticas complementares. Nenhuma foi removida nesta etapa.
+- O Advisor de Auth continua apontando proteção contra senhas vazadas desativada. É uma configuração de Auth independente e não foi alterada.
+
+**Classificação:** não foi identificado acesso anônimo efetivo às 28 tabelas ou às 18 funções públicas consultadas. Permanecem diferenças funcionais conhecidas no modelo de cargos/RPCs, questões prospectivas de ACL padrão de `supabase_admin`, avisos de performance e a configuração de proteção contra senhas vazadas. Nenhum dado, privilégio, policy, índice, bucket, função, migration ou configuração remota foi alterado.
