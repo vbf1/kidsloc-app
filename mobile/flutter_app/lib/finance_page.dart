@@ -69,11 +69,11 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   double get _income => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold<double>(0, (s, e) => s + _money(e['amount']));
-  double get _expenses => _transactions.where((e) => e['transaction_type'] == 'expense' && e['status'] != 'cancelled').fold(0, (s, e) => s + _money(e['amount']));
+  double get _expenses => _transactions.where((e) => e['transaction_type'] == 'expense' && e['status'] != 'cancelled').fold<double>(0, (s, e) => s + _money(e['amount']));
   double get _pending => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold<double>(0, (s, e) {
     final amount = _money(e['amount']);
-    final paid = _paidByTransaction[e['id'].toString()] ?? (e['status'] == 'paid' ? amount : 0);
-    return s + (amount - paid).clamp(0, double.infinity);
+    final paid = _paidByTransaction[e['id'].toString()] ?? (e['status'] == 'paid' ? amount : 0.0);
+    return s + (amount - paid).clamp(0, double.infinity).toDouble();
   });
 
   String _format(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
@@ -165,7 +165,7 @@ class _FinancePageState extends State<FinancePage> {
                           final id = row['id'].toString();
                           final amount = _money(row['amount']);
                           final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0);
-                          final balance = (amount - paid).clamp(0, double.infinity);
+                          final balance = (amount - paid).clamp(0, double.infinity).toDouble();
                           final income = row['transaction_type'] == 'income';
                           final status = row['status'] == 'cancelled' ? 'Cancelado' : balance <= 0 ? 'Pago' : paid > 0 ? 'Parcial' : 'Pendente';
                           return Card(
