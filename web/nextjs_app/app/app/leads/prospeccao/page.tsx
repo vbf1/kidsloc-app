@@ -40,13 +40,14 @@ export default function LeadProspectingPage() {
   const [searchLabel, setSearchLabel] = useState('');
   const [intentService, setIntentService] = useState('');
   const [intentLocation, setIntentLocation] = useState('');
+  const [intentPeriod, setIntentPeriod] = useState<'any' | 'day' | 'week' | 'month' | 'year'>('month');
   const [intentAuthor, setIntentAuthor] = useState('');
   const [intentPostUrl, setIntentPostUrl] = useState('');
   const [intentText, setIntentText] = useState('');
   const [intentVerified, setIntentVerified] = useState(false);
   const [intentPhone, setIntentPhone] = useState('');
   const [savingIntent, setSavingIntent] = useState(false);
-  const intentLinks = useMemo(() => buildIntentSearchLinks(intentService, intentLocation), [intentService, intentLocation]);
+  const intentLinks = useMemo(() => buildIntentSearchLinks(intentService, intentLocation, intentPeriod), [intentService, intentLocation, intentPeriod]);
   const intentSignal = useMemo(() => classifyPublicIntent(intentText, Boolean(intentPhone.trim())), [intentText, intentPhone]);
 
   useEffect(() => {
@@ -350,8 +351,17 @@ export default function LeadProspectingPage() {
           <label className="text-sm font-semibold">Cidade, bairro ou região (opcional)
             <input className={field} value={intentLocation} onChange={(event) => setIntentLocation(event.target.value)} placeholder="Ex.: Contagem, MG" maxLength={120} />
           </label>
+          <label className="text-sm font-semibold">Período das publicações
+            <select className={field} value={intentPeriod} onChange={(event) => setIntentPeriod(event.target.value as 'any' | 'day' | 'week' | 'month' | 'year')}>
+              <option value="day">Últimas 24 horas</option>
+              <option value="week">Últimos 7 dias</option>
+              <option value="month">Últimos 30 dias</option>
+              <option value="year">Último ano</option>
+              <option value="any">Qualquer período</option>
+            </select>
+          </label>
         </div>
-        {intentLinks.length > 0 && <div className="mt-4"><p className="text-sm font-semibold text-gray-800">Pesquisas prontas por fonte</p><p className="mt-1 text-xs leading-5 text-gray-500">As pesquisas procuram expressões de intenção, como “procuro”, “preciso”, “alguém indica” e “quero contratar”. Abra uma fonte, confira a publicação original e confirme que a pessoa está procurando o serviço — não oferecendo.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {intentLinks.length > 0 && <div className="mt-4"><p className="text-sm font-semibold text-gray-800">Pesquisas prontas por fonte</p><p className="mt-1 text-xs leading-5 text-gray-500">As pesquisas procuram expressões de intenção, como “procuro”, “preciso”, “alguém indica” e “quero contratar”. O período é aplicado automaticamente nas pesquisas do Google e DuckDuckGo; no Bing, ajuste o filtro de data após abrir. Abra uma fonte, confira a publicação original e confirme que a pessoa está procurando o serviço — não oferecendo.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">
           {intentLinks.map((link) => <a key={link.source} href={link.url} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 p-3 transition hover:border-purple-300 hover:bg-purple-50"><span className="block text-sm font-semibold text-[#6840bd]">{link.source} ↗</span><span className="mt-1 block text-xs text-gray-500">{link.description}</span></a>)}
         </div></div>}
         <div className="mt-5 border-t border-gray-100 pt-5"><h3 className="text-sm font-bold">Registrar uma oportunidade encontrada</h3><p className="mt-1 text-xs text-gray-500">Depois de verificar a publicação, registre somente informações públicas e necessárias. O cadastro ficará na empresa ativa.</p>
