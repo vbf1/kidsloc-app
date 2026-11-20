@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(36);
+select plan(38);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -247,6 +247,31 @@ select throws_ok(
   '42501',
   'new row violates row-level security policy for table "company_members"',
   'platform owner cannot bypass membership RPCs with direct table INSERT'
+);
+
+update public.company_members
+set role = 'staff'
+where company_id = 'c2000000-0000-4000-8000-000000000001'
+  and user_id = 'c1000000-0000-4000-8000-000000000004';
+
+select is(
+  (select role from public.company_members
+   where company_id = 'c2000000-0000-4000-8000-000000000001'
+     and user_id = 'c1000000-0000-4000-8000-000000000004'),
+  'staff',
+  'platform owner cannot bypass membership RPCs with direct table UPDATE'
+);
+
+delete from public.company_members
+where company_id = 'c2000000-0000-4000-8000-000000000001'
+  and user_id = 'c1000000-0000-4000-8000-000000000004';
+
+select is(
+  (select count(*)::integer from public.company_members
+   where company_id = 'c2000000-0000-4000-8000-000000000001'
+     and user_id = 'c1000000-0000-4000-8000-000000000004'),
+  1,
+  'platform owner cannot bypass membership RPCs with direct table DELETE'
 );
 
 select is(
