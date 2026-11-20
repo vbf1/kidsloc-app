@@ -6,9 +6,9 @@ void main() {
   testWidgets('shows Supabase setup guidance before credentials are configured',
       (tester) async {
     await tester.pumpWidget(const ProviderScope(child: KidsLocApp()));
-    expect(find.text('KidsLoc App'), findsOneWidget);
+    expect(find.text('KidsLoc'), findsOneWidget);
     expect(
-      find.textContaining('Configure a URL e a chave publicável do Supabase'),
+      find.textContaining('Configure a conexão do aplicativo'),
       findsOneWidget,
     );
   });
