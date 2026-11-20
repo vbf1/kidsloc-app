@@ -178,3 +178,16 @@ Os arquivos SQL originais de `20261117011036` e `20261117014514` não estão no 
 ## Regra operacional
 
 Não executar `db push`, `migration repair`, aplicação de migrations, publicação de Edge Functions ou merge como parte deste diagnóstico. O objetivo é primeiro produzir uma sequência reproduzível e segura para a fundação.
+
+### Revalidação do catálogo remoto — 19/11
+
+Uma nova leitura direta de `pg_policies`, `pg_constraint` e `pg_trigger` confirmou o estado efetivo após a auditoria anterior:
+
+- `company_members_role_check` ainda aceita exatamente os quatro papéis antigos/atuais: `owner`, `admin`, `manager` e `staff`. Não há trigger de usuário em `company_members`; a normalização de cargos depende da migration, não de trigger.
+- O banco continua com 3 vínculos `owner`; a associação com `private.platform_owners` confirma que 1 deles pertence ao platform owner. Assim, a migration de normalização removerá somente esse vínculo global, converterá os outros dois para `admin` e deixará a empresa Festejando sem membros. Essa consequência continua pendente de revisão antes de qualquer implantação.
+- As policies efetivamente publicadas em `team_conversations`, `team_messages` e `team_conversation_members` ainda usam exceções `owner` para leitura e administração. Em particular, `team_conversations_select`, `team_messages_select_participant` e `team_members_select_participants` não excluem explicitamente o platform owner; como os helpers remotos ainda o reconhecem como membro global/`owner`, ele mantém leitura global do chat. As policies de INSERT/DELETE do chat têm bloqueios explícitos ao platform owner, mas isso não remove a leitura.
+- `company_members_delete_authorized_admins` e `platform_owner_all` ainda estão presentes no remoto. Não há policy de UPDATE para membros comuns, e não há trigger; a policy `platform_owner_all` permanece como caminho global de escrita até a migration local removê-la.
+- As três RPCs antigas `add_company_member`, `invite_company_member` e `ensure_team_group` continuam `SECURITY DEFINER`, com `search_path` vazio e EXECUTE para `authenticated`; `manage_company_member` ainda não existe remotamente.
+
+**Implicação:** o estado remoto continua divergente do modelo final da branch em constraints, policies de chat, escrita de memberships e RPCs. As migrations locais `20261116090000` e `20261119090000` cobrem parte dessas correções no banco reconstruído e nos testes, mas ainda não foram aplicadas ao projeto remoto. Não executar repair, push ou deploy nesta etapa.
+
