@@ -47,12 +47,13 @@ export default function ContractsPage(){
  async function createDraft(){
   if(!supabase||!selectedRental)return;const rental=rentals.find(r=>r.id===selectedRental);if(!rental)return;
   const customer=rental.customer_id?customers[rental.customer_id]:null;if(!customer){setError('A locação precisa estar vinculada a um cliente.');return;}
-  const snapshot={company:{name:companyName},customer,rental,items:itemsByRental[rental.id]??[],generated_at:new Date().toISOString(),terms:terms.trim()};
+  const items=itemsByRental[rental.id]??[];if(!items.length){setError('Inclua ao menos um item na locação antes de gerar o contrato.');return;}
+  const snapshot={company:{name:companyName},customer,rental,items,generated_at:new Date().toISOString(),terms:terms.trim()};
   const {error:e}=await supabase.from('rental_contracts').insert({company_id:companyId,rental_id:rental.id,status:'draft',signature_method:'external',contract_snapshot:snapshot});
   if(e)setError(e.message);else{setNotice('Contrato criado. Gere o link para enviar ao cliente.');setSelectedRental('');await load();}
  }
  async function generateLink(c:Contract){
-  if(!supabase||c.status==='signed')return;
+  if(!supabase||c.status==='signed'||c.status==='cancelled')return;
   const token=makeToken();const hash=await makeHash(token);const expiry=new Date(Date.now()+7*86400000).toISOString();
   const {error:e}=await supabase.from('rental_contracts').update({token_hash:hash,token_expires_at:expiry,status:'sent',sent_at:new Date().toISOString()}).eq('id',c.id).eq('company_id',companyId);
   if(e){setError('Não foi possível gerar o link de assinatura.');return;}
