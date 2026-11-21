@@ -1,4 +1,5 @@
 'use client';
+import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 
 import { useCallback,useEffect,useMemo,useState } from 'react';
 import type { FormEvent } from 'react';
@@ -36,7 +37,8 @@ export default function FinancePage(){
  }
  // This effect starts the asynchronous finance data request.
  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
-  useEffect(()=>{void load();},[]);
+  useCompanyRealtimeRefresh(companyId, ['financial_transactions', 'payments', 'rentals'], () => { void load(); });
+ useEffect(()=>{void load();},[]);
  const rentalForTransaction=useCallback((t:Tx)=>{const linkedPayment=payments.find(p=>p.transaction_id===t.id&&p.rental_id);const rentalId=t.rental_id??linkedPayment?.rental_id;return rentalId?rentalInfo[rentalId]:undefined;},[payments,rentalInfo]);
  const paymentTotals=useMemo(()=>{const m=new Map<string,number>();for(const p of payments)if(p.transaction_id)m.set(p.transaction_id,(m.get(p.transaction_id)??0)+Number(p.amount));return m;},[payments]);
  const totals=useMemo(()=>transactions.reduce((a,t)=>{if(t.status==='cancelled')return a;const paid=paymentTotals.get(t.id)??(t.status==='paid'?Number(t.amount):0);if(t.transaction_type==='income'){a.income+=Number(t.amount);a.received+=Math.min(Number(t.amount),paid);}else a.expense+=Number(t.amount);return a;},{income:0,received:0,expense:0}),[transactions,paymentTotals]);

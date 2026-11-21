@@ -1,4 +1,5 @@
 'use client';
+import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -53,6 +54,7 @@ export default function RentalsPage() {
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
+  useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_items', 'rental_item_units', 'rental_responsibles', 'rental_events', 'product_units'], () => setRefreshIndex((value) => value + 1));
   const [searchDraft, setSearchDraft] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | RentalStatus>('all');

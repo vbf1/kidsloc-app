@@ -1,4 +1,5 @@
 'use client';
+import { useCompanyRealtimeRefresh } from '../../lib/use-company-realtime';
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -36,6 +37,7 @@ export default function AppHomePage() {
   const [recentRentals, setRecentRentals] = useState<RecentRental[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState('');
+  const [realtimeRefresh, setRealtimeRefresh] = useState(0);
 
   const loadWorkspace = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -68,6 +70,7 @@ export default function AppHomePage() {
   }, [loadWorkspace]);
 
   const companyId = workspace?.companyId;
+  useCompanyRealtimeRefresh(companyId, ['customers', 'products', 'rentals'], () => setRealtimeRefresh((value) => value + 1));
 
   useEffect(() => {
     if (!companyId || !supabase) return;
@@ -102,7 +105,7 @@ export default function AppHomePage() {
     }
     void loadDashboard();
     return () => { active = false; };
-  }, [companyId]);
+  }, [companyId, realtimeRefresh]);
 
   async function signOut() {
     if (!supabase || signingOut) return;

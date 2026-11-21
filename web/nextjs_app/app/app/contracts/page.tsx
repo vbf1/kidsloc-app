@@ -1,4 +1,5 @@
 'use client';
+import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -43,6 +44,7 @@ export default function ContractsPage(){
   const by:Record<string,Item[]>={};for(const i of ir.data??[]){(by[i.rental_id]??=[]).push({...i,name:pnames[i.product_id]??'Item'});}
   setRentals(rlist);setCustomers(Object.fromEntries((cr.data??[]).map(c=>[c.id,c])));setContracts((co.data??[]) as Contract[]);setItemsByRental(by);setLoading(false);
  },[router]);
+ useCompanyRealtimeRefresh(companyId, ['rental_contracts', 'rentals', 'rental_items', 'customers', 'products'], () => { void load(); });
  // This effect starts an asynchronous data request; state updates occur after the request resolves.
  // eslint-disable-next-line react-hooks/set-state-in-effect
  useEffect(()=>{void load();},[load]);

@@ -1,4 +1,5 @@
 'use client';
+import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -51,6 +52,7 @@ export default function CustomersPage() {
   const [searchDraft, setSearchDraft] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
+  useCompanyRealtimeRefresh(companyId, ['customers'], () => setRefreshIndex((value) => value + 1));
   const [formOpen, setFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<CustomerRecord | null>(null);

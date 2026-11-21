@@ -1,4 +1,5 @@
 'use client';
+import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -83,6 +84,7 @@ export default function ProductsPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | ProductType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [refreshIndex, setRefreshIndex] = useState(0);
+  useCompanyRealtimeRefresh(companyId, ['products', 'product_units'], () => setRefreshIndex((value) => value + 1));
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
   const [viewingProduct, setViewingProduct] = useState<ProductRecord | null>(null);
