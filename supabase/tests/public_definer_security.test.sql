@@ -1,0 +1,10 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select plan(5);
+select ok((select 'search_path=""' = any(proconfig) from pg_proc where oid = 'public.get_public_rental_contract(text)'::regprocedure), 'public contract lookup uses an empty search_path');
+select ok((select 'search_path=""' = any(proconfig) from pg_proc where oid = 'public.sign_public_rental_contract(text,text,text,text,text,text,text)'::regprocedure), 'public contract signing uses an empty search_path');
+select ok((select 'search_path=""' = any(proconfig) from pg_proc where oid = 'public.sync_rental_financial_income()'::regprocedure), 'rental financial trigger uses an empty search_path');
+select ok(not has_function_privilege('anon', 'public.sync_rental_financial_income()', 'EXECUTE') and not has_function_privilege('authenticated', 'public.sync_rental_financial_income()', 'EXECUTE'), 'trigger function cannot be called directly through the API');
+select ok(has_function_privilege('anon', 'public.get_public_rental_contract(text)', 'EXECUTE') and has_function_privilege('anon', 'public.sign_public_rental_contract(text,text,text,text,text,text,text)', 'EXECUTE'), 'public contract links retain anonymous lookup and signing access');
+select * from finish();
+rollback;
