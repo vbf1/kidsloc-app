@@ -250,7 +250,7 @@ Deno.serve(async (req: Request) => {
       if (!companyId) return reply({ error: "Empresa não identificada." }, 400);
       const { data: member, error: memberError } = await admin.from("company_members")
         .select("role").eq("company_id", companyId).eq("user_id", authData.user.id).maybeSingle();
-      if (memberError || !member || !["owner", "admin"].includes(member.role)) {
+      if (memberError || !member || !["admin"].includes(member.role)) {
         return reply({ error: "Somente proprietário e administradores podem diagnosticar notificações." }, 403);
       }
 
@@ -467,7 +467,7 @@ Deno.serve(async (req: Request) => {
         rentalIds.length
           ? await Promise.all([
               admin.from("company_members").select("company_id,user_id")
-                .in("company_id", companyIds).in("role", ["owner", "admin"]),
+                .in("company_id", companyIds).in("role", ["admin"]),
               admin.from("rental_responsibles").select("rental_id,user_id")
                 .in("rental_id", rentalIds).not("user_id", "is", null),
             ])
