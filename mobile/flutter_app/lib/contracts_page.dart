@@ -13,6 +13,34 @@ class ContractsPage extends StatefulWidget {
   State<ContractsPage> createState() => _ContractsPageState();
 }
 
+
+class _ContractSignaturePainter extends CustomPainter {
+  const _ContractSignaturePainter(this.svg);
+  final String svg;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final match = RegExp(r'<path[^>]*d="([^"]*)"').firstMatch(svg);
+    if (match == null) return;
+    final tokens = RegExp(r'[ML]|-?\d+(?:\.\d+)?').allMatches(match.group(1)!).map((m) => m.group(0)!).toList();
+    final path = Path();
+    var index = 0;
+    while (index < tokens.length) {
+      final command = tokens[index++];
+      if ((command == 'M' || command == 'L') && index + 1 < tokens.length) {
+        final x = double.tryParse(tokens[index++]) ?? 0;
+        final y = double.tryParse(tokens[index++]) ?? 0;
+        final point = Offset(x * size.width / 600, y * size.height / 180);
+        if (command == 'M') {path.moveTo(point.dx, point.dy);} else {path.lineTo(point.dx, point.dy);}
+      }
+    }
+    canvas.drawPath(path, Paint()..color=const Color(0xFF111827)..style=PaintingStyle.stroke..strokeWidth=2.5..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ContractSignaturePainter oldDelegate) => oldDelegate.svg != svg;
+}
+
 class _ContractsPageState extends State<ContractsPage> {
   bool _loading = true;
   bool _saving = false;
@@ -411,7 +439,14 @@ class _ContractsPageState extends State<ContractsPage> {
         content: SizedBox(
           width: 520,
           child: SingleChildScrollView(
-            child: SelectableText(content, style: const TextStyle(height: 1.5)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SelectableText(content, style: const TextStyle(height: 1.5)),
+              if (contract['signature_svg'] != null) ...[
+                const SizedBox(height: 12),
+                const Text('ASSINATURA ELETRÔNICA DO CLIENTE', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 100, width: double.infinity, child: CustomPaint(painter: _ContractSignaturePainter(contract['signature_svg'].toString()))),
+              ],
+            ]),
           ),
         ),
         actions: [
