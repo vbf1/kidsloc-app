@@ -291,6 +291,13 @@ class _ContractsPageState extends State<ContractsPage> {
     );
   }
 
+  String _contractStatus(Map<String, dynamic> contract) {
+    final expiry = DateTime.tryParse(contract['token_expires_at']?.toString() ?? '');
+    if (expiry != null && expiry.isBefore(DateTime.now().toUtc()) &&
+        ['sent', 'viewed'].contains(contract['status'])) return 'expired';
+    return contract['status']?.toString() ?? '';
+  }
+
   String _status(String value) => switch (value) {
     'draft' => 'Rascunho',
     'sent' => 'Enviado',
@@ -308,7 +315,7 @@ class _ContractsPageState extends State<ContractsPage> {
       final customer = Map<String, dynamic>.from(snapshot['customer'] ?? {});
       final name = customer['name']?.toString().toLowerCase() ?? '';
       final number = contract['contract_number']?.toString() ?? '';
-      final status = contract['status']?.toString() ?? '';
+      final status = _contractStatus(contract);
       final matchesQuery = query.isEmpty || name.contains(query) || number.contains(query);
       final matchesStatus = _statusFilter == 'all' || status == _statusFilter;
       return matchesQuery && matchesStatus;
@@ -392,6 +399,7 @@ class _ContractsPageState extends State<ContractsPage> {
                             ('sent', 'Enviados'),
                             ('viewed', 'Visualizados'),
                             ('signed', 'Assinados'),
+                            ('expired', 'Expirados'),
                             ('cancelled', 'Cancelados'),
                           ])
                             Padding(
@@ -424,7 +432,7 @@ class _ContractsPageState extends State<ContractsPage> {
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(children: [
                                 Expanded(child: Text('Contrato #${contract['contract_number']} · ${customer['name'] ?? 'Cliente'}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                Text(() { final expiry = DateTime.tryParse(contract['token_expires_at']?.toString() ?? ''); return expiry != null && expiry.isBefore(DateTime.now().toUtc()) && ['sent', 'viewed'].contains(contract['status']) ? 'Link expirado' : _status(contract['status'].toString()); }(), style: Theme.of(context).textTheme.labelMedium),
+                                Text(_contractStatus(contract) == 'expired' ? 'Link expirado' : _status(contract['status'].toString()), style: Theme.of(context).textTheme.labelMedium),
                               ]),
                               const SizedBox(height: 5),
                               Text('Locação em ${_date(rental['start_date'])} · ${_money(rental['total_amount'])}', style: Theme.of(context).textTheme.bodySmall),
