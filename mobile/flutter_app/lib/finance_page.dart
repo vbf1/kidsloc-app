@@ -87,7 +87,7 @@ class _FinancePageState extends State<FinancePage> {
         _payments = paymentRows;
         _paidByTransaction = paid;
         _rentalInfo = rentalInfo;
-        _canManage = role == 'owner' || role == 'admin';
+        _canManage = role == 'admin';
         _loading = false;
       });
     } on PostgrestException catch (e) {
@@ -394,7 +394,7 @@ class _FinancePageState extends State<FinancePage> {
                         }),
                       if (!_canManage) const Padding(
                         padding: EdgeInsets.only(top: 12),
-                        child: Text('Somente proprietários e administradores podem criar lançamentos ou registrar recebimentos.', textAlign: TextAlign.center),
+                        child: Text('Somente administradores podem criar lançamentos ou registrar recebimentos.', textAlign: TextAlign.center),
                       ),
                     ],
                   ),

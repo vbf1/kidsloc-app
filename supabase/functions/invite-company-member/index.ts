@@ -40,13 +40,13 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Você não pode convidar sua própria conta.' }, 409);
   }
 
-  const [{ data: isOwner, error: ownerError }, { data: isAdmin, error: adminError }] = await Promise.all([
-    userClient.rpc('has_company_role', { p_company_id: companyId, p_roles: ['owner'] }),
-    userClient.rpc('has_company_role', { p_company_id: companyId, p_roles: ['admin'] }),
-  ]);
-  if (ownerError || adminError) return json({ error: 'Não foi possível validar suas permissões.' }, 403);
-  if (!isOwner && !isAdmin) return json({ error: 'Somente proprietário ou administrador pode convidar membros.' }, 403);
-  if (!isOwner && role !== 'staff') return json({ error: 'Administradores só podem adicionar funcionários.' }, 403);
+  const { data: isAdmin, error: adminError } = await userClient.rpc('has_company_role', {
+    p_company_id: companyId,
+    p_roles: ['admin'],
+  });
+  if (adminError) return json({ error: 'Não foi possível validar suas permissões.' }, 403);
+  if (!isAdmin) return json({ error: 'Somente administradores podem convidar funcionários.' }, 403);
+  if (role !== 'staff') return json({ error: 'Administradores só podem adicionar funcionários. Administradores adicionais são gerenciados pelo proprietário da plataforma.' }, 403);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   let targetUser: { id: string } | null = null;

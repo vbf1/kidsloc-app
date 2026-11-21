@@ -6,7 +6,7 @@ import { AppShell } from '../../components/app-shell';
 import { getWorkspaceCompanyName } from '../../lib/workspace';
 import { supabase } from '../../lib/supabase';
 
-type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
+type CompanyRole = 'admin' | 'staff';
 type Workspace = { email: string; companyName: string; companyId: string; role: CompanyRole };
 type DashboardStats = { customers: number; products: number; rentals: number };
 type RecentRental = { id: string; rental_number: number; start_date: string; status: string; total_amount: number };
