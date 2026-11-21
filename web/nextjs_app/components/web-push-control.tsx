@@ -13,18 +13,13 @@ function decodeVapidKey(value: string): Uint8Array {
 }
 
 export function WebPushControl({ companyId, basePath }: Props) {
-  const [supported, setSupported] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const available = typeof window !== 'undefined' &&
-      'Notification' in window &&
-      'serviceWorker' in navigator &&
-      'PushManager' in window;
-    setSupported(available);
-    if (!available) return;
+    if (typeof window === 'undefined' || !('Notification' in window) ||
+      !('serviceWorker' in navigator) || !('PushManager' in window)) return;
     let active = true;
     void navigator.serviceWorker.getRegistration(`${basePath}/`).then(async (registration) => {
       const subscription = await registration?.pushManager.getSubscription();
@@ -40,7 +35,9 @@ export function WebPushControl({ companyId, basePath }: Props) {
     setBusy(true);
     setMessage('');
     try {
-      if (!supported) throw new Error('Este navegador não oferece suporte a notificações push.');
+      if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        throw new Error('Este navegador não oferece suporte a notificações push.');
+      }
       if (!window.isSecureContext) throw new Error('As notificações exigem uma conexão segura HTTPS.');
       let permission = Notification.permission;
       if (permission === 'default') permission = await Notification.requestPermission();
@@ -98,8 +95,6 @@ export function WebPushControl({ companyId, basePath }: Props) {
       setBusy(false);
     }
   }
-
-  if (!supported) return null;
 
   return (
     <div className="flex min-w-0 flex-col items-end gap-1">
