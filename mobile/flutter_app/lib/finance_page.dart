@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FinancePage extends StatefulWidget {
@@ -15,6 +16,7 @@ class _FinancePageState extends State<FinancePage> {
   bool _canManage = false;
   String? _error;
   List<Map<String, dynamic>> _transactions = [];
+  List<Map<String, dynamic>> _payments = [];
   Map<String, double> _paidByTransaction = {};
 
   @override
@@ -38,12 +40,13 @@ class _FinancePageState extends State<FinancePage> {
       final userId = client.auth.currentUser?.id;
       final results = await Future.wait([
         client.from('financial_transactions').select('id,company_id,rental_id,transaction_type,category,description,amount,due_date,paid_at,payment_method,status,created_at').eq('company_id', widget.companyId).order('due_date', ascending: true),
-        client.from('payments').select('transaction_id,amount').eq('company_id', widget.companyId),
+        client.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id', widget.companyId).order('paid_at', ascending: false),
         client.from('company_members').select('role').eq('company_id', widget.companyId).eq('user_id', userId ?? ''),
       ]);
       final rows = results[0].map((e) => Map<String, dynamic>.from(e)).toList();
+      final paymentRows = results[1].map((e) => Map<String, dynamic>.from(e)).toList();
       final paid = <String, double>{};
-      for (final item in results[1]) {
+      for (final item in paymentRows) {
         final id = item['transaction_id']?.toString();
         if (id != null) paid[id] = (paid[id] ?? 0) + _money(item['amount']);
       }
@@ -51,6 +54,7 @@ class _FinancePageState extends State<FinancePage> {
       if (!mounted) return;
       setState(() {
         _transactions = rows;
+        _payments = paymentRows;
         _paidByTransaction = paid;
         _canManage = role == 'owner' || role == 'admin';
         _loading = false;
@@ -108,6 +112,50 @@ class _FinancePageState extends State<FinancePage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _showReceipt(Map<String, dynamic> transaction, Map<String, dynamic> payment) async {
+    final date = payment['paid_at']?.toString().split('T').first ?? '';
+    final formattedDate = date.isEmpty ? 'Não informada' : _labelDate(date);
+    final amount = _format(_money(payment['amount']));
+    final method = payment['payment_method']?.toString() ?? 'Não informada';
+    final description = transaction['description']?.toString() ?? 'Recebimento';
+    final paymentId = payment['id']?.toString() ?? '';
+    final receipt = [
+      'COMPROVANTE DE RECEBIMENTO',
+      'KidsLoc',
+      if (paymentId.length >= 8) 'Comprovante: #${paymentId.substring(0, 8).toUpperCase()}',
+      'Descrição: $description',
+      'Valor recebido: $amount',
+      'Data: $formattedDate',
+      'Forma de pagamento: $method',
+      if ((payment['notes']?.toString() ?? '').isNotEmpty) 'Observações: ${payment['notes']}',
+    ].join('\\n');
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Comprovante de recebimento'),
+        content: SelectableText(receipt),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fechar')),
+          FilledButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: receipt));
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (mounted) ScaffoldMessenger.of(this.context).showSnackBar(const SnackBar(content: Text('Comprovante copiado.')));
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Copiar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _labelDate(String value) {
+    final parts = value.split('-');
+    if (parts.length != 3) return value;
+    return '${parts[2]}/${parts[1]}/${parts[0]}';
   }
 
   Future<void> _openReceive(Map<String, dynamic> row) async {
@@ -182,6 +230,19 @@ class _FinancePageState extends State<FinancePage> {
                                 Text('${income ? 'Receita' : 'Despesa'} • ${row['category'] ?? 'Sem categoria'} • ${row['due_date'] ?? 'Sem vencimento'}'),
                                 const SizedBox(height: 4),
                                 Text('Recebido/pago: ${fmt(paid)}  •  Saldo: ${fmt(balance)}  •  $status', style: Theme.of(context).textTheme.bodySmall),
+                                ..._payments.where((p) => p['transaction_id']?.toString() == id).map((payment) => Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Row(
+                                    children: [
+                                      Expanded(child: Text('${fmt(_money(payment['amount']))} · ${_labelDate(payment['paid_at'].toString().split('T').first)} · ${payment['payment_method'] ?? 'Sem forma'}', style: Theme.of(context).textTheme.bodySmall)),
+                                      TextButton.icon(
+                                        onPressed: () => _showReceipt(row, payment),
+                                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                                        label: const Text('Comprovante'),
+                                      ),
+                                    ],
+                                  ),
+                                )),
                                 if (income && balance > 0 && _canManage && row['status'] != 'cancelled')
                                   Align(alignment: Alignment.centerRight, child: TextButton.icon(
                                     onPressed: _saving ? null : () => _openReceive(row),
