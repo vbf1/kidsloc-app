@@ -44,7 +44,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
 
   useEffect(() => {
     let active = true;
-    if (companyId && role === 'admin' && supabase) {
+    if (companyId && (role === 'platform_owner' || role === 'admin') && supabase) {
       void supabase.rpc('leadfesta_is_available', { p_company_id: companyId }).then(({ data, error }) => {
         if (active) setLeadFestaEnabled(!error && data === true);
       });
