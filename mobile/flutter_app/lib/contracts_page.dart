@@ -22,7 +22,7 @@ class _ContractsPageState extends State<ContractsPage> {
   String _companyName = 'Empresa';
   final TextEditingController _searchController = TextEditingController();
   String _statusFilter = 'all';
-  final TextEditingController _termsController = TextEditingController(text: 'O LOCATÁRIO compromete-se a zelar pelos equipamentos, utilizá-los de forma adequada e devolvê-los nas condições recebidas. O LOCADOR compromete-se a disponibilizar os itens descritos na data e período acordados. Danos decorrentes de mau uso poderão ser cobrados do LOCATÁRIO. O cancelamento e demais condições devem ser ajustados entre as partes antes da assinatura.');
+  final TextEditingController _termsController = TextEditingController();
   List<Map<String, dynamic>> _rentals = [];
   List<Map<String, dynamic>> _contracts = [];
   Map<String, Map<String, dynamic>> _customers = {};
@@ -122,11 +122,7 @@ class _ContractsPageState extends State<ContractsPage> {
 
   Future<void> _createDraft() async {
     if (_selectedRentalId == null || _saving) return;
-    if (_termsController.text.trim().isEmpty) {
-      setState(() => _error = 'Informe as condições do contrato.');
-      return;
-    }
-    final rental = _rentals.firstWhere((e) => e['id'].toString() == _selectedRentalId);
+        final rental = _rentals.firstWhere((e) => e['id'].toString() == _selectedRentalId);
     final customer = _customers[rental['customer_id']?.toString()];
     if (customer == null) {
       setState(() => _error = 'A locação precisa estar vinculada a um cliente.');
@@ -252,8 +248,34 @@ class _ContractsPageState extends State<ContractsPage> {
       'ITENS',
       ...items.map((item) => '${item['quantity'] ?? 1}x ${item['name'] ?? 'Item'} · ${_money(item['subtotal'])}'),
       '',
-      'CONDIÇÕES',
-      snapshot['terms']?.toString() ?? 'Condições não informadas.',
+      'CLÁUSULA 1ª – DO OBJETO',
+      'A LOCADORA disponibilizará os brinquedos, equipamentos e serviços descritos neste contrato para utilização no evento e período indicados.',
+      '',
+      'CLÁUSULA 2ª – DA DATA E DO LOCAL DO EVENTO',
+      'A locação observará a data, os horários e o endereço informados. Alterações dependerão de comunicação prévia e confirmação entre as partes.',
+      '',
+      'CLÁUSULA 3ª – DO VALOR E DA FORMA DE PAGAMENTO',
+      'O valor e sua composição estão discriminados neste contrato. Sinal, saldo, vencimentos e meios de pagamento seguirão o registro da locação ou o acordo escrito entre as partes.',
+      '',
+      'CLÁUSULA 4ª – DA ENTREGA, MONTAGEM E UTILIZAÇÃO',
+      'A LOCADORA realizará entrega, montagem e retirada quando contratadas. O LOCATÁRIO deverá disponibilizar espaço adequado e seguro, informar restrições de acesso e observar as orientações de segurança. Equipamentos com operação específica deverão ser manuseados por pessoa orientada e autorizada; brinquedos deverão contar com supervisão de adulto responsável.',
+      '',
+      'CLÁUSULA 5ª – DAS RESPONSABILIDADES',
+      'A LOCADORA disponibilizará os itens em condições adequadas e orientará sobre o uso seguro. O LOCATÁRIO deverá zelar pelos equipamentos e comunicar falhas, acidentes ou danos. Danos por uso inadequado poderão ser apurados mediante demonstração dos prejuízos, respeitada a legislação aplicável. Desgaste natural e defeitos não causados pelo LOCATÁRIO não serão atribuídos a ele.',
+      '',
+      'CLÁUSULA 6ª – DO CANCELAMENTO E DA ALTERAÇÃO DA DATA',
+      'Cancelamentos e alterações deverão ser comunicados assim que possível. As partes buscarão solução de comum acordo, considerando antecedência, custos efetivamente realizados e possibilidade de remarcação, respeitada a legislação aplicável e os direitos do consumidor.',
+      '',
+      'CLÁUSULA 7ª – DAS DISPOSIÇÕES GERAIS',
+      'Alterações deverão ser acordadas, preferencialmente por escrito. Este instrumento registra as condições da locação e produz efeitos após a aceitação das partes.',
+      '',
+      'CLÁUSULA 8ª – DA ASSINATURA',
+      'A assinatura poderá ser física ou eletrônica, desde que seja possível identificar os signatários e preservar a integridade do documento. Cada parte deverá receber uma cópia do contrato assinado.',
+      if ((snapshot['terms']?.toString() ?? '').trim().isNotEmpty) ...[
+        '',
+        'CONDIÇÕES ADICIONAIS ACORDADAS',
+        snapshot['terms'].toString(),
+      ],
       '',
       'Situação: $status',
       if (contract['signer_name'] != null) 'Assinado por: ${contract['signer_name']}',
@@ -361,15 +383,15 @@ class _ContractsPageState extends State<ContractsPage> {
                       maxLength: 5000,
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
-                        labelText: 'Condições do contrato',
-                        hintText: 'Descreva as condições da locação',
+                        labelText: 'Condições adicionais (opcional)',
+                        hintText: 'Inclua condições específicas combinadas com o cliente, se houver.',
                         border: OutlineInputBorder(),
-                        helperText: 'As condições ficam salvas neste contrato.',
+                        helperText: 'O contrato já inclui cláusulas gerais. Use este campo apenas para condições específicas.',
                       ),
                     ),
                     const SizedBox(height: 8),
                     FilledButton.icon(
-                      onPressed: _saving || _selectedRentalId == null || _termsController.text.trim().isEmpty ? null : _createDraft,
+                      onPressed: _saving || _selectedRentalId == null || false ? null : _createDraft,
                       icon: const Icon(Icons.description_outlined),
                       label: Text(_saving ? 'Salvando...' : 'Criar rascunho'),
                     ),
