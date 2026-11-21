@@ -242,12 +242,16 @@ class _FinancePageState extends State<FinancePage> {
       final cancelled = row['status'] == 'cancelled';
       final balance = cancelled ? 0.0 : (amount - paid).clamp(0, double.infinity).toDouble();
       final income = row['transaction_type'] == 'income';
+      final dueDateValue = row['due_date']?.toString() ?? '';
+      final dueDate = dueDateValue.length >= 10 ? dueDateValue.substring(0, 10) : '';
+      final today = _date(DateTime.now());
+      final dueSoonLimit = _date(DateTime.now().add(const Duration(days: 7)));
       final matchesFilter = switch (_filter) {
         'income' => income && !cancelled,
         'expense' => !income && !cancelled,
         'pending' => income && balance > 0 && !cancelled,
-        'overdue' => income && balance > 0 && !cancelled && (row['due_date']?.toString().substring(0, 10) ?? '').isNotEmpty && row['due_date'].toString().substring(0, 10).compareTo(_date(DateTime.now())) < 0,
-        'due_soon' => income && balance > 0 && !cancelled && (row['due_date']?.toString().substring(0, 10) ?? '').isNotEmpty && row['due_date'].toString().substring(0, 10).compareTo(_date(DateTime.now())) >= 0 && row['due_date'].toString().substring(0, 10).compareTo(_date(DateTime.now().add(const Duration(days: 7)))) <= 0,
+        'overdue' => income && balance > 0 && !cancelled && dueDate.isNotEmpty && dueDate.compareTo(today) < 0,
+        'due_soon' => income && balance > 0 && !cancelled && dueDate.isNotEmpty && dueDate.compareTo(today) >= 0 && dueDate.compareTo(dueSoonLimit) <= 0,
         'paid' => balance <= 0 && !cancelled,
         'cancelled' => cancelled,
         _ => true,
