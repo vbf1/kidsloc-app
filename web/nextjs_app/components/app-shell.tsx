@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { AppNavigation } from './app-navigation';
+import { WebPushControl } from './web-push-control';
 
 type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
 type AppShellProps = {
@@ -33,10 +34,13 @@ export function AppShell({
             <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
             <span className="truncate text-xl font-bold tracking-tight">KidsLoc <span className="text-[#8054d8]">App</span></span>
           </a>
-          <button type="button" onClick={onSignOut} disabled={signingOut}
-            className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-purple-200 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50">
-            {signingOut ? 'Saindo...' : 'Sair'}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {companyId && <WebPushControl companyId={companyId} basePath={basePath} />}
+            <button type="button" onClick={onSignOut} disabled={signingOut}
+              className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-purple-200 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4">
+              {signingOut ? 'Saindo...' : 'Sair'}
+            </button>
+          </div>
         </div>
       </header>
       <div className="app-shell-layout mx-auto grid max-w-7xl gap-6 px-3 py-6 pb-24 sm:px-6 md:grid-cols-[230px_minmax(0,1fr)] md:py-8 md:pb-8 lg:px-8">
