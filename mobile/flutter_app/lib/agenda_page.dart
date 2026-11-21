@@ -17,6 +17,7 @@ class _AgendaPageState extends State<AgendaPage> {
   List<Map<String, dynamic>> _rentals = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _rentalItems = [];
+  Map<String, int> _availableUnits = {};
   Map<String, String> _customerNames = {};
 
   @override
@@ -40,11 +41,14 @@ class _AgendaPageState extends State<AgendaPage> {
       final products = await client.from('products').select('id,name,total_quantity,inventory_mode').eq('company_id', widget.companyId).eq('active', true).order('name');
       final rentalIds = rentals.map((e) => e['id'].toString()).toList();
       final rentalItems = rentalIds.isEmpty ? <dynamic>[] : await client.from('rental_items').select('rental_id,product_id,quantity').eq('company_id', widget.companyId).inFilter('rental_id', rentalIds);
+      final individualIds = products.where((p) => p['inventory_mode'] == 'individual').map((p) => p['id'].toString()).toList();
+      final units = individualIds.isEmpty ? <dynamic>[] : await client.from('product_units').select('product_id,status').eq('company_id', widget.companyId).inFilter('product_id', individualIds);
       if (!mounted) return;
       setState(() {
         _rentals = rentals.map((e) => Map<String, dynamic>.from(e)).toList();
         _products = products.map((e) => Map<String, dynamic>.from(e)).toList();
         _rentalItems = rentalItems.map((e) => Map<String, dynamic>.from(e)).toList();
+        _availableUnits = {for (final unit in units.where((u) => u['status'] == 'available')) unit['product_id'].toString(): units.where((u) => u['status'] == 'available' && u['product_id'].toString() == unit['product_id'].toString()).length};
         _customerNames = {for (final e in customers) e['id'].toString(): e['name']?.toString() ?? 'Cliente'};
         _loading = false;
       });
@@ -193,14 +197,14 @@ class _AgendaPageState extends State<AgendaPage> {
                             else
                               ..._products.map((product) {
                                 final used = occupiedByProduct[product['id'].toString()] ?? 0;
-                                final total = (product['total_quantity'] as num? ?? 0).toInt();
+                                final total = product['inventory_mode'] == 'individual' ? (_availableUnits[product['id'].toString()] ?? 0) : (product['total_quantity'] as num? ?? 0).toInt();
                                 final available = (total - used).clamp(0, total);
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 10),
                                   child: Row(children: [
                                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                       Text(product['name']?.toString() ?? 'Brinquedo', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                      Text(product['inventory_mode'] == 'individual' ? 'Controle por unidades' : 'Controle por quantidade', style: Theme.of(context).textTheme.bodySmall),
+                                      Text(product['inventory_mode'] == 'individual' ? 'Unidades cadastradas em condição de uso' : 'Controle por quantidade', style: Theme.of(context).textTheme.bodySmall),
                                     ])),
                                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                                       Text('$available de $total disponíveis', style: const TextStyle(fontWeight: FontWeight.bold)),
