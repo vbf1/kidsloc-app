@@ -352,6 +352,7 @@ class _ContractsPageState extends State<ContractsPage> {
                       minLines: 3,
                       maxLines: 6,
                       maxLength: 5000,
+                      onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                         labelText: 'Condições do contrato',
                         hintText: 'Descreva as condições da locação',
