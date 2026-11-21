@@ -325,7 +325,11 @@ class _ContractsPageState extends State<ContractsPage> {
     final status = isExpired ? 'Link expirado' : _status(contract['status'].toString());
     final lines = <String>[
       'CONTRATO DE LOCAÇÃO #${contract['contract_number']}',
-      company['name']?.toString() ?? _companyName,
+      company['legal_name']?.toString() ?? company['name']?.toString() ?? _companyName,
+      'CNPJ / CPF: ${company['document'] ?? 'Não informado'}',
+      'Telefone: ${company['phone'] ?? 'Não informado'}',
+      'E-mail: ${company['email'] ?? 'Não informado'}',
+      'Endereço: ${company['address'] ?? 'Não informado'} · CEP ${company['zip'] ?? 'Não informado'}',
       '',
       'LOCATÁRIO',
       customer['name']?.toString() ?? 'Não informado',
@@ -380,6 +384,7 @@ class _ContractsPageState extends State<ContractsPage> {
       'Situação: $status',
       if (contract['signer_name'] != null) 'Assinado por: ${contract['signer_name']}',
       if (contract['signed_at'] != null) 'Data da assinatura: ${_date(contract['signed_at'])}',
+      if (contract['signature_svg'] != null) 'Assinatura eletrônica do cliente: registrada no sistema.',
       '',
       'LOCADORA – ${company['name']?.toString() ?? _companyName}',
       'Assinatura: __________________________________',
