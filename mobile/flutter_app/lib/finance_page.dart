@@ -75,6 +75,7 @@ class _FinancePageState extends State<FinancePage> {
   }
 
   double get _income => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold<double>(0, (s, e) => s + _money(e['amount']));
+  double get _received => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold<double>(0, (s, e) { final amount = _money(e['amount']); final paid = _paidByTransaction[e['id'].toString()] ?? (e['status'] == 'paid' ? amount : 0.0); return s + paid.clamp(0, amount).toDouble(); });
   double get _expenses => _transactions.where((e) => e['transaction_type'] == 'expense' && e['status'] != 'cancelled').fold<double>(0, (s, e) => s + _money(e['amount']));
   double get _pending => _transactions.where((e) => e['transaction_type'] == 'income' && e['status'] != 'cancelled').fold<double>(0, (s, e) {
     final amount = _money(e['amount']);
@@ -197,17 +198,20 @@ class _FinancePageState extends State<FinancePage> {
       final id = row['id'].toString();
       final amount = _money(row['amount']);
       final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0.0);
-      final balance = (amount - paid).clamp(0, double.infinity).toDouble();
+      final cancelled = row['status'] == 'cancelled';
+      final balance = cancelled ? 0.0 : (amount - paid).clamp(0, double.infinity).toDouble();
       final income = row['transaction_type'] == 'income';
       final matchesFilter = switch (_filter) {
-        'income' => income && row['status'] != 'cancelled',
-        'expense' => !income && row['status'] != 'cancelled',
-        'pending' => income && balance > 0 && row['status'] != 'cancelled',
-        'paid' => balance <= 0 && row['status'] != 'cancelled',
+        'income' => income && !cancelled,
+        'expense' => !income && !cancelled,
+        'pending' => income && balance > 0 && !cancelled,
+        'paid' => balance <= 0 && !cancelled,
+        'cancelled' => cancelled,
         _ => true,
       };
-      final query = _search.trim().toLowerCase();
-      final text = '${row['description'] ?? ''} ${row['category'] ?? ''}'.toLowerCase();
+      final normalize = (String value) => value.toLowerCase().replaceAll(RegExp(r'[áàâãä]'), 'a').replaceAll(RegExp(r'[éèêë]'), 'e').replaceAll(RegExp(r'[íìîï]'), 'i').replaceAll(RegExp(r'[óòôõö]'), 'o').replaceAll(RegExp(r'[úùûü]'), 'u').replaceAll('ç', 'c');
+      final query = normalize(_search.trim());
+      final text = normalize('${row['description'] ?? ''} ${row['category'] ?? ''}');
       return matchesFilter && (query.isEmpty || text.contains(query));
     }).toList();
     return Scaffold(
@@ -234,6 +238,7 @@ class _FinancePageState extends State<FinancePage> {
                       Wrap(spacing: 8, runSpacing: 8, children: [
                         _SummaryCard(title: 'Receitas', value: fmt(_income), icon: Icons.trending_up),
                         _SummaryCard(title: 'Despesas', value: fmt(_expenses), icon: Icons.trending_down),
+                        _SummaryCard(title: 'Recebido', value: fmt(_received), icon: Icons.payments_outlined),
                         _SummaryCard(title: 'A receber', value: fmt(_pending), icon: Icons.account_balance_wallet_outlined),
                         _SummaryCard(title: 'Resultado', value: fmt(_income - _expenses), icon: Icons.balance),
                       ]),
@@ -259,6 +264,7 @@ class _FinancePageState extends State<FinancePage> {
                             ('expense', 'Despesas'),
                             ('pending', 'A receber'),
                             ('paid', 'Pagos'),
+                            ('cancelled', 'Cancelados'),
                           ])
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
@@ -280,7 +286,7 @@ class _FinancePageState extends State<FinancePage> {
                           final id = row['id'].toString();
                           final amount = _money(row['amount']);
                           final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0);
-                          final balance = (amount - paid).clamp(0, double.infinity).toDouble();
+                          final balance = row['status'] == 'cancelled' ? 0.0 : (amount - paid).clamp(0, double.infinity).toDouble();
                           final income = row['transaction_type'] == 'income';
                           final status = row['status'] == 'cancelled' ? 'Cancelado' : balance <= 0 ? 'Pago' : paid > 0 ? 'Parcial' : 'Pendente';
                           return Card(
