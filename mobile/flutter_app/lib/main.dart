@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'quote_create_page.dart';
 import 'rental_create_page.dart';
@@ -6,6 +9,7 @@ import 'contracts_page.dart';
 import 'agenda_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/push_notifications.dart';
 
 const _webAppBaseUrl = 'https://vbf1.github.io/kidsloc-app';
 
@@ -15,6 +19,13 @@ const supabasePublishableKey =
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    try {
+      await PushNotifications.initialize();
+    } catch (error) {
+      debugPrint('KidsLoc: Firebase Messaging não foi inicializado: $error');
+    }
+  }
   if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
     await Supabase.initialize(
         url: supabaseUrl, publishableKey: supabasePublishableKey);
@@ -370,7 +381,10 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
           actions: [
             IconButton(
               tooltip: 'Sair',
-              onPressed: () => Supabase.instance.client.auth.signOut(),
+              onPressed: () async {
+                await PushNotifications.unregisterCurrentDevice();
+                await Supabase.instance.client.auth.signOut();
+              },
               icon: const Icon(Icons.logout),
             ),
           ],
@@ -480,6 +494,7 @@ class _HomePageState extends State<HomePage> {
         counts[module[0]] = response.length;
       }
       if (!mounted) return;
+      unawaited(PushNotifications.registerDevice(companyId: companyId));
       setState(() {
         _companyId = companyId;
         _companyName = name ?? 'Minha empresa';
