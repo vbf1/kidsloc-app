@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { FormEvent } from 'react';
 import { AuthShell, fieldClass, primaryButtonClass } from '../../../components/auth-shell';
 import { FieldFeedback, FormFeedback } from '../../../components/form-feedback';
@@ -10,6 +11,7 @@ import { validateCompanyName } from '../../../lib/form-validation';
 import { supabase } from '../../../lib/supabase';
 
 export default function CompanySetupPage() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(true);
@@ -111,7 +113,7 @@ export default function CompanySetupPage() {
         );
         return;
       }
-      window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/app/`);
+      router.push('/app/');
     } catch (error) {
       setMessage(getAuthErrorMessage(error, 'company'));
     } finally {

@@ -67,19 +67,21 @@ export default function AppHomePage() {
     void loadWorkspace(false);
   }, [loadWorkspace]);
 
+  const companyId = workspace?.companyId;
+
   useEffect(() => {
-    if (!workspace?.companyId || !supabase) return;
+    if (!companyId || !supabase) return;
     let active = true;
     async function loadDashboard() {
       setStatsLoading(true);
       setStatsError('');
       try {
         const [customersResult, productsResult, rentalsResult, recentResult] = await Promise.all([
-          supabase!.from('customers').select('id', { count: 'exact', head: true }).eq('company_id', workspace!.companyId),
-          supabase!.from('products').select('id', { count: 'exact', head: true }).eq('company_id', workspace!.companyId),
-          supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', workspace!.companyId),
+          supabase!.from('customers').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+          supabase!.from('products').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+          supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
           supabase!.from('rentals').select('id,rental_number,start_date,status,total_amount')
-            .eq('company_id', workspace!.companyId).order('created_at', { ascending: false }).limit(4),
+            .eq('company_id', companyId).order('created_at', { ascending: false }).limit(4),
         ]);
         if (!active) return;
         if (customersResult.error || productsResult.error || rentalsResult.error || recentResult.error) {
@@ -100,7 +102,7 @@ export default function AppHomePage() {
     }
     void loadDashboard();
     return () => { active = false; };
-  }, [workspace?.companyId]);
+  }, [companyId]);
 
   async function signOut() {
     if (!supabase || signingOut) return;
