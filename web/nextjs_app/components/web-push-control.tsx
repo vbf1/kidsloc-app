@@ -14,16 +14,18 @@ function decodeVapidKey(value: string): Uint8Array {
 }
 
 export function WebPushControl({ companyId, basePath }: Props) {
-  const [noticeState, setNoticeState] = useState<NoticeState>('checking');
+  const [noticeState, setNoticeState] = useState<NoticeState>(() =>
+    typeof window === 'undefined' || !('Notification' in window) ||
+    !('serviceWorker' in navigator) || !('PushManager' in window)
+      ? 'unsupported'
+      : 'checking',
+  );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('Notification' in window) ||
-      !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setNoticeState('unsupported');
-      return;
-    }
+      !('serviceWorker' in navigator) || !('PushManager' in window)) return;
     let active = true;
     void (async () => {
       try {
