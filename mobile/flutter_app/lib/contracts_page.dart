@@ -266,10 +266,13 @@ class _ContractsPageState extends State<ContractsPage> {
     final end = TextEditingController(text: rental['end_time']?.toString() ?? '');
     final address = TextEditingController(text: rental['delivery_address']?.toString() ?? '');
     final terms = TextEditingController(text: snapshot['terms']?.toString() ?? '');
+    final itemLines = TextEditingController(text: ((snapshot['items'] as List<dynamic>? ?? []).map((item) {final value=Map<String,dynamic>.from(item);return '${value['name']} | ${value['quantity']} | ${value['unit_price']}';})).join('\n'));
+    final deliveryFee = TextEditingController(text: rental['delivery_fee']?.toString() ?? '0');
+    final discount = TextEditingController(text: rental['discount']?.toString() ?? '0');
     final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
       title: Text('Editar contrato #${contract['contract_number']}'),
       content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        for (final entry in <(String, TextEditingController)>[('Nome do cliente',name),('CPF / documento',cpf),('Telefone',phone),('E-mail',email),('Data do evento (AAAA-MM-DD)',date),('Horário inicial',start),('Horário final',end),('Endereço do evento',address),('Condições adicionais',terms)])
+        for (final entry in <(String, TextEditingController)>[('Nome do cliente',name),('CPF / documento',cpf),('Telefone',phone),('E-mail',email),('Data do evento (AAAA-MM-DD)',date),('Horário inicial',start),('Horário final',end),('Endereço do evento',address),('Itens (descrição | quantidade | valor unitário)',itemLines),('Taxa de entrega',deliveryFee),('Desconto',discount),('Condições adicionais',terms)])
           Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, maxLines: entry.$1=='Condições adicionais'?4:1, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
       ]))),
       actions: [
@@ -280,8 +283,13 @@ class _ContractsPageState extends State<ContractsPage> {
     if (saved == true && mounted) {
       try {
         customer.addAll({'name':name.text.trim(),'cpf':cpf.text.trim(),'phone':phone.text.trim(),'email':email.text.trim()});
-        rental.addAll({'start_date':date.text.trim(),'end_date':date.text.trim(),'start_time':start.text.trim().isEmpty?null:start.text.trim(),'end_time':end.text.trim().isEmpty?null:end.text.trim(),'delivery_address':address.text.trim().isEmpty?null:address.text.trim()});
-        snapshot.addAll({'company':{'name':_companyName,..._companySettings},'customer':customer,'rental':rental,'terms':terms.text.trim()});
+        num parseAmount(String raw) {final value=raw.trim();return num.tryParse(value.contains(',')?value.replaceAll('.', '').replaceAll(',', '.'):value) ?? 0;}
+        final existingItems = (snapshot['items'] as List<dynamic>? ?? []).map((item)=>Map<String,dynamic>.from(item)).toList();
+        final editedItems = <Map<String,dynamic>>[];
+        for (final entry in itemLines.text.split('\\n').asMap().entries) {final parts=entry.value.split('|').map((part)=>part.trim()).toList();if(parts.isEmpty||parts[0].isEmpty)continue;final previous=entry.key<existingItems.length?existingItems[entry.key]:<String,dynamic>{'product_id':'manual'};final quantity=(parts.length>1?num.tryParse(parts[1]):null)??1;final unitPrice=parseAmount(parts.length>2?parts[2]:'0');editedItems.add({...previous,'name':parts[0],'quantity':quantity,'unit_price':unitPrice,'subtotal':quantity*unitPrice});}
+        final fee=parseAmount(deliveryFee.text);final discountValue=parseAmount(discount.text);final total=editedItems.fold<num>(0,(sum,item)=>sum+(item['subtotal'] as num? ?? 0))+fee-discountValue;
+        rental.addAll({'start_date':date.text.trim(),'end_date':date.text.trim(),'start_time':start.text.trim().isEmpty?null:start.text.trim(),'end_time':end.text.trim().isEmpty?null:end.text.trim(),'delivery_address':address.text.trim().isEmpty?null:address.text.trim(),'delivery_fee':fee,'discount':discountValue,'total_amount':total<0?0:total});
+        snapshot.addAll({'company':{'name':_companyName,..._companySettings},'customer':customer,'rental':rental,'items':editedItems,'terms':terms.text.trim()});
         final invalidate = ['sent','viewed','expired'].contains(_contractStatus(contract));
         final patch = <String,dynamic>{'contract_snapshot':snapshot};
         if (invalidate) {patch.addAll({'status':'draft','token_hash':null,'token_expires_at':null});}
@@ -290,7 +298,7 @@ class _ContractsPageState extends State<ContractsPage> {
         await _load();
       } on PostgrestException catch (e) {setState(() => _error=e.message);}
     }
-    for (final controller in [name,cpf,phone,email,date,start,end,address,terms]) {controller.dispose();}
+    for (final controller in [name,cpf,phone,email,date,start,end,address,terms,itemLines,deliveryFee,discount]) {controller.dispose();}
   }
 
   Future<void> _deleteContract(Map<String, dynamic> contract) async {
