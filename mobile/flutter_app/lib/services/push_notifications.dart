@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -20,6 +22,7 @@ class PushNotifications {
   static bool _initialized = false;
   static String? _companyId;
   static String? _userId;
+  static StreamSubscription<String>? _tokenRefreshSubscription;
 
   static Future<void> initialize() async {
     if (defaultTargetPlatform != TargetPlatform.android || _initialized) return;
@@ -86,9 +89,8 @@ class PushNotifications {
         await _saveToken(token);
       }
 
-      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-        _saveToken(newToken);
-      });
+      _tokenRefreshSubscription ??=
+          FirebaseMessaging.instance.onTokenRefresh.listen(_saveToken);
     } catch (error) {
       debugPrint('KidsLoc: não foi possível registrar o dispositivo para push: $error');
     }
@@ -133,6 +135,8 @@ class PushNotifications {
     } catch (error) {
       debugPrint('KidsLoc: não foi possível remover o registro deste dispositivo: $error');
     } finally {
+      await _tokenRefreshSubscription?.cancel();
+      _tokenRefreshSubscription = null;
       _companyId = null;
       _userId = null;
     }
