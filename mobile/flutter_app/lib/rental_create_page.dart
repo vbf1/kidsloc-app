@@ -301,10 +301,10 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
               DropdownButtonFormField<String>(
                 value: _status,
                 decoration: const InputDecoration(labelText: 'Situação'),
-                items: const [
-                  DropdownMenuItem(value: 'pending', child: Text('Pendente')),
-                  DropdownMenuItem(value: 'confirmed', child: Text('Confirmada')),
-                  DropdownMenuItem(value: 'ongoing', child: Text('Em andamento')),
+                items: [
+                  const DropdownMenuItem(value: 'pending', child: Text('Pendente')),
+                  const DropdownMenuItem(value: 'confirmed', child: Text('Confirmada')),
+                  const DropdownMenuItem(value: 'ongoing', child: Text('Em andamento')),
                   if (widget.isEditing) const DropdownMenuItem(value: 'completed', child: Text('Concluída')),
                   if (widget.isEditing) const DropdownMenuItem(value: 'cancelled', child: Text('Cancelada')),
                 ],
