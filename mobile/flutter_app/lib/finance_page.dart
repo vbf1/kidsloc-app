@@ -18,6 +18,8 @@ class _FinancePageState extends State<FinancePage> {
   List<Map<String, dynamic>> _transactions = [];
   List<Map<String, dynamic>> _payments = [];
   Map<String, double> _paidByTransaction = {};
+  String _filter = 'all';
+  String _search = '';
 
   @override
   void initState() {
@@ -191,6 +193,23 @@ class _FinancePageState extends State<FinancePage> {
   @override
   Widget build(BuildContext context) {
     final fmt = _format;
+    final filteredTransactions = _transactions.where((row) {
+      final id = row['id'].toString();
+      final amount = _money(row['amount']);
+      final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0.0);
+      final balance = (amount - paid).clamp(0, double.infinity).toDouble();
+      final income = row['transaction_type'] == 'income';
+      final matchesFilter = switch (_filter) {
+        'income' => income && row['status'] != 'cancelled',
+        'expense' => !income && row['status'] != 'cancelled',
+        'pending' => income && balance > 0 && row['status'] != 'cancelled',
+        'paid' => balance <= 0 && row['status'] != 'cancelled',
+        _ => true,
+      };
+      final query = _search.trim().toLowerCase();
+      final text = '${row['description'] ?? ''} ${row['category'] ?? ''}'.toLowerCase();
+      return matchesFilter && (query.isEmpty || text.contains(query));
+    }).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Financeiro'),
@@ -220,11 +239,44 @@ class _FinancePageState extends State<FinancePage> {
                       ]),
                       const SizedBox(height: 20),
                       Text('Lançamentos', style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: 'Buscar por descrição ou categoria',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onChanged: (value) => setState(() => _search = value),
+                      ),
+                      const SizedBox(height: 10),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
+                          for (final option in [
+                            ('all', 'Todos'),
+                            ('income', 'Receitas'),
+                            ('expense', 'Despesas'),
+                            ('pending', 'A receber'),
+                            ('paid', 'Pagos'),
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(option.$2),
+                                selected: _filter == option.$1,
+                                onSelected: (_) => setState(() => _filter = option.$1),
+                              ),
+                            ),
+                        ]),
+                      ),
                       const SizedBox(height: 8),
                       if (_transactions.isEmpty)
                         const Padding(padding: EdgeInsets.symmetric(vertical: 48), child: Center(child: Text('Nenhum lançamento financeiro.')))
+                      else if (filteredTransactions.isEmpty)
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 32), child: Center(child: Text('Nenhum lançamento corresponde à busca ou ao filtro.')))
                       else
-                        ..._transactions.map((row) {
+                        ...filteredTransactions.map((row) {
                           final id = row['id'].toString();
                           final amount = _money(row['amount']);
                           final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0);
