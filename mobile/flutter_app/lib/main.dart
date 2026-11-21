@@ -652,6 +652,19 @@ class _RecordsPageState extends State<_RecordsPage> {
     }
   }
 
+  Future<void> _openRentalEditor(Map<String, dynamic> row) async {
+    if (_saving) return;
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => RentalCreatePage(
+          companyId: widget.companyId,
+          rentalId: row['id'].toString(),
+        ),
+      ),
+    );
+    if (updated == true && mounted) await _load();
+  }
+
   Future<void> _openEditor([Map<String, dynamic>? row]) async {
     if (!_editable || _saving) return;
     final isCustomer = widget.table == 'customers';
@@ -842,9 +855,11 @@ class _RecordsPageState extends State<_RecordsPage> {
                         if (status == 'accepted') const PopupMenuItem(value: 'convert', child: Text('Converter em locação')),
                       ],
                     )
-                  : _editable
-                      ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined))
-                      : null,
+                  : widget.table == 'rentals'
+                      ? IconButton(tooltip: 'Editar locação', onPressed: _saving ? null : () => _openRentalEditor(row), icon: const Icon(Icons.edit_outlined))
+                      : _editable
+                          ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined))
+                          : null,
             ));
           },
         )),
