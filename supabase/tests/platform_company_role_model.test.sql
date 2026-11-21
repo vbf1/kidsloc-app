@@ -108,14 +108,20 @@ select throws_ok(
 );
 
 select ok(
-  not exists (
+  has_function_privilege('anon', 'public.get_public_rental_contract(text)', 'EXECUTE')
+  and has_function_privilege('anon', 'public.sign_public_rental_contract(text,text,text,text,text,text,text)', 'EXECUTE')
+  and not exists (
     select 1
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and has_function_privilege('anon', p.oid, 'EXECUTE')
+      and p.oid not in (
+        'public.get_public_rental_contract(text)'::regprocedure,
+        'public.sign_public_rental_contract(text,text,text,text,text,text,text)'::regprocedure
+      )
   ),
-  'anon cannot execute any function in the public schema'
+  'anon can execute only the token-protected public contract lookup and signing functions'
 );
 
 select ok(
