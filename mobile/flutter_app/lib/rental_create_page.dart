@@ -337,7 +337,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                     ]),
                     Row(children: [
                       Expanded(child: TextFormField(
-                        initialValue: '1',
+                        initialValue: (item['quantity'] as int).toString(),
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(labelText: 'Quantidade'),
                         onChanged: (v) => setState(() {
