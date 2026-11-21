@@ -96,7 +96,8 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     ]);
     final items = results[0].map((row) {
       final item = Map<String, dynamic>.from(row);
-      final product = _products.where((p) => p['id'].toString() == item['product_id'].toString()).firstOrNull;
+      final matchingProducts = _products.where((p) => p['id'].toString() == item['product_id'].toString());
+      final product = matchingProducts.isEmpty ? null : matchingProducts.first;
       return <String, dynamic>{
         'product_id': item['product_id'].toString(),
         'name': product?['name']?.toString() ?? 'Item do catálogo',
