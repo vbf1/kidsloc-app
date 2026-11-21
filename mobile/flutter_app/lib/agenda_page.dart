@@ -38,7 +38,7 @@ class _AgendaPageState extends State<AgendaPage> {
       final client = Supabase.instance.client;
       final rentals = await client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,total_amount').eq('company_id', widget.companyId).neq('status', 'cancelled').order('start_date').limit(500);
       final customers = await client.from('customers').select('id,name').eq('company_id', widget.companyId);
-      final products = await client.from('products').select('id,name,total_quantity,inventory_mode').eq('company_id', widget.companyId).eq('active', true).order('name');
+      final products = await client.from('products').select('id,name,total_quantity,inventory_mode').eq('company_id', widget.companyId).eq('active', true).inFilter('item_type', ['toy', 'machine']).order('name');
       final rentalIds = rentals.map((e) => e['id'].toString()).toList();
       final rentalItems = rentalIds.isEmpty ? <dynamic>[] : await client.from('rental_items').select('rental_id,product_id,quantity').eq('company_id', widget.companyId).inFilter('rental_id', rentalIds);
       final individualIds = products.where((p) => p['inventory_mode'] == 'individual').map((p) => p['id'].toString()).toList();
