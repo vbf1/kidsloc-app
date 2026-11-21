@@ -32,6 +32,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   List<Map<String, dynamic>> _members = [];
   final Set<String> _responsibles = {};
   final List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _events = [];
 
   @override
   void initState() {
@@ -123,6 +124,19 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         ..clear()
         ..addAll(results[1].map((r) => r['user_id'].toString()));
     });
+    // A falha na consulta do histórico não deve impedir a edição da locação.
+    try {
+      final events = await client.from('rental_events')
+          .select('event_type,description,created_at')
+          .eq('rental_id', widget.rentalId!)
+          .eq('company_id', widget.companyId)
+          .order('created_at', ascending: false)
+          .limit(30);
+      if (mounted) setState(() => _events = events
+          .map((row) => Map<String, dynamic>.from(row)).toList());
+    } catch (_) {
+      // Histórico indisponível para este perfil; mantém o formulário utilizável.
+    }
   }
 
   String _date(DateTime d) =>
@@ -402,6 +416,26 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
               ),
+              if (widget.isEditing) ...[
+                const SizedBox(height: 24),
+                Text('Histórico da locação', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                if (_events.isEmpty)
+                  const Text('Nenhum evento registrado ou histórico indisponível.')
+                else
+                  ..._events.map((event) {
+                    final rawDate = event['created_at']?.toString();
+                    final parsed = rawDate == null ? null : DateTime.tryParse(rawDate)?.toLocal();
+                    final stamp = parsed == null ? '' :
+                      '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year} às ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.history),
+                      title: Text(event['description']?.toString() ?? event['event_type']?.toString() ?? 'Atualização'),
+                      subtitle: stamp.isEmpty ? null : Text(stamp),
+                    );
+                  }),
+              ],
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: _saving ? null : _save,
