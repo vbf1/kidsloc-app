@@ -8,7 +8,7 @@ import { contractClauses, contractDate, contractTime } from '../../../lib/contra
 
 type Role='owner'|'admin'|'manager'|'staff';
 type Rental={id:string;rental_number:number;customer_id:string|null;start_date:string;end_date:string;start_time:string|null;end_time:string|null;status:string;delivery_method:string;delivery_address:string|null;total_amount:number|string;discount:number|string;delivery_fee:number|string};
-type ContractSnapshot={template_version?:number;company?:{name?:string};customer?:Customer;rental?:Rental;items?:Item[];terms?:string};
+type ContractSnapshot={template_version?:number;company?:{name?:string;legal_name?:string;document?:string;phone?:string;email?:string;address?:string;zip?:string};customer?:Customer;rental?:Rental;items?:Item[];terms?:string};
 type Contract={id:string;contract_number:number;rental_id:string|null;status:string;created_at:string;contract_snapshot:ContractSnapshot;token_expires_at:string|null;signed_at:string|null;signer_name:string|null;signer_document?:string|null;signature_svg?:string|null};
 type Customer={id:string;name:string;phone:string|null;email:string|null;address:string|null;cpf?:string|null;rg?:string|null;zip?:string|null;neighborhood?:string|null;city_state?:string|null};
 type Item={product_id:string;quantity:number;unit_price:number|string;subtotal:number|string;name:string};
