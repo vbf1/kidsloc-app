@@ -247,6 +247,7 @@ class _FinancePageState extends State<FinancePage> {
         'expense' => !income && !cancelled,
         'pending' => income && balance > 0 && !cancelled,
         'overdue' => income && balance > 0 && !cancelled && (row['due_date']?.toString().substring(0, 10) ?? '').isNotEmpty && row['due_date'].toString().substring(0, 10).compareTo(_date(DateTime.now())) < 0,
+        'due_soon' => income && balance > 0 && !cancelled && (row['due_date']?.toString().substring(0, 10) ?? '').isNotEmpty && row['due_date'].toString().substring(0, 10).compareTo(_date(DateTime.now())) >= 0 && row['due_date'].toString().substring(0, 10).compareTo(_date(DateTime.now().add(const Duration(days: 7)))) <= 0,
         'paid' => balance <= 0 && !cancelled,
         'cancelled' => cancelled,
         _ => true,
@@ -307,6 +308,7 @@ class _FinancePageState extends State<FinancePage> {
                             ('expense', 'Despesas'),
                             ('pending', 'A receber'),
                             ('overdue', 'Vencidos'),
+                            ('due_soon', 'Vencem em 7 dias'),
                             ('paid', 'Pagos'),
                             ('cancelled', 'Cancelados'),
                           ])
