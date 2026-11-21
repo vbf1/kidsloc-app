@@ -391,7 +391,7 @@ class _ContractsPageState extends State<ContractsPage> {
                     ),
                     const SizedBox(height: 8),
                     FilledButton.icon(
-                      onPressed: _saving || _selectedRentalId == null || false ? null : _createDraft,
+                      onPressed: _saving || _selectedRentalId == null ? null : _createDraft,
                       icon: const Icon(Icons.description_outlined),
                       label: Text(_saving ? 'Salvando...' : 'Criar rascunho'),
                     ),
