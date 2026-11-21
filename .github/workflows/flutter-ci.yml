@@ -31,13 +31,24 @@ jobs:
             git checkout -- pubspec.yaml pubspec.lock
           fi
           grep -R --include='build.gradle*' -F 'br.com.kidsloc.app' android/app
-      - run: flutter pub get --enforce-lockfile
+      - run: flutter pub get
       - name: Format Dart sources
         run: dart format lib test
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --no-pub --no-fatal-infos
       - run: flutter test
       - run: flutter build apk --debug
+      - name: Commit resolved Flutter lockfile
+        working-directory: .
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/flutter_app/pubspec.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "build(flutter): update dependency lockfile"
+            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+          fi
       - name: Commit generated Android platform
         if: github.event_name == 'pull_request'
         working-directory: .
