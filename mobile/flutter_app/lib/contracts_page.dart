@@ -267,7 +267,7 @@ class _ContractsPageState extends State<ContractsPage> {
     final address = TextEditingController(text: rental['delivery_address']?.toString() ?? '');
     final terms = TextEditingController(text: snapshot['terms']?.toString() ?? '');
     final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
-      title: Text('Editar contrato #\${contract['contract_number']}'),
+      title: Text('Editar contrato #${contract['contract_number']}'),
       content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
         for (final entry in <(String, TextEditingController)>[('Nome do cliente',name),('CPF / documento',cpf),('Telefone',phone),('E-mail',email),('Data do evento (AAAA-MM-DD)',date),('Horário inicial',start),('Horário final',end),('Endereço do evento',address),('Condições adicionais',terms)])
           Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, maxLines: entry.$1=='Condições adicionais'?4:1, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
@@ -297,7 +297,7 @@ class _ContractsPageState extends State<ContractsPage> {
     if (contract['status'] == 'signed') return;
     final confirm = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
       title: const Text('Excluir contrato?'),
-      content: Text('O contrato #\${contract['contract_number']} será removido permanentemente.'),
+      content: Text('O contrato #${contract['contract_number']} será removido permanentemente.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
         FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
