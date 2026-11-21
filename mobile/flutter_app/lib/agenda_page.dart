@@ -15,6 +15,8 @@ class _AgendaPageState extends State<AgendaPage> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selected = DateUtils.dateOnly(DateTime.now());
   List<Map<String, dynamic>> _rentals = [];
+  List<Map<String, dynamic>> _products = [];
+  List<Map<String, dynamic>> _rentalItems = [];
   Map<String, String> _customerNames = {};
 
   @override
@@ -35,9 +37,14 @@ class _AgendaPageState extends State<AgendaPage> {
       final client = Supabase.instance.client;
       final rentals = await client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,total_amount').eq('company_id', widget.companyId).neq('status', 'cancelled').order('start_date').limit(500);
       final customers = await client.from('customers').select('id,name').eq('company_id', widget.companyId);
+      final products = await client.from('products').select('id,name,total_quantity,inventory_mode').eq('company_id', widget.companyId).eq('active', true).order('name');
+      final rentalIds = rentals.map((e) => e['id'].toString()).toList();
+      final rentalItems = rentalIds.isEmpty ? <dynamic>[] : await client.from('rental_items').select('rental_id,product_id,quantity').eq('company_id', widget.companyId).inFilter('rental_id', rentalIds);
       if (!mounted) return;
       setState(() {
         _rentals = rentals.map((e) => Map<String, dynamic>.from(e)).toList();
+        _products = products.map((e) => Map<String, dynamic>.from(e)).toList();
+        _rentalItems = rentalItems.map((e) => Map<String, dynamic>.from(e)).toList();
         _customerNames = {for (final e in customers) e['id'].toString(): e['name']?.toString() ?? 'Cliente'};
         _loading = false;
       });
@@ -82,6 +89,20 @@ class _AgendaPageState extends State<AgendaPage> {
     final days = DateUtils.getDaysInMonth(_month.year, _month.month);
     final firstWeekday = DateTime(_month.year, _month.month, 1).weekday % 7;
     final selectedRentals = _onDay(_selected);
+    final activeRentalIds = _rentals.where((r) {
+      final status = r['status']?.toString() ?? '';
+      return ['pending', 'confirmed', 'ongoing'].contains(status) &&
+          !_selected.isBefore(_parse(r['start_date'])) &&
+          !_selected.isAfter(_parse(r['end_date']));
+    }).map((r) => r['id'].toString()).toSet();
+    final occupiedByProduct = <String, int>{};
+    for (final item in _rentalItems) {
+      final rentalId = item['rental_id'].toString();
+      if (activeRentalIds.contains(rentalId)) {
+        final productId = item['product_id'].toString();
+        occupiedByProduct[productId] = (occupiedByProduct[productId] ?? 0) + (item['quantity'] as num).toInt();
+      }
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agenda e disponibilidade'),
@@ -155,6 +176,41 @@ class _AgendaPageState extends State<AgendaPage> {
                             ),
                             const SizedBox(height: 8),
                             Text('Os números indicam quantas locações estão ativas em cada dia.', style: Theme.of(context).textTheme.bodySmall),
+                          ]),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('Disponibilidade dos brinquedos', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text('Ocupação estimada para ${_label(_selected)}.', style: Theme.of(context).textTheme.bodySmall),
+                            const SizedBox(height: 12),
+                            if (_products.isEmpty)
+                              const Text('Nenhum brinquedo ativo cadastrado.')
+                            else
+                              ..._products.map((product) {
+                                final used = occupiedByProduct[product['id'].toString()] ?? 0;
+                                final total = (product['total_quantity'] as num? ?? 0).toInt();
+                                final available = (total - used).clamp(0, total);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Row(children: [
+                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(product['name']?.toString() ?? 'Brinquedo', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      Text(product['inventory_mode'] == 'individual' ? 'Controle por unidades' : 'Controle por quantidade', style: Theme.of(context).textTheme.bodySmall),
+                                    ])),
+                                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                      Text('$available de $total disponíveis', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      Text('$used reservado(s)', style: Theme.of(context).textTheme.bodySmall),
+                                    ]),
+                                  ]),
+                                );
+                              }),
+                            const SizedBox(height: 4),
+                            Text('A confirmação definitiva do estoque acontece ao salvar a locação.', style: Theme.of(context).textTheme.bodySmall),
                           ]),
                         ),
                       ),
