@@ -273,7 +273,7 @@ class _ContractsPageState extends State<ContractsPage> {
       title: Text('Editar contrato #${contract['contract_number']}'),
       content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
         for (final entry in <(String, TextEditingController)>[('Nome do cliente',name),('CPF / documento',cpf),('Telefone',phone),('E-mail',email),('Data do evento (AAAA-MM-DD)',date),('Horário inicial',start),('Horário final',end),('Endereço do evento',address),('Itens (descrição | quantidade | valor unitário)',itemLines),('Taxa de entrega',deliveryFee),('Desconto',discount),('Condições adicionais',terms)])
-          Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, maxLines: entry.$1=='Condições adicionais'?4:1, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
+          Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, maxLines: entry.$1=='Condições adicionais'||entry.$1.startsWith('Itens ')?4:1, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
       ]))),
       actions: [
         TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
