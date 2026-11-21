@@ -163,7 +163,7 @@ select throws_ok(
        current_setting('test.transaction_id')::uuid, 1, 'Pix', current_date, null
      ) $$,
   'P0001',
-  'Somente proprietários e administradores podem registrar recebimentos.',
+  'Lançamento financeiro não encontrado ou sem acesso.',
   'staff cannot register financial payments'
 );
 
