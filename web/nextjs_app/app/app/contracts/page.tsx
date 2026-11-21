@@ -9,7 +9,7 @@ import { contractClauses, contractDate, contractTime } from '../../../lib/contra
 type Role='owner'|'admin'|'manager'|'staff';
 type Rental={id:string;rental_number:number;customer_id:string|null;start_date:string;end_date:string;start_time:string|null;end_time:string|null;status:string;delivery_method:string;delivery_address:string|null;total_amount:number|string;discount:number|string;delivery_fee:number|string};
 type ContractSnapshot={template_version?:number;company?:{name?:string};customer?:Customer;rental?:Rental;items?:Item[];terms?:string};
-type Contract={id:string;contract_number:number;rental_id:string;status:string;created_at:string;contract_snapshot:ContractSnapshot;token_expires_at:string|null;signed_at:string|null;signer_name:string|null};
+type Contract={id:string;contract_number:number;rental_id:string|null;status:string;created_at:string;contract_snapshot:ContractSnapshot;token_expires_at:string|null;signed_at:string|null;signer_name:string|null;signer_document?:string|null;signature_svg?:string|null};
 type Customer={id:string;name:string;phone:string|null;email:string|null;address:string|null;cpf?:string|null;rg?:string|null;zip?:string|null;neighborhood?:string|null;city_state?:string|null};
 type Item={product_id:string;quantity:number;unit_price:number|string;subtotal:number|string;name:string};
 const money=(v:number|string)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
@@ -19,18 +19,18 @@ function contractStatus(c:Contract){const expiry=c.token_expires_at?new Date(c.t
 function esc(v:unknown){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));}
 
 export default function ContractsPage(){
- const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [rentals,setRentals]=useState<Rental[]>([]);const [customers,setCustomers]=useState<Record<string,Customer>>({});const [contracts,setContracts]=useState<Contract[]>([]);const [itemsByRental,setItemsByRental]=useState<Record<string,Item[]>>({});const [links,setLinks]=useState<Record<string,string>>({});const [selectedRental,setSelectedRental]=useState('');const [terms,setTerms]=useState('');const [search,setSearch]=useState('');const [statusFilter,setStatusFilter]=useState('all');
+ const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [rentals,setRentals]=useState<Rental[]>([]);const [customers,setCustomers]=useState<Record<string,Customer>>({});const [contracts,setContracts]=useState<Contract[]>([]);const [itemsByRental,setItemsByRental]=useState<Record<string,Item[]>>({});const [links,setLinks]=useState<Record<string,string>>({});const [selectedRental,setSelectedRental]=useState('');const [terms,setTerms]=useState('');const [search,setSearch]=useState('');const [statusFilter,setStatusFilter]=useState('all');const [previewHtml,setPreviewHtml]=useState('');const [editing,setEditing]=useState<Contract|null>(null);const [editName,setEditName]=useState('');const [editCpf,setEditCpf]=useState('');const [editPhone,setEditPhone]=useState('');const [editEmail,setEditEmail]=useState('');const [editDate,setEditDate]=useState('');const [editStartTime,setEditStartTime]=useState('');const [editEndTime,setEditEndTime]=useState('');const [editAddress,setEditAddress]=useState('');const [editTerms,setEditTerms]=useState('');const [companySettings,setCompanySettings]=useState<Record<string,string>>({});const [companyForm,setCompanyForm]=useState({name:'',legal_name:'',document:'',phone:'',email:'',address:'',zip:''});const [companyFormOpen,setCompanyFormOpen]=useState(false);
  const load=useCallback(async()=>{
   await Promise.resolve();
   if(!supabase){setError('Banco não configurado.');setLoading(false);return;}
   const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace('/login/');return;}setEmail(user.email??'');
-  const {data:m,error:e}=await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
+  const {data:m,error:e}=await supabase.from('company_members').select('company_id,role,companies(name,contract_settings)').eq('user_id',user.id).limit(1).maybeSingle();
   if(e||!m){setError('Não foi possível identificar a empresa.');setLoading(false);return;}
-  const c=Array.isArray(m.companies)?m.companies[0]:m.companies;setCompanyId(m.company_id);setCompanyName(c?.name??'Empresa');setRole(m.role as Role);
+  const c=Array.isArray(m.companies)?m.companies[0]:m.companies;const settings=(c?.contract_settings??{}) as Record<string,string>;setCompanyId(m.company_id);setCompanyName(c?.name??'Empresa');setRole(m.role as Role);setCompanySettings(settings);setCompanyForm({name:c?.name??'',legal_name:settings.legal_name??'',document:settings.document??'',phone:settings.phone??'',email:settings.email??'',address:settings.address??'',zip:settings.zip??''});
   const [rr,cr,co]=await Promise.all([
    supabase.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,total_amount,discount,delivery_fee').eq('company_id',m.company_id).neq('status','cancelled').order('start_date',{ascending:false}).limit(300),
    supabase.from('customers').select('id,name,phone,email,address,cpf,rg,zip,neighborhood,city_state').eq('company_id',m.company_id),
-   supabase.from('rental_contracts').select('id,contract_number,rental_id,status,created_at,contract_snapshot,token_expires_at,signed_at,signer_name').eq('company_id',m.company_id).order('created_at',{ascending:false}).limit(300)
+   supabase.from('rental_contracts').select('id,contract_number,rental_id,status,created_at,contract_snapshot,token_expires_at,signed_at,signer_name,signer_document,signature_svg').eq('company_id',m.company_id).order('created_at',{ascending:false}).limit(300)
   ]);
   if(rr.error||cr.error||co.error){setError('Não foi possível carregar locações, clientes ou contratos.');setLoading(false);return;}
   const rlist=(rr.data??[]) as Rental[];const rids=rlist.map(x=>x.id);
@@ -50,7 +50,7 @@ export default function ContractsPage(){
   if(!supabase||!selectedRental)return;const rental=rentals.find(r=>r.id===selectedRental);if(!rental)return;
   const customer=rental.customer_id?customers[rental.customer_id]:null;if(!customer){setError('A locação precisa estar vinculada a um cliente.');return;}
   const items=itemsByRental[rental.id]??[];if(!items.length){setError('Inclua ao menos um item na locação antes de gerar o contrato.');return;}
-  const snapshot={template_version:2,company:{name:companyName},customer,rental,items,generated_at:new Date().toISOString(),terms:terms.trim()};
+  const snapshot={template_version:2,company:{name:companyName,...companySettings},customer,rental,items,generated_at:new Date().toISOString(),terms:terms.trim()};
   const {error:e}=await supabase.from('rental_contracts').insert({company_id:companyId,rental_id:rental.id,status:'draft',signature_method:'external',contract_snapshot:snapshot});
   if(e)setError(e.message);else{setNotice('Contrato criado. Gere o link para enviar ao cliente.');setSelectedRental('');await load();}
  }
@@ -78,7 +78,7 @@ export default function ContractsPage(){
   clauses+extra+'<p style="margin-top:24px;text-align:justify">As partes declaram que tiveram acesso ao conteúdo deste instrumento, compreenderam suas condições e manifestam concordância com os termos aqui registrados.</p><p style="margin-top:22px">Local e data: ________________________________________________</p>'+
   '<div class="signatures"><div class="sig"><b>LOCADORA</b><br>'+esc(companyName)+'<br>Assinatura</div><div class="sig"><b>LOCATÁRIO</b><br>'+esc(customer.name)+'<br>Assinatura</div></div>'+
   '<div class="witness"><div>TESTEMUNHA 1<br>Nome: __________________________<br>CPF: ___________________________</div><div>TESTEMUNHA 2<br>Nome: __________________________<br>CPF: ___________________________</div></div><footer class="footer">'+esc(companyName)+' · Contrato nº '+esc(c.contract_number)+'</footer><script>window.onload=()=>window.print()</script></body></html>';
-  const w=window.open('','_blank');if(!w){setError('Permita a abertura de pop-ups para imprimir o contrato.');return;}w.document.write(html);w.document.close();
+  setPreviewHtml(html.replace(/<script>[\\s\\S]*?<\\/script>/,'').replace('</body>','<script>document.querySelectorAll(\"a\").forEach(a=>a.removeAttribute(\"target\"));</script></body>'));
  }
  async function signOut(){if(supabase){await supabase.auth.signOut();router.push('/login/');}}
  if(loading)return <main className="grid min-h-screen place-items-center">Carregando contratos...</main>;
