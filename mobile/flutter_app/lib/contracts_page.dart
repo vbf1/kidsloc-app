@@ -209,6 +209,74 @@ class _ContractsPageState extends State<ContractsPage> {
     }
   }
 
+  Future<void> _showContractDetails(Map<String, dynamic> contract) async {
+    final snapshot = Map<String, dynamic>.from(contract['contract_snapshot'] ?? {});
+    final customer = Map<String, dynamic>.from(snapshot['customer'] ?? {});
+    final rental = Map<String, dynamic>.from(snapshot['rental'] ?? {});
+    final company = Map<String, dynamic>.from(snapshot['company'] ?? {});
+    final items = (snapshot['items'] as List<dynamic>? ?? [])
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final expiry = DateTime.tryParse(contract['token_expires_at']?.toString() ?? '');
+    final isExpired = expiry != null && expiry.isBefore(DateTime.now().toUtc()) &&
+        ['sent', 'viewed'].contains(contract['status']);
+    final status = isExpired ? 'Link expirado' : _status(contract['status'].toString());
+    final lines = <String>[
+      'CONTRATO DE LOCAÇÃO #${contract['contract_number']}',
+      company['name']?.toString() ?? _companyName,
+      '',
+      'LOCATÁRIO',
+      customer['name']?.toString() ?? 'Não informado',
+      if ((customer['cpf']?.toString() ?? '').isNotEmpty) 'CPF: ${customer['cpf']}',
+      if ((customer['phone']?.toString() ?? '').isNotEmpty) 'Telefone: ${customer['phone']}',
+      '',
+      'DADOS DA LOCAÇÃO',
+      'Data: ${_date(rental['start_date'])} a ${_date(rental['end_date'])}',
+      'Horário: ${rental['start_time'] ?? '—'} a ${rental['end_time'] ?? '—'}',
+      'Total: ${_money(rental['total_amount'])}',
+      '',
+      'ITENS',
+      ...items.map((item) => '${item['quantity'] ?? 1}x ${item['name'] ?? 'Item'} · ${_money(item['subtotal'])}'),
+      '',
+      'CONDIÇÕES',
+      snapshot['terms']?.toString() ?? 'Condições não informadas.',
+      '',
+      'Situação: $status',
+      if (contract['signer_name'] != null) 'Assinado por: ${contract['signer_name']}',
+      if (contract['signed_at'] != null) 'Data da assinatura: ${_date(contract['signed_at'])}',
+    ];
+    final content = lines.join('\\n');
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Contrato #${contract['contract_number']}'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: SelectableText(content, style: const TextStyle(height: 1.5)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fechar'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: content));
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (mounted) ScaffoldMessenger.of(this.context).showSnackBar(
+                const SnackBar(content: Text('Dados do contrato copiados.')),
+              );
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Copiar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _status(String value) => switch (value) {
     'draft' => 'Rascunho',
     'sent' => 'Enviado',
@@ -275,12 +343,20 @@ class _ContractsPageState extends State<ContractsPage> {
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(children: [
                                 Expanded(child: Text('Contrato #${contract['contract_number']} · ${customer['name'] ?? 'Cliente'}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                                Text(_status(contract['status'].toString()), style: Theme.of(context).textTheme.labelMedium),
+                                Text(() { final expiry = DateTime.tryParse(contract['token_expires_at']?.toString() ?? ''); return expiry != null && expiry.isBefore(DateTime.now().toUtc()) && ['sent', 'viewed'].contains(contract['status']) ? 'Link expirado' : _status(contract['status'].toString()); }(), style: Theme.of(context).textTheme.labelMedium),
                               ]),
                               const SizedBox(height: 5),
                               Text('Locação em ${_date(rental['start_date'])} · ${_money(rental['total_amount'])}', style: Theme.of(context).textTheme.bodySmall),
                               if (contract['status'] == 'signed')
                                 Padding(padding: const EdgeInsets.only(top: 6), child: Text('Assinado por ${contract['signer_name'] ?? 'cliente'}', style: const TextStyle(color: Colors.green))),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => _showContractDetails(contract),
+                                  icon: const Icon(Icons.visibility_outlined),
+                                  label: const Text('Visualizar contrato'),
+                                ),
+                              ),
                               if (canSend)
                                 Align(
                                   alignment: Alignment.centerRight,
