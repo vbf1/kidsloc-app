@@ -1,4 +1,6 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+
+type PushAdminClient = SupabaseClient<any>;
 import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
@@ -22,7 +24,7 @@ function base64UrlToBytes(value: string): Uint8Array {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
 
-async function getPushConfig(admin: ReturnType<typeof createClient>) {
+async function getPushConfig(admin: PushAdminClient) {
   const read = async (name: string) => {
     const { data, error } = await admin.rpc("get_brq_push_secret", { p_name: name });
     if (error) throw error;
@@ -129,7 +131,7 @@ async function getFirebaseAccessToken(): Promise<{ token: string; projectId: str
 }
 
 async function sendFcmNotifications(
-  admin: ReturnType<typeof createClient>,
+  admin: PushAdminClient,
   companyId: string,
   title: string,
   body: string,
@@ -185,7 +187,7 @@ async function sendFcmNotifications(
 
 
 async function sendWebPushNotifications(
-  admin: ReturnType<typeof createClient>,
+  admin: PushAdminClient,
   companyId: string,
   title: string,
   body: string,
@@ -235,13 +237,13 @@ Deno.serve(async (req: Request) => {
     const serviceKey = secretKeys.default || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !anonKey || !serviceKey) return reply({ error: "Configuração do servidor incompleta." }, 500);
 
-    const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const admin = createClient<any>(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const body = await req.json();
 
     if (body?.action === "diagnostics") {
       const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
-      const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const authClient = createClient<any>(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
       const { data: authData, error: authError } = await authClient.auth.getUser(token);
       if (authError || !authData.user) return reply({ error: "Sua sessão expirou. Entre novamente." }, 401);
       const companyId = String(body.company_id || "");
@@ -297,7 +299,7 @@ Deno.serve(async (req: Request) => {
     if (body?.action === "subscribe" || body?.action === "unsubscribe") {
       const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
-      const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const authClient = createClient<any>(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
       const { data: authData, error: authError } = await authClient.auth.getUser(token);
       if (authError || !authData.user) return reply({ error: "Sua sessão expirou. Entre novamente." }, 401);
       const companyId = String(body.company_id || "");
@@ -337,7 +339,7 @@ Deno.serve(async (req: Request) => {
     if (body?.action === "public_key") {
       const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
-      const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const authClient = createClient<any>(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
       const { data: authData, error: authError } = await authClient.auth.getUser(token);
       if (authError || !authData.user) return reply({ error: "Sua sessão expirou. Entre novamente." }, 401);
 
@@ -355,7 +357,7 @@ Deno.serve(async (req: Request) => {
     if (body?.action === "test") {
       const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
-      const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const authClient = createClient<any>(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
       const { data: authData, error: authError } = await authClient.auth.getUser(token);
       if (authError || !authData.user) return reply({ error: "Sua sessão expirou. Entre novamente." }, 401);
       const companyId = String(body.company_id || "");
@@ -533,7 +535,10 @@ Deno.serve(async (req: Request) => {
           if (reservation.error) throw reservation.error;
           if (!reservation.data?.id) continue;
 
-          const customerName = String(rental.customers?.name || "Cliente");
+          const customerRelation = rental.customers as { name?: string } | { name?: string }[] | null;
+          const customerName = String(
+            (Array.isArray(customerRelation) ? customerRelation[0]?.name : customerRelation?.name) || "Cliente",
+          );
           const dayText = daysUntilEvent === 1 ? "amanhã" : "daqui a " + daysUntilEvent + " dias";
           // Send only to company administrators and staff explicitly assigned
           // to this rental, so private event details are never broadcast to all staff.
