@@ -18,6 +18,7 @@ class _FinancePageState extends State<FinancePage> {
   List<Map<String, dynamic>> _transactions = [];
   List<Map<String, dynamic>> _payments = [];
   Map<String, double> _paidByTransaction = {};
+  Map<String, Map<String, dynamic>> _rentalInfo = {};
   String _filter = 'all';
   String _search = '';
 
@@ -53,11 +54,39 @@ class _FinancePageState extends State<FinancePage> {
         if (id != null) paid[id] = (paid[id] ?? 0) + _money(item['amount']);
       }
       final role = results[2].isEmpty ? '' : results[2].first['role']?.toString() ?? '';
+      final rentalIds = <String>{
+        ...rows.map((e) => e['rental_id']?.toString() ?? ''),
+        ...paymentRows.map((e) => e['rental_id']?.toString() ?? ''),
+      }..removeWhere((id) => id.isEmpty);
+      final rentalInfo = <String, Map<String, dynamic>>{};
+      if (rentalIds.isNotEmpty) {
+        try {
+          final rentals = await client.from('rentals').select('id,rental_number,customer_id').eq('company_id', widget.companyId).inFilter('id', rentalIds.toList());
+          final customerIds = <String>{};
+          for (final item in rentals) {
+            final rental = Map<String, dynamic>.from(item);
+            final id = rental['id']?.toString();
+            if (id != null) rentalInfo[id] = rental;
+            final customerId = rental['customer_id']?.toString();
+            if (customerId != null && customerId.isNotEmpty) customerIds.add(customerId);
+          }
+          if (customerIds.isNotEmpty) {
+            final customers = await client.from('customers').select('id,name').eq('company_id', widget.companyId).inFilter('id', customerIds.toList());
+            final names = {for (final item in customers) item['id'].toString(): item['name']?.toString() ?? ''};
+            for (final rental in rentalInfo.values) {
+              rental['customer_name'] = names[rental['customer_id']?.toString()] ?? '';
+            }
+          }
+        } catch (_) {
+          // Rental/customer details are supplementary; finance remains usable without them.
+        }
+      }
       if (!mounted) return;
       setState(() {
         _transactions = rows;
         _payments = paymentRows;
         _paidByTransaction = paid;
+        _rentalInfo = rentalInfo;
         _canManage = role == 'owner' || role == 'admin';
         _loading = false;
       });
@@ -127,14 +156,10 @@ class _FinancePageState extends State<FinancePage> {
     String? customerName;
     String? rentalNumber;
     final rentalId = payment['rental_id']?.toString() ?? transaction['rental_id']?.toString();
-    if (rentalId != null && rentalId.isNotEmpty) {
-      final rental = await Supabase.instance.client.from('rentals').select('rental_number,customer_id').eq('id', rentalId).eq('company_id', widget.companyId).maybeSingle();
-      rentalNumber = rental?['rental_number']?.toString();
-      final customerId = rental?['customer_id']?.toString();
-      if (customerId != null) {
-        final customer = await Supabase.instance.client.from('customers').select('name').eq('id', customerId).eq('company_id', widget.companyId).maybeSingle();
-        customerName = customer?['name']?.toString();
-      }
+    final rental = rentalId == null ? null : _rentalInfo[rentalId];
+    if (rental != null) {
+      rentalNumber = rental['rental_number']?.toString();
+      customerName = rental['customer_name']?.toString();
     }
     if (!mounted) return;
     final receipt = [
@@ -211,7 +236,9 @@ class _FinancePageState extends State<FinancePage> {
       };
       final normalize = (String value) => value.toLowerCase().replaceAll(RegExp(r'[áàâãä]'), 'a').replaceAll(RegExp(r'[éèêë]'), 'e').replaceAll(RegExp(r'[íìîï]'), 'i').replaceAll(RegExp(r'[óòôõö]'), 'o').replaceAll(RegExp(r'[úùûü]'), 'u').replaceAll('ç', 'c');
       final query = normalize(_search.trim());
-      final text = normalize('${row['description'] ?? ''} ${row['category'] ?? ''}');
+      final rentalId = row['rental_id']?.toString();
+      final rental = rentalId == null ? null : _rentalInfo[rentalId];
+      final text = normalize('${row['description'] ?? ''} ${row['category'] ?? ''} ${rental?['customer_name'] ?? ''} ${rental?['rental_number'] ?? ''}');
       return matchesFilter && (query.isEmpty || text.contains(query));
     }).toList();
     return Scaffold(
@@ -248,7 +275,7 @@ class _FinancePageState extends State<FinancePage> {
                       TextField(
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.search),
-                          hintText: 'Buscar por descrição ou categoria',
+                          hintText: 'Buscar por descrição, categoria, cliente ou locação',
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
