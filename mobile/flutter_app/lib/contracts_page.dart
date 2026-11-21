@@ -245,7 +245,7 @@ class _ContractsPageState extends State<ContractsPage> {
       if (contract['signer_name'] != null) 'Assinado por: ${contract['signer_name']}',
       if (contract['signed_at'] != null) 'Data da assinatura: ${_date(contract['signed_at'])}',
     ];
-    final content = lines.join('\\n');
+    final content = lines.join('\n');
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
