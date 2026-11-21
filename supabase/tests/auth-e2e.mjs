@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 const apiUrl = process.env.API_URL;
 const apiKey = process.env.ANON_KEY || process.env.PUBLISHABLE_KEY;
@@ -9,8 +9,8 @@ assert.ok(apiUrl, 'API_URL is missing; run supabase status -o env');
 assert.ok(apiKey, 'ANON_KEY or PUBLISHABLE_KEY is missing');
 
 const email = `kidsloc-ci-${randomUUID()}@example.test`;
-const initialPassword = [randomUUID(), 'A1!'].join('');
-const updatedPassword = [randomUUID(), 'B2!'].join('');
+const initialPassword = randomBytes(32).toString('base64url');
+const updatedPassword = randomBytes(32).toString('base64url');
 const redirectTo = 'http://localhost:3000/app/company/';
 
 function headers(token = apiKey) {
