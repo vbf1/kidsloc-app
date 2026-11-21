@@ -539,7 +539,14 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('KidsLoc App'), actions: [
       IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
-      IconButton(tooltip: 'Sair', onPressed: () => Supabase.instance.client.auth.signOut(), icon: const Icon(Icons.logout)),
+      IconButton(
+        tooltip: 'Sair',
+        onPressed: () async {
+          await PushNotifications.unregisterCurrentDevice();
+          await Supabase.instance.client.auth.signOut();
+        },
+        icon: const Icon(Icons.logout),
+      ),
     ]),
     body: _loading ? const Center(child: CircularProgressIndicator()) : RefreshIndicator(
       onRefresh: _load,
