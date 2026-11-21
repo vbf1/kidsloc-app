@@ -243,6 +243,9 @@ class _ContractsPageState extends State<ContractsPage> {
       'DADOS DA LOCAÇÃO',
       'Data: ${_date(rental['start_date'])} a ${_date(rental['end_date'])}',
       'Horário: ${rental['start_time'] ?? '—'} a ${rental['end_time'] ?? '—'}',
+      'Endereço do evento: ${rental['delivery_method'] == 'delivery' ? rental['delivery_address'] ?? 'Não informado' : 'Retirada pelo cliente'}',
+      'Taxa de entrega: ${_money(rental['delivery_fee'])}',
+      'Desconto: ${_money(rental['discount'])}',
       'Total: ${_money(rental['total_amount'])}',
       '',
       'ITENS',
@@ -280,6 +283,15 @@ class _ContractsPageState extends State<ContractsPage> {
       'Situação: $status',
       if (contract['signer_name'] != null) 'Assinado por: ${contract['signer_name']}',
       if (contract['signed_at'] != null) 'Data da assinatura: ${_date(contract['signed_at'])}',
+      '',
+      'LOCADORA – ${company['name']?.toString() ?? _companyName}',
+      'Assinatura: __________________________________',
+      '',
+      'LOCATÁRIO – ${customer['name']?.toString() ?? 'Cliente'}',
+      'Assinatura: __________________________________',
+      '',
+      'TESTEMUNHA 1 – Nome: __________________ CPF: __________________',
+      'TESTEMUNHA 2 – Nome: __________________ CPF: __________________',
     ];
     final content = lines.join('\n');
     await showDialog<void>(
