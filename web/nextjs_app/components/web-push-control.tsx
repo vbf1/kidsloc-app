@@ -25,15 +25,18 @@ export function WebPushControl({ companyId, basePath }: Props) {
       return;
     }
     let active = true;
-    void navigator.serviceWorker.getRegistration(`${basePath}/`).then(async (registration) => {
-      const subscription = await registration?.pushManager.getSubscription();
-      if (!active) return;
-      if (subscription) setNoticeState('subscribed');
-      else if (Notification.permission === 'denied') setNoticeState('blocked');
-      else setNoticeState('needed');
-    }).catch(() => {
-      if (active) setNoticeState(Notification.permission === 'denied' ? 'blocked' : 'needed');
-    });
+    void (async () => {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration(`${basePath}/`);
+        const subscription = await registration?.pushManager.getSubscription();
+        if (!active) return;
+        if (subscription) setNoticeState('subscribed');
+        else if (Notification.permission === 'denied') setNoticeState('blocked');
+        else setNoticeState('needed');
+      } catch {
+        if (active) setNoticeState(Notification.permission === 'denied' ? 'blocked' : 'needed');
+      }
+    })();
     return () => { active = false; };
   }, [basePath]);
 
