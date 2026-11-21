@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { contractClauses, contractDate, contractTime } from '../../lib/contract-template';
 
 type SignCustomer={name?:string;cpf?:string};
-type SignRental={start_date?:string;end_date?:string;start_time?:string;end_time?:string;delivery_method?:string;delivery_address?:string;total_amount?:number|string};
+type SignRental={start_date?:string;end_date?:string;start_time?:string;end_time?:string;delivery_method?:string;delivery_address?:string;total_amount?:number|string;delivery_fee?:number|string;discount?:number|string};
 type SignItem={name?:string;quantity?:number;subtotal?:number|string};
 type SignSnapshot={company?:{name?:string};customer?:SignCustomer;rental?:SignRental;items?:SignItem[];terms?:string};
 type PublicContract={id:string;contract_number:number;status:string;snapshot:SignSnapshot;signed_at:string|null;signer_name:string|null};
