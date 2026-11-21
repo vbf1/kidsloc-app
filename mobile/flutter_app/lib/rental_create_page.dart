@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RentalCreatePage extends StatefulWidget {
-  const RentalCreatePage({super.key, required this.companyId});
+  const RentalCreatePage({super.key, required this.companyId, this.rentalId});
   final String companyId;
+  final String? rentalId;
+
+  bool get isEditing => rentalId != null;
 
   @override
   State<RentalCreatePage> createState() => _RentalCreatePageState();
@@ -70,14 +73,55 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
           ...m,
           'name': names[m['user_id'].toString()] ?? 'Funcionário',
         }).toList();
-        _loading = false;
       });
+      if (widget.rentalId != null) await _loadExistingRental();
+      if (mounted) setState(() => _loading = false);
     } catch (_) {
       if (mounted) setState(() {
         _error = 'Não foi possível carregar clientes, brinquedos e equipe.';
         _loading = false;
       });
     }
+  }
+
+  Future<void> _loadExistingRental() async {
+    final client = Supabase.instance.client;
+    final rental = await client.from('rentals').select('*')
+        .eq('id', widget.rentalId!).eq('company_id', widget.companyId).single();
+    final results = await Future.wait([
+      client.from('rental_items').select('product_id,quantity,unit_price')
+          .eq('rental_id', widget.rentalId!).eq('company_id', widget.companyId),
+      client.from('rental_responsibles').select('user_id')
+          .eq('rental_id', widget.rentalId!).eq('company_id', widget.companyId),
+    ]);
+    final items = results[0].map((row) {
+      final item = Map<String, dynamic>.from(row);
+      final product = _products.where((p) => p['id'].toString() == item['product_id'].toString()).firstOrNull;
+      return <String, dynamic>{
+        'product_id': item['product_id'].toString(),
+        'name': product?['name']?.toString() ?? 'Item do catálogo',
+        'quantity': (item['quantity'] as num).toInt(),
+        'unit_price': (item['unit_price'] as num).toDouble(),
+      };
+    }).toList();
+    if (!mounted) return;
+    setState(() {
+      _customerId = rental['customer_id']?.toString();
+      _startDate = DateTime.parse(rental['start_date'].toString());
+      _endDate = DateTime.parse(rental['end_date'].toString());
+      _startTime.text = (rental['start_time'] ?? '09:00').toString().substring(0, 5);
+      _endTime.text = (rental['end_time'] ?? '18:00').toString().substring(0, 5);
+      _status = rental['status']?.toString() ?? 'pending';
+      _delivery = rental['delivery_method']?.toString() ?? 'delivery';
+      _address.text = rental['delivery_address']?.toString() ?? '';
+      _total.text = ((rental['total_amount'] ?? 0) as num).toStringAsFixed(2);
+      _items
+        ..clear()
+        ..addAll(items);
+      _responsibles
+        ..clear()
+        ..addAll(results[1].map((r) => r['user_id'].toString()));
+    });
   }
 
   String _date(DateTime d) =>
@@ -171,7 +215,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       _error = null;
     });
     try {
-      await Supabase.instance.client.rpc('create_rental_with_items', params: {
+      final params = {
         'p_company_id': widget.companyId,
         'p_customer_id': _customerId,
         'p_start_date': _date(_startDate),
@@ -188,10 +232,16 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         'p_responsible_user_ids': _responsibles.toList(),
         'p_start_time': _startTime.text.trim(),
         'p_end_time': _endTime.text.trim(),
-      });
+      };
+      if (widget.rentalId == null) {
+        await Supabase.instance.client.rpc('create_rental_with_items', params: params);
+      } else {
+        params['p_rental_id'] = widget.rentalId;
+        await Supabase.instance.client.rpc('update_rental_with_items', params: params);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Locação criada com sucesso.')),
+        SnackBar(content: Text(widget.isEditing ? 'Locação atualizada com sucesso.' : 'Locação criada com sucesso.')),
       );
       Navigator.pop(context, true);
     } on PostgrestException catch (e) {
@@ -205,7 +255,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Nova locação')),
+    appBar: AppBar(title: Text(widget.isEditing ? 'Editar locação' : 'Nova locação')),
     body: _loading
       ? const Center(child: CircularProgressIndicator())
       : Form(
@@ -254,6 +304,8 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                   DropdownMenuItem(value: 'pending', child: Text('Pendente')),
                   DropdownMenuItem(value: 'confirmed', child: Text('Confirmada')),
                   DropdownMenuItem(value: 'ongoing', child: Text('Em andamento')),
+                  if (widget.isEditing) const DropdownMenuItem(value: 'completed', child: Text('Concluída')),
+                  if (widget.isEditing) const DropdownMenuItem(value: 'cancelled', child: Text('Cancelada')),
                 ],
                 onChanged: (v) => setState(() => _status = v ?? 'pending'),
               ),
@@ -355,7 +407,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                 icon: _saving
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.save),
-                label: Text(_saving ? 'Salvando...' : 'Salvar locação'),
+                label: Text(_saving ? 'Salvando...' : widget.isEditing ? 'Salvar alterações' : 'Salvar locação'),
               ),
             ],
           ),
