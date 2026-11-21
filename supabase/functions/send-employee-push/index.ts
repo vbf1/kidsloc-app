@@ -231,7 +231,7 @@ Deno.serve(async (req: Request) => {
       try {
         const service = await getFirebaseAccessToken();
         if (!service) throw new Error("A credencial de serviço do Firebase não foi carregada.");
-        const expectedProject = "kidsloc-app-32009";
+        const expectedProject = "kidsloc-app";
         const projectMatches = service.projectId === expectedProject;
         return reply({
           firebaseConfigured: true,
