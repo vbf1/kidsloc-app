@@ -100,7 +100,7 @@ export default function QuotesPage() {
     if (!customerId || items.length===0) { setError('Selecione o cliente e adicione pelo menos um item.'); return; }
     if (deliveryMethod==='delivery' && !address.trim()) { setError('Informe o endereço de entrega.'); return; }
     setBusy(true); setError('');
-    const {data,error:saveError}=await supabase.rpc('create_rental_quote_with_items',{
+    const {error:saveError}=await supabase.rpc('create_rental_quote_with_items',{
       p_company_id:companyId,p_customer_id:customerId,p_valid_until:validUntil||null,
       p_event_date:eventDate||null,p_start_time:startTime||null,p_end_time:endTime||null,
       p_delivery_method:deliveryMethod,p_delivery_address:address,
