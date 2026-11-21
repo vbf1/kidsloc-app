@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "19265003407",
+    "project_id": "kidsloc-app",
+    "storage_bucket": "kidsloc-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:19265003407:android:2d846c1f1b590301c675fa",
+        "android_client_info": {
+          "package_name": "kidslocapp.package"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOR7Xqx2IDnkee7ZpTi06qqU0rjPltEiE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
