@@ -221,8 +221,8 @@ class _FinancePageState extends State<FinancePage> {
     final id = row['id'].toString();
     final amount = _money(row['amount']);
     final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0.0);
-    final balance = amount - paid;
-    if (balance <= 0 || !_canManage) return;
+    final balance = (amount - paid).clamp(0, double.infinity).toDouble();
+    if (balance <= 0 || !_canManage || _saving) return;
     final result = await showDialog<_PaymentData>(
       context: context,
       builder: (_) => _PaymentDialog(balance: balance),
