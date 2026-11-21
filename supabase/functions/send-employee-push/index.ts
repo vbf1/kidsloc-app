@@ -183,6 +183,46 @@ async function sendFcmNotifications(
   return { sent: results.filter(Boolean).length, total: deviceList.length, configured: true };
 }
 
+
+async function sendWebPushNotifications(
+  admin: ReturnType<typeof createClient>,
+  companyId: string,
+  title: string,
+  body: string,
+  targetUserId?: string,
+) {
+  let query = admin.from("push_subscriptions").select("id,endpoint,p256dh,auth").eq("company_id", companyId);
+  if (targetUserId) query = query.eq("user_id", targetUserId);
+  const { data: subscriptions, error } = await query;
+  if (error) throw error;
+  if (!subscriptions?.length) return { sent: 0, total: 0 };
+  const config = await getPushConfig(admin);
+  webpush.setVapidDetails("https://vbf1.github.io/kidsloc-app/", config.publicKey, config.privateKey);
+  const payload = JSON.stringify({
+    title,
+    body,
+    url: "https://vbf1.github.io/kidsloc-app/",
+    tag: "kidsloc-notification",
+  });
+  const results = await Promise.all(subscriptions.map(async (subscription) => {
+    try {
+      await webpush.sendNotification({
+        endpoint: subscription.endpoint,
+        keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+      }, payload);
+      return true;
+    } catch (error) {
+      const statusCode = Number((error as { statusCode?: number })?.statusCode || 0);
+      if (statusCode === 404 || statusCode === 410) {
+        await admin.from("push_subscriptions").delete().eq("id", subscription.id);
+      }
+      console.error("Falha ao enviar Web Push:", statusCode || String(error));
+      return false;
+    }
+  }));
+  return { sent: results.filter(Boolean).length, total: subscriptions.length };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return reply({ error: "Método não permitido." }, 405);
@@ -254,6 +294,46 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    if (body?.action === "subscribe" || body?.action === "unsubscribe") {
+      const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+      if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
+      const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: authData, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !authData.user) return reply({ error: "Sua sessão expirou. Entre novamente." }, 401);
+      const companyId = String(body.company_id || "");
+      if (!companyId) return reply({ error: "Empresa não identificada." }, 400);
+      const { data: member, error: memberError } = await admin.from("company_members")
+        .select("user_id").eq("company_id", companyId).eq("user_id", authData.user.id).maybeSingle();
+      if (memberError || !member) return reply({ error: "Você não pertence a esta empresa." }, 403);
+
+      const endpoint = String(body.subscription?.endpoint || body.endpoint || "");
+      if (!endpoint || endpoint.length > 4096) return reply({ error: "Assinatura de notificação inválida." }, 400);
+      let parsedEndpoint: URL;
+      try { parsedEndpoint = new URL(endpoint); } catch { return reply({ error: "Endereço da assinatura inválido." }, 400); }
+      if (parsedEndpoint.protocol !== "https:") return reply({ error: "A assinatura precisa usar HTTPS." }, 400);
+
+      if (body.action === "unsubscribe") {
+        const { error } = await admin.from("push_subscriptions").delete()
+          .eq("company_id", companyId).eq("user_id", authData.user.id).eq("endpoint", endpoint);
+        if (error) throw error;
+        return reply({ ok: true, subscribed: false });
+      }
+
+      const p256dh = String(body.subscription?.keys?.p256dh || "");
+      const auth = String(body.subscription?.keys?.auth || "");
+      if (!p256dh || !auth) return reply({ error: "As chaves da assinatura estão incompletas." }, 400);
+      const { error } = await admin.from("push_subscriptions").upsert({
+        company_id: companyId,
+        user_id: authData.user.id,
+        endpoint,
+        p256dh,
+        auth,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "endpoint" });
+      if (error) throw error;
+      return reply({ ok: true, subscribed: true });
+    }
+
     if (body?.action === "public_key") {
       const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       if (!token) return reply({ error: "Entre novamente no aplicativo." }, 401);
@@ -265,8 +345,8 @@ Deno.serve(async (req: Request) => {
       if (!companyId) return reply({ error: "Empresa não identificada." }, 400);
       const { data: member, error: memberError } = await admin.from("company_members")
         .select("role").eq("company_id", companyId).eq("user_id", authData.user.id).maybeSingle();
-      if (memberError || !member || !["owner", "admin"].includes(member.role)) {
-        return reply({ error: "Somente proprietário e administradores podem ativar notificações." }, 403);
+      if (memberError || !member) {
+        return reply({ error: "Você não pertence a esta empresa." }, 403);
       }
       const config = await getPushConfig(admin);
       return reply({ publicKey: config.publicKey });
@@ -463,14 +543,12 @@ Deno.serve(async (req: Request) => {
           ]);
           let sentForEvent = 0;
           for (const userId of recipients) {
-            const result = await sendFcmNotifications(
-              admin,
-              rental.company_id,
-              "Evento se aproximando",
-              customerName + " tem uma locação " + dayText + ". Confira os detalhes no KidsLoc.",
-              userId,
-            );
-            sentForEvent += result.sent;
+            const notificationBody = customerName + " tem uma locação " + dayText + ". Confira os detalhes no KidsLoc.";
+            const [fcmResult, webResult] = await Promise.all([
+              sendFcmNotifications(admin, rental.company_id, "Evento se aproximando", notificationBody, userId),
+              sendWebPushNotifications(admin, rental.company_id, "Evento se aproximando", notificationBody, userId),
+            ]);
+            sentForEvent += fcmResult.sent + webResult.sent;
           }
 
           if (sentForEvent > 0) {
