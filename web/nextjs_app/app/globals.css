@@ -239,3 +239,22 @@ body { overflow-x: clip; }
   .app-shell-main { width: 100%; }
   .app-shell-main [role="alertdialog"] { padding: 20px; }
 }
+
+
+/* Impressão de comprovantes: mantém somente o documento visível no papel/PDF. */
+@media print {
+  @page { size: A4; margin: 16mm; }
+  body * { visibility: hidden !important; }
+  .receipt-print, .receipt-print * { visibility: visible !important; }
+  .receipt-print {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .receipt-actions { display: none !important; }
+}
