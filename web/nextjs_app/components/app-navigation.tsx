@@ -86,7 +86,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
       { label: 'LeadFesta', shortLabel: 'Leads', href: basePath + '/app/leads/', active: isLeadFesta, icon: 'funnel' as const },
       { label: 'Prospectar empresas', shortLabel: 'Prospectar', href: basePath + '/app/leads/prospeccao/', active: isProspecting, icon: 'map-pin' as const },
     ] : []),
-    ...(role === 'owner' || role === 'admin' ? [{ label: 'Gerenciar equipe', shortLabel: 'Equipe', href: basePath + '/equipe/', active: isTeam, icon: 'team' as const }] : []),
+    ...(role === 'admin' ? [{ label: 'Gerenciar equipe', shortLabel: 'Equipe', href: basePath + '/equipe/', active: isTeam, icon: 'team' as const }] : []),
   ];
 
   const primaryItems = items.slice(0, 3);
