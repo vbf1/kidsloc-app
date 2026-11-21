@@ -1,10 +1,21 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
 import { AppNavigation } from './app-navigation';
 import { WebPushControl } from './web-push-control';
 
 type CompanyRole = 'platform_owner' | 'admin' | 'staff';
+const REALTIME_TABLES = [
+  'company_members', 'customers', 'products', 'product_units', 'rentals',
+  'rental_items', 'rental_item_units', 'rental_responsibles', 'rental_events',
+  'rental_quotes', 'rental_quote_items', 'rental_contracts',
+  'financial_transactions', 'payments', 'leads', 'lead_activities',
+  'lead_pipeline_stages', 'documents', 'maintenance_records', 'stock_movements',
+  'occurrence_reports', 'occurrence_photos', 'team_conversations',
+  'team_conversation_members', 'team_messages',
+] as const;
+
 type AppShellProps = {
   companyName: string;
   email: string;
@@ -26,6 +37,36 @@ export function AppShell({
   onSignOut,
   children,
 }: AppShellProps) {
+  useEffect(() => {
+    if (!companyId || !supabase) return;
+    const pendingTables = new Set<string>();
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const channel = supabase.channel(`kidsloc-company-${companyId}-realtime`);
+    for (const table of REALTIME_TABLES) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
+        const next = payload.new as Record<string, unknown>;
+        const previous = payload.old as Record<string, unknown>;
+        const changedCompany = next?.company_id ?? previous?.company_id;
+        if (changedCompany !== companyId) return;
+        pendingTables.add(table);
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          for (const changedTable of pendingTables) {
+            window.dispatchEvent(new CustomEvent('kidsloc:company-data-changed', {
+              detail: { companyId, table: changedTable },
+            }));
+          }
+          pendingTables.clear();
+        }, 180);
+      });
+    }
+    channel.subscribe();
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [companyId]);
+
   return (
     <div className="app-shell-root min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
