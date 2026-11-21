@@ -121,10 +121,25 @@ class _FinancePageState extends State<FinancePage> {
     final method = payment['payment_method']?.toString() ?? 'Não informada';
     final description = transaction['description']?.toString() ?? 'Recebimento';
     final paymentId = payment['id']?.toString() ?? '';
+    String? customerName;
+    String? rentalNumber;
+    final rentalId = payment['rental_id']?.toString() ?? transaction['rental_id']?.toString();
+    if (rentalId != null && rentalId.isNotEmpty) {
+      final rental = await Supabase.instance.client.from('rentals').select('rental_number,customer_id').eq('id', rentalId).eq('company_id', widget.companyId).maybeSingle();
+      rentalNumber = rental?['rental_number']?.toString();
+      final customerId = rental?['customer_id']?.toString();
+      if (customerId != null) {
+        final customer = await Supabase.instance.client.from('customers').select('name').eq('id', customerId).eq('company_id', widget.companyId).maybeSingle();
+        customerName = customer?['name']?.toString();
+      }
+    }
+    if (!mounted) return;
     final receipt = [
       'COMPROVANTE DE RECEBIMENTO',
       'KidsLoc',
       if (paymentId.length >= 8) 'Comprovante: #${paymentId.substring(0, 8).toUpperCase()}',
+      if (customerName != null) 'Cliente: $customerName',
+      if (rentalNumber != null) 'Locação: #$rentalNumber',
       'Descrição: $description',
       'Valor recebido: $amount',
       'Data: $formattedDate',
