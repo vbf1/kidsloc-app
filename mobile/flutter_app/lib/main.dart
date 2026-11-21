@@ -10,6 +10,7 @@ import 'agenda_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/push_notifications.dart';
+import 'services/company_realtime.dart';
 
 const _webAppBaseUrl = 'https://vbf1.github.io/kidsloc-app';
 
@@ -453,6 +454,8 @@ class _HomePageState extends State<HomePage> {
   bool _loading = true;
   String? _error;
   final Map<String, int> _counts = {};
+  CompanyRealtimeSubscription? _realtime;
+  String? _realtimeCompanyId;
   static const _modules = [
     ['Clientes', 'customers'],
     ['Brinquedos e serviços', 'products'],
@@ -470,8 +473,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() { super.initState(); _load(); }
 
-  Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) setState(() { _loading = true; _error = null; });
     try {
       final client = Supabase.instance.client;
       final user = client.auth.currentUser;
@@ -492,6 +495,7 @@ class _HomePageState extends State<HomePage> {
       final name = company is Map ? company['name']?.toString() : null;
       final companyId = membership['company_id'].toString();
       final role = membership['role']?.toString() ?? 'staff';
+      _subscribeToCompany(companyId);
       final counts = <String, int>{};
       for (final module in _modules) {
         if (module[1] == 'financial_transactions' && role != 'admin') continue;
@@ -519,6 +523,30 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       if (mounted) setState(() { _error = 'Ocorreu um erro ao carregar o aplicativo.'; _loading = false; });
     }
+  }
+
+  void _subscribeToCompany(String companyId) {
+    if (_realtimeCompanyId == companyId && _realtime != null) return;
+    _realtime?.dispose();
+    _realtimeCompanyId = companyId;
+    _realtime = CompanyRealtimeSubscription.listen(
+      client: Supabase.instance.client,
+      companyId: companyId,
+      channelName: 'kidsloc-mobile-home-$companyId',
+      tables: const [
+        'company_members', 'customers', 'products', 'product_units', 'rentals',
+        'rental_items', 'rental_item_units', 'rental_responsibles', 'rental_events',
+        'rental_quotes', 'rental_quote_items', 'rental_contracts',
+        'financial_transactions', 'payments', 'leads', 'lead_activities',
+      ],
+      onChange: () { if (mounted) _load(showLoading: false); },
+    );
+  }
+
+  @override
+  void dispose() {
+    _realtime?.dispose();
+    super.dispose();
   }
 
   Future<void> _openModule(String title, String table) async {
@@ -607,6 +635,7 @@ class _RecordsPage extends StatefulWidget {
 }
 
 class _RecordsPageState extends State<_RecordsPage> {
+  CompanyRealtimeSubscription? _realtime;
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -614,10 +643,33 @@ class _RecordsPageState extends State<_RecordsPage> {
   bool get _editable => widget.table == 'customers' || widget.table == 'products';
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+    final tables = switch (widget.table) {
+      'products' => ['products', 'product_units'],
+      'rentals' => ['rentals', 'rental_items', 'rental_item_units', 'rental_events', 'rental_responsibles'],
+      'rental_quotes' => ['rental_quotes', 'rental_quote_items'],
+      'rental_contracts' => ['rental_contracts'],
+      _ => [widget.table],
+    };
+    _realtime = CompanyRealtimeSubscription.listen(
+      client: Supabase.instance.client,
+      companyId: widget.companyId,
+      channelName: 'kidsloc-mobile-records-${widget.table}-${widget.companyId}',
+      tables: tables,
+      onChange: () { if (mounted) _load(showLoading: false); },
+    );
+  }
 
-  Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+  @override
+  void dispose() {
+    _realtime?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) setState(() { _loading = true; _error = null; });
     try {
       final result = await Supabase.instance.client.from(widget.table).select('*')
           .eq('company_id', widget.companyId).limit(100);
