@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { AppNavigation } from './app-navigation';
 import { WebPushControl } from './web-push-control';
 
-type CompanyRole = 'admin' | 'staff';
+type CompanyRole = 'platform_owner' | 'admin' | 'staff';
 type AppShellProps = {
   companyName: string;
   email: string;

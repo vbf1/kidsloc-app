@@ -7,7 +7,7 @@ import { AppShell } from '../../../../components/app-shell';
 import { supabase } from '../../../../lib/supabase';
 
 type CompanyOption = { id: string; name: string };
-type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'owner' };
+type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'platform_owner' };
 type Stage = { id: string; name: string; position: number };
 type ExistingLead = { id: string; name: string; phone: string | null; contact_company: string | null };
 type SearchElement = OSMElement & { tags?: Record<string, string> };
@@ -65,25 +65,25 @@ export default function LeadProspectingPage() {
         if (ownerError) throw ownerError;
         let companyId = '';
         let companyName = '';
-        let role: 'admin' | 'owner' = 'admin';
+        let role: 'admin' | 'platform_owner' = 'admin';
         if (isOwner === true) {
           const { data: rows, error: companiesError } = await supabase.from('companies').select('id,name').order('name');
           if (companiesError) throw companiesError;
           setCompanies((rows ?? []) as CompanyOption[]);
           companyId = rows?.[0]?.id ?? '';
           companyName = rows?.[0]?.name ?? '';
-          role = 'owner';
+          role = 'platform_owner';
         } else {
           const { data: membership, error: memberError } = await supabase.from('company_members')
             .select('company_id,role,companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
           if (memberError) throw memberError;
-          if (!membership?.company_id || (membership.role !== 'admin' && membership.role !== 'owner')) {
+          if (!membership?.company_id || (membership.role !== 'admin')) {
             throw new Error('A prospecção está disponível somente para administradores da empresa.');
           }
           const relation = Array.isArray(membership.companies) ? membership.companies[0] : membership.companies;
           companyId = membership.company_id;
           companyName = relation?.name ?? 'Sua empresa';
-          role = membership.role as 'admin' | 'owner';
+          role = 'admin';
           setCompanies([{ id: companyId, name: companyName }]);
         }
         if (!companyId) throw new Error('Nenhuma empresa disponível para prospecção.');
@@ -338,7 +338,7 @@ export default function LeadProspectingPage() {
       {notice && <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-      {workspace?.role === 'owner' && companies.length > 1 && <label className="block max-w-md text-sm font-semibold">Empresa ativa
+      {workspace?.role === 'platform_owner' && companies.length > 1 && <label className="block max-w-md text-sm font-semibold">Empresa ativa
         <select className={field} value={workspace.companyId} onChange={(event) => { void changeCompany(event.target.value); }}>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select>
       </label>}
 

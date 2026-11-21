@@ -12,7 +12,7 @@ import { formatProductInventoryError, formatPrice, matchesProductSearch, parsePr
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { supabase } from '../../../lib/supabase';
 
-type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
+type CompanyRole = 'admin' | 'staff';
 
 const PRODUCT_COLUMNS = 'id,company_id,name,description,item_type,inventory_mode,total_quantity,daily_price,event_price,active,notes,image_path,created_at,updated_at';
 type ProductPayload = {

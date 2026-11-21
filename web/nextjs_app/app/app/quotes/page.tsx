@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 
-type Role = 'owner' | 'admin' | 'manager' | 'staff';
+type Role = 'admin' | 'staff';
 type Customer = { id: string; name: string; phone: string | null };
 type Product = { id: string; name: string; daily_price: number | string; event_price: number | string | null; item_type: string };
 type QuoteItem = { product_id: string; quantity: number; unit_price: number };

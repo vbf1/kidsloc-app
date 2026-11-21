@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 
-type Role='owner'|'admin'|'manager'|'staff';
+type Role='admin'|'staff';
 type Rental={id:string;rental_number:number;customer_id:string|null;start_date:string;end_date:string;start_time:string|null;end_time:string|null;status:string;total_amount:number|string};
 type Product={id:string;name:string;total_quantity:number;inventory_mode:string};
 type RentalItem={rental_id:string;product_id:string;quantity:number};

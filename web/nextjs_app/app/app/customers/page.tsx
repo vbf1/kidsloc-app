@@ -10,7 +10,7 @@ import { matchesCustomerSearch, normalizeCustomer, type CustomerFormValues, type
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { supabase } from '../../../lib/supabase';
 
-type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
+type CompanyRole = 'admin' | 'staff';
 
 const CUSTOMER_COLUMNS = 'id,company_id,name,phone,email,address,notes,created_at,updated_at,cpf,rg,zip,neighborhood,city_state';
 type CustomerPayload = {

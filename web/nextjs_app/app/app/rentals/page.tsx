@@ -15,7 +15,7 @@ import {
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { supabase } from '../../../lib/supabase';
 
-type CompanyRole = 'owner' | 'admin' | 'manager' | 'staff';
+type CompanyRole = 'admin' | 'staff';
 
 const RENTAL_COLUMNS = 'id,company_id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,delivery_fee,discount,total_amount,deposit_amount,notes,created_by,created_at,updated_at';
 function localDateValue() {

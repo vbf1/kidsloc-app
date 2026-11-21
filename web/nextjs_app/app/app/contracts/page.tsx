@@ -6,7 +6,7 @@ import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 import { contractClauses, contractDate, contractTime } from '../../../lib/contract-template';
 
-type Role='owner'|'admin'|'manager'|'staff';
+type Role='admin'|'staff';
 type Rental={id:string;rental_number:number;customer_id:string|null;start_date:string;end_date:string;start_time:string|null;end_time:string|null;status:string;delivery_method:string;delivery_address:string|null;total_amount:number|string;discount:number|string;delivery_fee:number|string};
 type ContractSnapshot={template_version?:number;company?:{name?:string;legal_name?:string;document?:string;phone?:string;email?:string;address?:string;zip?:string};customer?:Customer;rental?:Rental;items?:Item[];terms?:string};
 type Contract={id:string;contract_number:number;rental_id:string|null;status:string;created_at:string;contract_snapshot:ContractSnapshot;token_expires_at:string|null;signed_at:string|null;signer_name:string|null;signer_document?:string|null;signature_svg?:string|null};
@@ -102,7 +102,7 @@ export default function ContractsPage(){
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
      <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Identificação</p><h2 className="mt-1 text-base font-bold text-slate-900">Dados da empresa</h2><p className="mt-1 text-xs leading-5 text-slate-500">Essas informações aparecem nos contratos emitidos.</p></div>
-      {(role==='owner'||role==='admin')&&<button onClick={()=>setCompanyFormOpen(v=>!v)} className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-purple-300 hover:bg-purple-50">{companyFormOpen?'Fechar edição':'Editar dados'}</button>}
+      {role==='admin'&&<button onClick={()=>setCompanyFormOpen(v=>!v)} className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-purple-300 hover:bg-purple-50">{companyFormOpen?'Fechar edição':'Editar dados'}</button>}
      </div>
      {companyFormOpen&&<div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="min-w-0 text-xs font-semibold text-slate-700">Nome da empresa<input value={companyForm.name} onChange={e=>setCompanyForm(v=>({...v,name:e.target.value}))} className="mt-1.5 w-full min-w-0 rounded-xl border p-3 text-sm font-normal"/></label>

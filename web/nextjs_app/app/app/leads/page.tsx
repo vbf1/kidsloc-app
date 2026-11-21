@@ -7,7 +7,7 @@ import { EMPTY_LEAD, formatLeadCurrency, formatLeadDate, matchesLeadSearch, norm
 import { supabase } from '../../../lib/supabase';
 
 type CompanyOption = { id: string; name: string };
-type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'owner' };
+type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'platform_owner' };
 
 const panel = 'rounded-2xl border border-purple-100 bg-white p-5 shadow-sm';
 const primary = 'inline-flex min-h-11 items-center justify-center rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#6840bd] disabled:cursor-not-allowed disabled:opacity-50';
@@ -69,7 +69,7 @@ export default function LeadFestaPage() {
           const rows = (data ?? []) as CompanyOption[];
           setCompanies(rows);
           setCompanyId(rows[0]?.id ?? '');
-          setWorkspace({ email: user.email ?? '', companyName: 'Administração da plataforma', companyId: '', role: 'owner' });
+          setWorkspace({ email: user.email ?? '', companyName: 'Administração da plataforma', companyId: '', role: 'platform_owner' });
           return;
         }
         const { data: membership, error: memberError } = await supabase.from('company_members')
@@ -79,7 +79,7 @@ export default function LeadFestaPage() {
           setAccessMessage('Sua conta ainda não está vinculada a uma empresa.');
           return;
         }
-        if (membership.role !== 'admin' && membership.role !== 'owner') {
+        if (membership.role !== 'admin') {
           setAccessMessage('O LeadFesta é disponibilizado somente para administradores da empresa.');
           return;
         }
@@ -95,7 +95,7 @@ export default function LeadFestaPage() {
           email: user.email ?? '',
           companyName: relation?.name ?? 'Sua empresa',
           companyId: membership.company_id,
-          role: membership.role as 'admin' | 'owner',
+          role: 'admin',
         });
         setCompanyId(membership.company_id);
       } catch {

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 
-type Role='owner'|'admin'|'manager'|'staff';
+type Role='admin'|'staff';
 type Tx={id:string;transaction_type:'income'|'expense';category:string|null;description:string;amount:number|string;due_date:string|null;paid_at:string|null;status:'pending'|'paid'|'cancelled';rental_id:string|null};
 type Payment={id:string;transaction_id:string|null;rental_id:string|null;amount:number|string;paid_at:string;payment_method:string|null;notes:string|null};
 type ReceiptInfo={payment:Payment;transaction:Tx;rentalNumber?:number;customerName?:string};
@@ -16,7 +16,7 @@ const today=()=>dateAfterDays(0);
 
 export default function FinancePage(){
  const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [transactions,setTransactions]=useState<Tx[]>([]);const [payments,setPayments]=useState<Payment[]>([]);const [showForm,setShowForm]=useState(false);const [type,setType]=useState<'income'|'expense'>('income');const [description,setDescription]=useState('');const [category,setCategory]=useState('');const [amount,setAmount]=useState('');const [dueDate,setDueDate]=useState(today());const [saving,setSaving]=useState(false);const [receiving,setReceiving]=useState<Tx|null>(null);const [receiveAmount,setReceiveAmount]=useState('');const [method,setMethod]=useState('Pix');const [receiveDate,setReceiveDate]=useState(today());const [receiveNotes,setReceiveNotes]=useState('');const [receipt,setReceipt]=useState<ReceiptInfo|null>(null);const [search,setSearch]=useState('');const [filter,setFilter]=useState<'all'|'income'|'expense'|'pending'|'overdue'|'due_soon'|'paid'|'cancelled'>('all');const [rentalInfo,setRentalInfo]=useState<Record<string,{rentalNumber:number;customerName:string}>>({});
- const canEdit=role==='owner'||role==='admin';
+ const canEdit=role==='admin';
  async function load(){
   await Promise.resolve();
   if(!supabase){setError('Banco não configurado.');setLoading(false);return;}

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
-type CompanyRole = 'admin' | 'staff';
+type CompanyRole = 'platform_owner' | 'admin' | 'staff';
 type AppNavigationProps = { basePath: string; role?: CompanyRole; companyId?: string };
 type NavItem = {
   label: string;
