@@ -6,13 +6,11 @@ class CompanyRealtimeSubscription {
   CompanyRealtimeSubscription._(
     this._client,
     this._channel,
-    this._companyId,
     this._onChange,
   );
 
   final SupabaseClient _client;
   final RealtimeChannel _channel;
-  final String _companyId;
   final void Function() _onChange;
   Timer? _debounce;
 
@@ -27,7 +25,6 @@ class CompanyRealtimeSubscription {
     final subscription = CompanyRealtimeSubscription._(
       client,
       channel,
-      companyId,
       onChange,
     );
 
