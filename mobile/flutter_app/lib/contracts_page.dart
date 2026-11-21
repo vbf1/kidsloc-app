@@ -20,6 +20,8 @@ class _ContractsPageState extends State<ContractsPage> {
   String? _notice;
   String? _selectedRentalId;
   String _companyName = 'Empresa';
+  final TextEditingController _searchController = TextEditingController();
+  String _statusFilter = 'all';
   final TextEditingController _termsController = TextEditingController(text: 'O LOCATÁRIO compromete-se a zelar pelos equipamentos, utilizá-los de forma adequada e devolvê-los nas condições recebidas. O LOCADOR compromete-se a disponibilizar os itens descritos na data e período acordados. Danos decorrentes de mau uso poderão ser cobrados do LOCATÁRIO. O cancelamento e demais condições devem ser ajustados entre as partes antes da assinatura.');
   List<Map<String, dynamic>> _rentals = [];
   List<Map<String, dynamic>> _contracts = [];
@@ -29,6 +31,7 @@ class _ContractsPageState extends State<ContractsPage> {
   @override
   void dispose() {
     _termsController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -119,6 +122,10 @@ class _ContractsPageState extends State<ContractsPage> {
 
   Future<void> _createDraft() async {
     if (_selectedRentalId == null || _saving) return;
+    if (_termsController.text.trim().isEmpty) {
+      setState(() => _error = 'Informe as condições do contrato.');
+      return;
+    }
     final rental = _rentals.firstWhere((e) => e['id'].toString() == _selectedRentalId);
     final customer = _customers[rental['customer_id']?.toString()];
     if (customer == null) {
@@ -293,6 +300,20 @@ class _ContractsPageState extends State<ContractsPage> {
     'expired' => 'Expirado',
     _ => value,
   };
+
+  List<Map<String, dynamic>> get _filteredContracts {
+    final query = _searchController.text.trim().toLowerCase();
+    return _contracts.where((contract) {
+      final snapshot = Map<String, dynamic>.from(contract['contract_snapshot'] ?? {});
+      final customer = Map<String, dynamic>.from(snapshot['customer'] ?? {});
+      final name = customer['name']?.toString().toLowerCase() ?? '';
+      final number = contract['contract_number']?.toString() ?? '';
+      final status = contract['status']?.toString() ?? '';
+      final matchesQuery = query.isEmpty || name.contains(query) || number.contains(query);
+      final matchesStatus = _statusFilter == 'all' || status == _statusFilter;
+      return matchesQuery && matchesStatus;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
