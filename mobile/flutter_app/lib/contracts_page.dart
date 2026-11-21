@@ -370,10 +370,49 @@ class _ContractsPageState extends State<ContractsPage> {
                     const SizedBox(height: 20),
                     Text('Contratos da empresa', style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 8),
+                    if (_contracts.isNotEmpty) ...[
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: 'Buscar por cliente ou número',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
+                          for (final filter in const [
+                            ('all', 'Todos'),
+                            ('draft', 'Rascunhos'),
+                            ('sent', 'Enviados'),
+                            ('viewed', 'Visualizados'),
+                            ('signed', 'Assinados'),
+                            ('cancelled', 'Cancelados'),
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(filter.$2),
+                                selected: _statusFilter == filter.$1,
+                                onSelected: (_) => setState(() => _statusFilter = filter.$1),
+                              ),
+                            ),
+                        ]),
+                      ),
+                    ],
                     if (_contracts.isEmpty)
                       const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Center(child: Text('Nenhum contrato criado.')))
+                    else if (_filteredContracts.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 28),
+                        child: Center(child: Text('Nenhum contrato corresponde à busca ou ao filtro.')),
+                      )
                     else
-                      ..._contracts.map((contract) {
+                      ..._filteredContracts.map((contract) {
                         final snapshot = Map<String, dynamic>.from(contract['contract_snapshot'] ?? {});
                         final customer = Map<String, dynamic>.from(snapshot['customer'] ?? {});
                         final rental = Map<String, dynamic>.from(snapshot['rental'] ?? {});
