@@ -125,7 +125,20 @@ export default function ContractsPage(){
     <section className="min-w-0 rounded-2xl border border-purple-100 bg-white p-4 shadow-sm sm:p-5">
      <div><p className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Novo documento</p><h2 className="mt-1 text-base font-bold text-slate-900">Criar contrato a partir de uma locação</h2><p className="mt-1 text-xs leading-5 text-slate-500">Selecione uma locação para preencher os dados do contrato automaticamente.</p></div>
      <div className="mt-4 flex min-w-0 flex-col gap-3">
-      <select value={selectedRental} onChange={e=>setSelectedRental(e.target.value)} className="w-full min-w-0 rounded-xl border border-slate-200 p-3 text-sm"><option value="">Selecione uma locação</option>{rentals.map(r=><option key={r.id} value={r.id}>#{r.rental_number} · {customers[r.customer_id??'']?.name??'Cliente'} · {new Date(r.start_date+'T00:00:00').toLocaleDateString('pt-BR')} · {money(r.total_amount)}</option>)}</select>
+      <label className="block min-w-0 space-y-2">
+       <span className="block text-xs font-semibold text-slate-700">Locação vinculada</span>
+       <span className="relative block">
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex w-11 items-center justify-center text-[#8054d8]">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M7.5 3.5v3M16.5 3.5v3M3.5 9.5h17M8 13h3M8 16.5h7"/></svg>
+        </span>
+        <select aria-label="Selecione uma locação" value={selectedRental} onChange={e=>setSelectedRental(e.target.value)} className="h-[54px] w-full min-w-0 appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-11 text-sm font-medium text-slate-800 shadow-sm outline-none transition duration-200 hover:border-purple-200 hover:bg-white focus:border-[#8054d8] focus:bg-white focus:ring-4 focus:ring-purple-100">
+         <option value="">Selecione uma locação</option>
+         {rentals.map(r=><option key={r.id} value={r.id}>#{r.rental_number} · {customers[r.customer_id??'']?.name??'Cliente'} · {new Date(r.start_date+'T00:00:00').toLocaleDateString('pt-BR')} · {money(r.total_amount)}</option>)}
+        </select>
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 transition-colors"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></span>
+       </span>
+       <span className="block text-[11px] leading-5 text-slate-500">Escolha a locação que será usada para preencher os dados e valores do contrato.</span>
+      </label>
       <label className="block min-w-0 text-xs font-semibold text-slate-700">Condições adicionais <span className="font-normal text-slate-400">(opcional)</span><textarea value={terms} onChange={e=>setTerms(e.target.value)} rows={4} maxLength={5000} className="mt-1.5 w-full min-w-0 rounded-xl border border-slate-200 p-3 text-sm font-normal" placeholder="Inclua alguma condição específica combinada com o cliente, se houver."/><span className="mt-1 block text-[11px] font-normal leading-5 text-slate-500">As cláusulas gerais já fazem parte do contrato. Use este campo apenas para condições específicas desta locação.</span></label>
       <div className="flex justify-end"><button disabled={!selectedRental} onClick={()=>void createDraft()} className="w-full rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#6840bd] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">Criar contrato</button></div>
      </div>
