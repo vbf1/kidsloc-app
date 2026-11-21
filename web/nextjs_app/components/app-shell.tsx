@@ -39,9 +39,10 @@ export function AppShell({
 }: AppShellProps) {
   useEffect(() => {
     if (!companyId || !supabase) return;
+    const client = supabase;
     const pendingTables = new Set<string>();
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-    const channel = supabase.channel(`kidsloc-company-${companyId}-realtime`);
+    const channel = client.channel(`kidsloc-company-${companyId}-realtime`);
     for (const table of REALTIME_TABLES) {
       channel.on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
         const next = payload.new as Record<string, unknown>;
@@ -63,7 +64,7 @@ export function AppShell({
     channel.subscribe();
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
-      void supabase.removeChannel(channel);
+      void client.removeChannel(channel);
     };
   }, [companyId]);
 
