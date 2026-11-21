@@ -495,7 +495,9 @@ class _HomePageState extends State<HomePage> {
       final name = company is Map ? company['name']?.toString() : null;
       final companyId = membership['company_id'].toString();
       final role = membership['role']?.toString() ?? 'staff';
+      final isNewCompany = _realtimeCompanyId != companyId;
       _subscribeToCompany(companyId);
+      if (isNewCompany) unawaited(PushNotifications.registerDevice(companyId: companyId));
       final counts = <String, int>{};
       for (final module in _modules) {
         if (module[1] == 'financial_transactions' && role != 'admin') continue;
@@ -505,7 +507,6 @@ class _HomePageState extends State<HomePage> {
         counts[module[0]] = response.length;
       }
       if (!mounted) return;
-      unawaited(PushNotifications.registerDevice(companyId: companyId));
       setState(() {
         _companyId = companyId;
         _companyName = name ?? 'Minha empresa';
