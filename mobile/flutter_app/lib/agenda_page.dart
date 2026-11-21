@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/company_realtime.dart';
 
 class AgendaPage extends StatefulWidget {
   const AgendaPage({super.key, required this.companyId});
@@ -19,18 +20,32 @@ class _AgendaPageState extends State<AgendaPage> {
   List<Map<String, dynamic>> _rentalItems = [];
   Map<String, int> _availableUnits = {};
   Map<String, String> _customerNames = {};
+  CompanyRealtimeSubscription? _realtime;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _realtime = CompanyRealtimeSubscription.listen(
+      client: Supabase.instance.client,
+      companyId: widget.companyId,
+      channelName: 'kidsloc-mobile-agenda-${widget.companyId}',
+      tables: const ['rentals', 'rental_events', 'rental_items', 'product_units'],
+      onChange: () { if (mounted) _load(showLoading: false); },
+    );
+  }
+
+  @override
+  void dispose() {
+    _realtime?.dispose();
+    super.dispose();
   }
 
   DateTime _parse(dynamic value) => DateTime.parse(value.toString().split('T').first);
   String _label(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
 
-  Future<void> _load() async {
-    setState(() {
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) setState(() {
       _loading = true;
       _error = null;
     });

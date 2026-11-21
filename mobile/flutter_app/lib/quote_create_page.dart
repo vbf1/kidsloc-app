@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/company_realtime.dart';
 
 class QuoteCreatePage extends StatefulWidget {
   const QuoteCreatePage({super.key, required this.companyId});
@@ -28,15 +29,24 @@ class _QuoteCreatePageState extends State<QuoteCreatePage> {
   List<Map<String, dynamic>> _customers = [];
   List<Map<String, dynamic>> _products = [];
   final List<Map<String, dynamic>> _items = [];
+  CompanyRealtimeSubscription? _realtime;
 
   @override
   void initState() {
     super.initState();
     _loadOptions();
+    _realtime = CompanyRealtimeSubscription.listen(
+      client: Supabase.instance.client,
+      companyId: widget.companyId,
+      channelName: 'kidsloc-mobile-quote-create-${widget.companyId}',
+      tables: const ['customers', 'products'],
+      onChange: () { if (mounted) _loadOptions(); },
+    );
   }
 
   @override
   void dispose() {
+    _realtime?.dispose();
     _address.dispose();
     _deliveryFee.dispose();
     _discount.dispose();

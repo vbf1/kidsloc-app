@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/company_realtime.dart';
 
 class FinancePage extends StatefulWidget {
   const FinancePage({super.key, required this.companyId});
@@ -21,6 +22,7 @@ class _FinancePageState extends State<FinancePage> {
   Map<String, Map<String, dynamic>> _rentalInfo = {};
   String _filter = 'all';
   String _search = '';
+  CompanyRealtimeSubscription? _realtime;
 
   @override
   void initState() {
@@ -33,8 +35,8 @@ class _FinancePageState extends State<FinancePage> {
 
   double _money(dynamic value) => value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
 
-  Future<void> _load() async {
-    setState(() {
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) setState(() {
       _loading = true;
       _error = null;
     });
@@ -61,6 +63,13 @@ class _FinancePageState extends State<FinancePage> {
         });
         return;
       }
+      _realtime ??= CompanyRealtimeSubscription.listen(
+        client: client,
+        companyId: widget.companyId,
+        channelName: 'kidsloc-mobile-finance-${widget.companyId}',
+        tables: const ['financial_transactions', 'payments', 'rentals'],
+        onChange: () { if (mounted) _load(showLoading: false); },
+      );
       final results = await Future.wait([
         client.from('financial_transactions').select('id,company_id,rental_id,transaction_type,category,description,amount,due_date,paid_at,payment_method,status,created_at').eq('company_id', widget.companyId).order('due_date', ascending: true),
         client.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id', widget.companyId).order('paid_at', ascending: false),

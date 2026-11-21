@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/company_realtime.dart';
 
 class ContractsPage extends StatefulWidget {
   const ContractsPage({super.key, required this.companyId});
@@ -56,9 +57,11 @@ class _ContractsPageState extends State<ContractsPage> {
   List<Map<String, dynamic>> _contracts = [];
   Map<String, Map<String, dynamic>> _customers = {};
   Map<String, List<Map<String, dynamic>>> _itemsByRental = {};
+  CompanyRealtimeSubscription? _realtime;
 
   @override
   void dispose() {
+    _realtime?.dispose();
     _termsController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -68,6 +71,13 @@ class _ContractsPageState extends State<ContractsPage> {
   void initState() {
     super.initState();
     _load();
+    _realtime = CompanyRealtimeSubscription.listen(
+      client: Supabase.instance.client,
+      companyId: widget.companyId,
+      channelName: 'kidsloc-mobile-contracts-${widget.companyId}',
+      tables: const ['rental_contracts', 'rentals', 'rental_items', 'customers', 'products'],
+      onChange: () { if (mounted) _load(showLoading: false); },
+    );
   }
 
   String _date(dynamic value) {
@@ -79,8 +89,8 @@ class _ContractsPageState extends State<ContractsPage> {
   String _money(dynamic value) =>
       'R\$ ${(value is num ? value : num.tryParse(value?.toString() ?? '') ?? 0).toStringAsFixed(2).replaceAll('.', ',')}';
 
-  Future<void> _load() async {
-    setState(() {
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) setState(() {
       _loading = true;
       _error = null;
     });

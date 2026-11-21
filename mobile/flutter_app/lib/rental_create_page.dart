@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/company_realtime.dart';
 
 class RentalCreatePage extends StatefulWidget {
   const RentalCreatePage({super.key, required this.companyId, this.rentalId});
@@ -33,6 +34,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   final Set<String> _responsibles = {};
   final List<Map<String, dynamic>> _items = [];
   List<Map<String, dynamic>> _events = [];
+  CompanyRealtimeSubscription? _realtime;
 
   @override
   void initState() {
@@ -40,10 +42,18 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) _responsibles.add(userId);
     _loadOptions();
+    _realtime = CompanyRealtimeSubscription.listen(
+      client: Supabase.instance.client,
+      companyId: widget.companyId,
+      channelName: 'kidsloc-mobile-rental-create-${widget.companyId}',
+      tables: const ['customers', 'products', 'company_members'],
+      onChange: () { if (mounted) _loadOptions(); },
+    );
   }
 
   @override
   void dispose() {
+    _realtime?.dispose();
     _address.dispose();
     _total.dispose();
     _startTime.dispose();
