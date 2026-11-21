@@ -472,7 +472,7 @@ class _ContractsPageState extends State<ContractsPage> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    Text('Criar contrato a partir de uma locação', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Row(children: [Expanded(child: Text('Criar contrato a partir de uma locação', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold))), IconButton(tooltip: 'Editar dados da empresa', onPressed: _editCompanyDetails, icon: const Icon(Icons.business_outlined))]),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedRentalId,
@@ -523,7 +523,7 @@ class _ContractsPageState extends State<ContractsPage> {
                       const SizedBox(height: 8),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: Row(children: [
+                        child: Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [
                           for (final filter in const [
                             ('all', 'Todos'),
                             ('draft', 'Rascunhos'),
@@ -541,7 +541,7 @@ class _ContractsPageState extends State<ContractsPage> {
                                 onSelected: (_) => setState(() => _statusFilter = filter.$1),
                               ),
                             ),
-                        ]),
+                        ])),
                       ),
                     ],
                     if (_contracts.isEmpty)
@@ -569,14 +569,25 @@ class _ContractsPageState extends State<ContractsPage> {
                               Text('Locação em ${_date(rental['start_date'])} · ${_money(rental['total_amount'])}', style: Theme.of(context).textTheme.bodySmall),
                               if (contract['status'] == 'signed')
                                 Padding(padding: const EdgeInsets.only(top: 6), child: Text('Assinado por ${contract['signer_name'] ?? 'cliente'}', style: const TextStyle(color: Colors.green))),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton.icon(
+                              Wrap(alignment: WrapAlignment.end, spacing: 4, children: [
+                                TextButton.icon(
                                   onPressed: () => _showContractDetails(contract),
                                   icon: const Icon(Icons.visibility_outlined),
                                   label: const Text('Visualizar contrato'),
                                 ),
-                              ),
+                                if (contract['status'] != 'signed')
+                                  TextButton.icon(
+                                    onPressed: () => _editContract(contract),
+                                    icon: const Icon(Icons.edit_outlined),
+                                    label: const Text('Editar'),
+                                  ),
+                                if (contract['status'] != 'signed')
+                                  TextButton.icon(
+                                    onPressed: () => _deleteContract(contract),
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                    label: const Text('Excluir', style: TextStyle(color: Colors.red)),
+                                  ),
+                              ]),
                               if (canSend)
                                 Align(
                                   alignment: Alignment.centerRight,
