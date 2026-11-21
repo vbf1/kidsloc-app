@@ -63,7 +63,7 @@ export default function ContractsPage(){
   setLinks(v=>({...v,[c.id]:url}));setNotice('Link de assinatura gerado. Ele ficará disponível nesta tela enquanto ela estiver aberta.');await load();
  }
  function printContract(c:Contract){
-  const s=c.contract_snapshot;const customer=s.customer??({} as Customer);const rental=s.rental??({} as Rental);const items=s.items??[];
+  const s=c.contract_snapshot;const customer=s.customer??({} as Customer);const rental=s.rental??({} as Rental);const items=s.items??[];const companyInfo=s.company??{};
   const rows=items.map(i=>'<tr><td>'+esc(i.name)+'</td><td>'+esc(i.quantity)+'</td><td>'+esc(money(i.unit_price))+'</td><td>'+esc(money(i.subtotal))+'</td></tr>').join('');
   const address=[customer.address,customer.neighborhood,customer.city_state,customer.zip?'CEP '+customer.zip:''].filter(Boolean).join(' · ');
   const eventAddress=rental.delivery_method==='delivery'?(rental.delivery_address??'Endereço não informado'):'Retirada pelo LOCATÁRIO';
