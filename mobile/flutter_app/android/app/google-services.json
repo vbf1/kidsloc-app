@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:19265003407:android:2d846c1f1b590301c675fa",
+        "mobilesdk_app_id": "1:19265003407:android:8ebc5b366e1625d6c675fa",
         "android_client_info": {
-          "package_name": "kidslocapp.package"
+          "package_name": "br.com.kidsloc.app"
         }
       },
       "oauth_client": [],
