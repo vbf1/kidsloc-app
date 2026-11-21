@@ -44,11 +44,14 @@ jobs:
           --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ vars.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
       - name: Smoke test on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 35
           arch: x86_64
           profile: pixel_2
           disable-animations: true
+          emulator-boot-timeout: 600
           script: |
             adb install build/app/outputs/flutter-apk/app-debug.apk
             adb shell am start -n br.com.kidsloc.app/.MainActivity
