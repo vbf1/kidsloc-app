@@ -145,7 +145,7 @@ class _FinancePageState extends State<FinancePage> {
       'Data: $formattedDate',
       'Forma de pagamento: $method',
       if ((payment['notes']?.toString() ?? '').isNotEmpty) 'Observações: ${payment['notes']}',
-    ].join('\\n');
+    ].join('\n');
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
