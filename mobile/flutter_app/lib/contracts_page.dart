@@ -20,6 +20,7 @@ class _ContractsPageState extends State<ContractsPage> {
   String? _notice;
   String? _selectedRentalId;
   String _companyName = 'Empresa';
+  Map<String, dynamic> _companySettings = {};
   final TextEditingController _searchController = TextEditingController();
   String _statusFilter = 'all';
   final TextEditingController _termsController = TextEditingController();
@@ -57,10 +58,10 @@ class _ContractsPageState extends State<ContractsPage> {
     });
     try {
       final client = Supabase.instance.client;
-      final companyFuture = client.from('companies').select('name').eq('id', widget.companyId).maybeSingle();
+      final companyFuture = client.from('companies').select('name,contract_settings').eq('id', widget.companyId).maybeSingle();
       final rentalsFuture = client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,total_amount,delivery_fee,discount').eq('company_id', widget.companyId).neq('status', 'cancelled').order('start_date', ascending: false).limit(200);
       final customersFuture = client.from('customers').select('id,name,phone,email,address,cpf,rg,zip,neighborhood,city_state').eq('company_id', widget.companyId);
-      final contractsFuture = client.from('rental_contracts').select('id,contract_number,rental_id,status,created_at,contract_snapshot,token_expires_at,signed_at,signer_name').eq('company_id', widget.companyId).order('created_at', ascending: false).limit(200);
+      final contractsFuture = client.from('rental_contracts').select('id,contract_number,rental_id,status,created_at,contract_snapshot,token_expires_at,signed_at,signer_name,signer_document,signature_svg').eq('company_id', widget.companyId).order('created_at', ascending: false).limit(200);
       final results = await Future.wait<dynamic>([
         companyFuture,
         rentalsFuture,
@@ -94,6 +95,7 @@ class _ContractsPageState extends State<ContractsPage> {
       if (!mounted) return;
       setState(() {
         _companyName = company?['name']?.toString() ?? 'Empresa';
+        _companySettings = Map<String, dynamic>.from(company?['contract_settings'] ?? {});
         _rentals = rentals;
         _customers = customers;
         _contracts = contractRows.map((e) => Map<String, dynamic>.from(e)).toList();
@@ -135,7 +137,7 @@ class _ContractsPageState extends State<ContractsPage> {
     }
     final snapshot = {
       'template_version': 2,
-      'company': {'name': _companyName},
+      'company': {'name': _companyName, ..._companySettings},
       'customer': customer,
       'rental': rental,
       'items': items,
@@ -218,6 +220,95 @@ class _ContractsPageState extends State<ContractsPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+
+  Future<void> _editCompanyDetails() async {
+    final name = TextEditingController(text: _companyName);
+    final legal = TextEditingController(text: _companySettings['legal_name']?.toString() ?? '');
+    final document = TextEditingController(text: _companySettings['document']?.toString() ?? '');
+    final phone = TextEditingController(text: _companySettings['phone']?.toString() ?? '');
+    final email = TextEditingController(text: _companySettings['email']?.toString() ?? '');
+    final address = TextEditingController(text: _companySettings['address']?.toString() ?? '');
+    final zip = TextEditingController(text: _companySettings['zip']?.toString() ?? '');
+    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('Dados da empresa no contrato'),
+      content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        for (final entry in <(String, TextEditingController)>[('Nome da empresa',name),('Razão social',legal),('CNPJ / CPF',document),('Telefone',phone),('E-mail',email),('Endereço',address),('CEP',zip)])
+          Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
+      ]))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Salvar')),
+      ],
+    ));
+    if (saved == true && mounted) {
+      try {
+        final settings = {'legal_name':legal.text.trim(),'document':document.text.trim(),'phone':phone.text.trim(),'email':email.text.trim(),'address':address.text.trim(),'zip':zip.text.trim()};
+        await Supabase.instance.client.from('companies').update({'name':name.text.trim(),'contract_settings':settings}).eq('id',widget.companyId);
+        setState(() {_companyName=name.text.trim();_companySettings=settings;_notice='Dados da empresa atualizados.';});
+      } on PostgrestException catch (e) {setState(() => _error=e.message);}
+    }
+    for (final controller in [name,legal,document,phone,email,address,zip]) {controller.dispose();}
+  }
+
+  Future<void> _editContract(Map<String, dynamic> contract) async {
+    if (contract['status'] == 'signed') return;
+    final snapshot = Map<String, dynamic>.from(contract['contract_snapshot'] ?? {});
+    final customer = Map<String, dynamic>.from(snapshot['customer'] ?? {});
+    final rental = Map<String, dynamic>.from(snapshot['rental'] ?? {});
+    final name = TextEditingController(text: customer['name']?.toString() ?? '');
+    final cpf = TextEditingController(text: customer['cpf']?.toString() ?? '');
+    final phone = TextEditingController(text: customer['phone']?.toString() ?? '');
+    final email = TextEditingController(text: customer['email']?.toString() ?? '');
+    final date = TextEditingController(text: _date(rental['start_date']));
+    final start = TextEditingController(text: rental['start_time']?.toString() ?? '');
+    final end = TextEditingController(text: rental['end_time']?.toString() ?? '');
+    final address = TextEditingController(text: rental['delivery_address']?.toString() ?? '');
+    final terms = TextEditingController(text: snapshot['terms']?.toString() ?? '');
+    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+      title: Text('Editar contrato #\${contract['contract_number']}'),
+      content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        for (final entry in <(String, TextEditingController)>[('Nome do cliente',name),('CPF / documento',cpf),('Telefone',phone),('E-mail',email),('Data do evento (AAAA-MM-DD)',date),('Horário inicial',start),('Horário final',end),('Endereço do evento',address),('Condições adicionais',terms)])
+          Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, maxLines: entry.$1=='Condições adicionais'?4:1, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
+      ]))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Salvar alterações')),
+      ],
+    ));
+    if (saved == true && mounted) {
+      try {
+        customer.addAll({'name':name.text.trim(),'cpf':cpf.text.trim(),'phone':phone.text.trim(),'email':email.text.trim()});
+        rental.addAll({'start_date':date.text.trim(),'end_date':date.text.trim(),'start_time':start.text.trim().isEmpty?null:start.text.trim(),'end_time':end.text.trim().isEmpty?null:end.text.trim(),'delivery_address':address.text.trim().isEmpty?null:address.text.trim()});
+        snapshot.addAll({'company':{'name':_companyName,..._companySettings},'customer':customer,'rental':rental,'terms':terms.text.trim()});
+        final invalidate = ['sent','viewed','expired'].contains(_contractStatus(contract));
+        final patch = <String,dynamic>{'contract_snapshot':snapshot};
+        if (invalidate) {patch.addAll({'status':'draft','token_hash':null,'token_expires_at':null});}
+        await Supabase.instance.client.from('rental_contracts').update(patch).eq('id',contract['id']).eq('company_id',widget.companyId);
+        setState(() => _notice='Contrato atualizado. Gere um novo link se o anterior já havia sido enviado.');
+        await _load();
+      } on PostgrestException catch (e) {setState(() => _error=e.message);}
+    }
+    for (final controller in [name,cpf,phone,email,date,start,end,address,terms]) {controller.dispose();}
+  }
+
+  Future<void> _deleteContract(Map<String, dynamic> contract) async {
+    if (contract['status'] == 'signed') return;
+    final confirm = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('Excluir contrato?'),
+      content: Text('O contrato #\${contract['contract_number']} será removido permanentemente.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
+      ],
+    ));
+    if (confirm != true || !mounted) return;
+    try {
+      await Supabase.instance.client.from('rental_contracts').delete().eq('id',contract['id']).eq('company_id',widget.companyId).neq('status','signed');
+      setState(() => _notice='Contrato excluído.');
+      await _load();
+    } on PostgrestException catch (e) {setState(() => _error=e.message);}
   }
 
   Future<void> _showContractDetails(Map<String, dynamic> contract) async {
