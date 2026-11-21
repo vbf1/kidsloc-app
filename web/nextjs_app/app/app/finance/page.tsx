@@ -23,7 +23,7 @@ export default function FinancePage(){
   const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace('/login/');return;}setEmail(user.email??'');
   const {data:m,error:e}=await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
   if(e||!m){setError('Não foi possível identificar sua empresa.');setLoading(false);return;}
-  const c=Array.isArray(m.companies)?m.companies[0]:m.companies;setCompanyId(m.company_id);setCompanyName(c?.name??'Empresa');setRole(m.role as Role);
+  const c=Array.isArray(m.companies)?m.companies[0]:m.companies;const companyRole=m.role as Role;setCompanyId(m.company_id);setCompanyName(c?.name??'Empresa');setRole(companyRole);if(companyRole!=='admin'){setError('O módulo Financeiro está disponível apenas para administradores.');setLoading(false);return;}
   const [tr,pr]=await Promise.all([supabase.from('financial_transactions').select('id,transaction_type,category,description,amount,due_date,paid_at,status,rental_id').eq('company_id',m.company_id).order('due_date',{ascending:false}).limit(500),supabase.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id',m.company_id).order('paid_at',{ascending:false}).limit(500)]);
   if(tr.error||pr.error)setError('Não foi possível carregar o financeiro.');else{
    const txRows=(tr.data??[]) as Tx[];const paymentRows=(pr.data??[]) as Payment[];setTransactions(txRows);setPayments(paymentRows);

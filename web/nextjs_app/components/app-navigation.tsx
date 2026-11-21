@@ -73,15 +73,20 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isProspecting = pathname.includes('/app/leads/prospeccao');
   const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isFinance && !isContracts && !isCalendar && !isTeam && !isLeadFesta && !isProspecting;
 
+  const companyItems: NavItem[] = role === 'platform_owner'
+    ? [{ label: 'Administração', shortLabel: 'Admin', href: basePath + '/app/admin/', active: pathname.includes('/app/admin'), icon: 'home' }]
+    : [
+      { label: 'Visão geral', shortLabel: 'Início', href: basePath + '/app/', active: isDashboard, icon: 'home' },
+      { label: 'Clientes', shortLabel: 'Clientes', href: basePath + '/app/customers/', active: isCustomers, icon: 'users' },
+      { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
+      { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
+      { label: 'Orçamentos', shortLabel: 'Orçamentos', href: basePath + '/app/quotes/', active: isQuotes, icon: 'toy' },
+      ...(role === 'admin' ? [{ label: 'Financeiro', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance, icon: 'home' as const }] : []),
+      { label: 'Contratos', shortLabel: 'Contratos', href: basePath + '/app/contracts/', active: isContracts, icon: 'toy' },
+      { label: 'Agenda', shortLabel: 'Agenda', href: basePath + '/app/calendar/', active: isCalendar, icon: 'calendar' },
+    ];
   const items: NavItem[] = [
-    { label: 'Visão geral', shortLabel: 'Início', href: basePath + '/app/', active: isDashboard, icon: 'home' },
-    { label: 'Clientes', shortLabel: 'Clientes', href: basePath + '/app/customers/', active: isCustomers, icon: 'users' },
-    { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
-    { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
-    { label: 'Orçamentos', shortLabel: 'Orçamentos', href: basePath + '/app/quotes/', active: isQuotes, icon: 'toy' },
-    { label: 'Financeiro', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance, icon: 'home' },
-    { label: 'Contratos', shortLabel: 'Contratos', href: basePath + '/app/contracts/', active: isContracts, icon: 'toy' },
-    { label: 'Agenda', shortLabel: 'Agenda', href: basePath + '/app/calendar/', active: isCalendar, icon: 'calendar' },
+    ...companyItems,
     ...(leadFestaEnabled ? [
       { label: 'LeadFesta', shortLabel: 'Leads', href: basePath + '/app/leads/', active: isLeadFesta, icon: 'funnel' as const },
       { label: 'Prospectar empresas', shortLabel: 'Prospectar', href: basePath + '/app/leads/prospeccao/', active: isProspecting, icon: 'map-pin' as const },

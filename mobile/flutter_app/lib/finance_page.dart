@@ -41,10 +41,29 @@ class _FinancePageState extends State<FinancePage> {
     try {
       final client = Supabase.instance.client;
       final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        if (mounted) setState(() {
+          _error = 'Sua sessão expirou. Entre novamente para acessar o financeiro.';
+          _loading = false;
+        });
+        return;
+      }
+      final membership = await client.from('company_members')
+          .select('role')
+          .eq('company_id', widget.companyId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      final role = membership?['role']?.toString() ?? '';
+      if (role != 'admin') {
+        if (mounted) setState(() {
+          _error = 'O módulo Financeiro está disponível apenas para administradores.';
+          _loading = false;
+        });
+        return;
+      }
       final results = await Future.wait([
         client.from('financial_transactions').select('id,company_id,rental_id,transaction_type,category,description,amount,due_date,paid_at,payment_method,status,created_at').eq('company_id', widget.companyId).order('due_date', ascending: true),
         client.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id', widget.companyId).order('paid_at', ascending: false),
-        client.from('company_members').select('role').eq('company_id', widget.companyId).eq('user_id', userId ?? ''),
       ]);
       final rows = results[0].map((e) => Map<String, dynamic>.from(e)).toList();
       final paymentRows = results[1].map((e) => Map<String, dynamic>.from(e)).toList();
@@ -53,7 +72,6 @@ class _FinancePageState extends State<FinancePage> {
         final id = item['transaction_id']?.toString();
         if (id != null) paid[id] = (paid[id] ?? 0) + _money(item['amount']);
       }
-      final role = results[2].isEmpty ? '' : results[2].first['role']?.toString() ?? '';
       final rentalIds = <String>{
         ...rows.map((e) => e['rental_id']?.toString() ?? ''),
         ...paymentRows.map((e) => e['rental_id']?.toString() ?? ''),

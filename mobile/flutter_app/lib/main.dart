@@ -449,6 +449,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String? _companyId;
   String _companyName = 'Minha empresa';
+  String _role = 'staff';
   bool _loading = true;
   String? _error;
   final Map<String, int> _counts = {};
@@ -461,6 +462,10 @@ class _HomePageState extends State<HomePage> {
     ['Financeiro', 'financial_transactions'],
     ['Agenda', 'rentals'],
   ];
+
+  List<List<String>> get _visibleModules => _role == 'admin'
+      ? _modules
+      : _modules.where((module) => module[1] != 'financial_transactions').toList();
 
   @override
   void initState() { super.initState(); _load(); }
@@ -476,7 +481,7 @@ class _HomePageState extends State<HomePage> {
         return;
       }
       final membership = await client.from('company_members')
-          .select('company_id, companies(name)')
+          .select('company_id, role, companies(name)')
           .eq('user_id', user.id).limit(1).maybeSingle();
       if (membership == null) {
         if (mounted) Navigator.of(context).pushReplacement(
@@ -486,8 +491,10 @@ class _HomePageState extends State<HomePage> {
       final company = membership['companies'];
       final name = company is Map ? company['name']?.toString() : null;
       final companyId = membership['company_id'].toString();
+      final role = membership['role']?.toString() ?? 'staff';
       final counts = <String, int>{};
       for (final module in _modules) {
+        if (module[1] == 'financial_transactions' && role != 'admin') continue;
         final response = await client.from(module[1])
             .select('id')
             .eq('company_id', companyId);
@@ -498,6 +505,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _companyId = companyId;
         _companyName = name ?? 'Minha empresa';
+        _role = role;
         _counts
           ..clear()
           ..addAll(counts);
@@ -515,6 +523,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openModule(String title, String table) async {
     if (_companyId == null) return;
+    if (table == 'financial_transactions' && _role != 'admin') return;
     if (table == 'financial_transactions') {
       await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => FinancePage(companyId: _companyId!),
@@ -561,11 +570,11 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 10),
         GridView.builder(
           shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-          itemCount: _modules.length,
+          itemCount: _visibleModules.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.3),
           itemBuilder: (context, index) {
-            final module = _modules[index];
+            final module = _visibleModules[index];
             return Card(clipBehavior: Clip.antiAlias, child: InkWell(
               onTap: () => _openModule(module[0], module[1]),
               child: Padding(padding: const EdgeInsets.all(14), child: Column(
