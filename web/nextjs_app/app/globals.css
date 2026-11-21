@@ -258,3 +258,27 @@ body { overflow-x: clip; }
   }
   .receipt-actions { display: none !important; }
 }
+
+
+/* Impressão de propostas comerciais: oculta navegação e mantém apenas o orçamento. */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body * { visibility: hidden !important; }
+  .quote-print-overlay, .quote-print-overlay * { visibility: visible !important; }
+  .quote-print-overlay {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+  .quote-print-document {
+    width: 100% !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .quote-print-actions { display: none !important; }
+}
