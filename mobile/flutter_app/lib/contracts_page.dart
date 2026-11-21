@@ -20,10 +20,17 @@ class _ContractsPageState extends State<ContractsPage> {
   String? _notice;
   String? _selectedRentalId;
   String _companyName = 'Empresa';
+  final TextEditingController _termsController = TextEditingController(text: 'O LOCATÁRIO compromete-se a zelar pelos equipamentos, utilizá-los de forma adequada e devolvê-los nas condições recebidas. O LOCADOR compromete-se a disponibilizar os itens descritos na data e período acordados. Danos decorrentes de mau uso poderão ser cobrados do LOCATÁRIO. O cancelamento e demais condições devem ser ajustados entre as partes antes da assinatura.');
   List<Map<String, dynamic>> _rentals = [];
   List<Map<String, dynamic>> _contracts = [];
   Map<String, Map<String, dynamic>> _customers = {};
   Map<String, List<Map<String, dynamic>>> _itemsByRental = {};
+
+  @override
+  void dispose() {
+    _termsController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -129,7 +136,7 @@ class _ContractsPageState extends State<ContractsPage> {
       'rental': rental,
       'items': items,
       'generated_at': DateTime.now().toUtc().toIso8601String(),
-      'terms': 'O LOCATÁRIO compromete-se a zelar pelos equipamentos, utilizá-los de forma adequada e devolvê-los nas condições recebidas. O LOCADOR compromete-se a disponibilizar os itens descritos na data e período acordados. Danos decorrentes de mau uso poderão ser cobrados do LOCATÁRIO. O cancelamento e demais condições devem ser ajustados entre as partes antes da assinatura.',
+      'terms': _termsController.text.trim(),
     };
     setState(() {
       _saving = true;
@@ -318,9 +325,22 @@ class _ContractsPageState extends State<ContractsPage> {
                       }).toList(),
                       onChanged: _saving ? null : (v) => setState(() => _selectedRentalId = v),
                     ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _termsController,
+                      minLines: 3,
+                      maxLines: 6,
+                      maxLength: 5000,
+                      decoration: const InputDecoration(
+                        labelText: 'Condições do contrato',
+                        hintText: 'Descreva as condições da locação',
+                        border: OutlineInputBorder(),
+                        helperText: 'As condições ficam salvas neste contrato.',
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     FilledButton.icon(
-                      onPressed: _saving || _selectedRentalId == null ? null : _createDraft,
+                      onPressed: _saving || _selectedRentalId == null || _termsController.text.trim().isEmpty ? null : _createDraft,
                       icon: const Icon(Icons.description_outlined),
                       label: Text(_saving ? 'Salvando...' : 'Criar rascunho'),
                     ),
