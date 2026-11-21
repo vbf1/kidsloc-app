@@ -334,7 +334,8 @@ class _FinancePageState extends State<FinancePage> {
                           final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0);
                           final balance = row['status'] == 'cancelled' ? 0.0 : (amount - paid).clamp(0, double.infinity).toDouble();
                           final income = row['transaction_type'] == 'income';
-                          final dueDate = row['due_date']?.toString().substring(0, 10) ?? '';
+                          final dueDateValue = row['due_date']?.toString() ?? '';
+                          final dueDate = dueDateValue.length >= 10 ? dueDateValue.substring(0, 10) : '';
                           final today = _date(DateTime.now());
                           final dueSoonLimit = _date(DateTime.now().add(const Duration(days: 7)));
                           final overdue = income && balance > 0 && row['status'] != 'cancelled' && dueDate.isNotEmpty && dueDate.compareTo(today) < 0;
