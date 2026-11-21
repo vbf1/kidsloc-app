@@ -8,8 +8,6 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'KidsLoc App';
   const options = {
     body: data.body || 'Você tem uma nova atualização.',
-    icon: './icon-192.png',
-    badge: './icon-192.png',
     tag: data.tag || 'kidsloc-notification',
     data: { url: data.url || './' },
   };
