@@ -112,6 +112,22 @@ class _FinancePageState extends State<FinancePage> {
     return s + (amount - paid).clamp(0, double.infinity).toDouble();
   });
 
+  Map<String, dynamic>? _rentalForTransaction(Map<String, dynamic> row) {
+    final directId = row['rental_id']?.toString();
+    final paymentRentalId = _payments
+        .where((payment) => payment['transaction_id']?.toString() == row['id']?.toString())
+        .map((payment) => payment['rental_id']?.toString())
+        .firstWhere((id) => id != null && id.isNotEmpty, orElse: () => null);
+    final rentalId = directId != null && directId.isNotEmpty ? directId : paymentRentalId;
+    return rentalId == null ? null : _rentalInfo[rentalId];
+  }
+
+  String _displayDate(dynamic value) {
+    final raw = value?.toString() ?? '';
+    if (raw.length < 10) return raw.isEmpty ? 'Sem data' : raw;
+    return _labelDate(raw.substring(0, 10));
+  }
+
   String _format(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
 
   Future<void> _newTransaction() async {
@@ -236,8 +252,7 @@ class _FinancePageState extends State<FinancePage> {
       };
       final normalize = (String value) => value.toLowerCase().replaceAll(RegExp(r'[áàâãä]'), 'a').replaceAll(RegExp(r'[éèêë]'), 'e').replaceAll(RegExp(r'[íìîï]'), 'i').replaceAll(RegExp(r'[óòôõö]'), 'o').replaceAll(RegExp(r'[úùûü]'), 'u').replaceAll('ç', 'c');
       final query = normalize(_search.trim());
-      final rentalId = row['rental_id']?.toString();
-      final rental = rentalId == null ? null : _rentalInfo[rentalId];
+      final rental = _rentalForTransaction(row);
       final text = normalize('${row['description'] ?? ''} ${row['category'] ?? ''} ${rental?['customer_name'] ?? ''} ${rental?['rental_number'] ?? ''}');
       return matchesFilter && (query.isEmpty || text.contains(query));
     }).toList();
@@ -327,7 +342,17 @@ class _FinancePageState extends State<FinancePage> {
                                   Text(fmt(amount), style: const TextStyle(fontWeight: FontWeight.bold)),
                                 ]),
                                 const SizedBox(height: 6),
-                                Text('${income ? 'Receita' : 'Despesa'} • ${row['category'] ?? 'Sem categoria'} • ${row['due_date'] ?? 'Sem vencimento'}'),
+                                Text('${income ? 'Receita' : 'Despesa'} • ${row['category'] ?? 'Sem categoria'} • ${_displayDate(row['due_date'])}'),
+                                if (_rentalForTransaction(row) != null) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    [
+                                      if ((_rentalForTransaction(row)?['customer_name']?.toString() ?? '').isNotEmpty) _rentalForTransaction(row)!['customer_name'].toString(),
+                                      if ((_rentalForTransaction(row)?['rental_number']?.toString() ?? '').isNotEmpty) 'Locação #${_rentalForTransaction(row)!['rental_number']}',
+                                    ].join(' • '),
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
                                 const SizedBox(height: 4),
                                 Text('Recebido/pago: ${fmt(paid)}  •  Saldo: ${fmt(balance)}  •  $status', style: Theme.of(context).textTheme.bodySmall),
                                 ..._payments.where((p) => p['transaction_id']?.toString() == id).map((payment) => Padding(
