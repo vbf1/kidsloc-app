@@ -81,9 +81,9 @@ export default function QuotesPage() {
     }
     setLoading(false);
   }, [router]);
+  useCompanyRealtimeRefresh(companyId, ['rental_quotes', 'rental_quote_items', 'customers', 'products'], () => { void load(); });
   // This effect starts an asynchronous data request; state updates occur after the request resolves.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useCompanyRealtimeRefresh(companyId, ['rental_quotes', 'rental_quote_items', 'customers', 'products'], () => { void load(); });
   useEffect(()=>{ void load(); },[load]);
 
   const subtotal = useMemo(()=>items.reduce((sum,item)=>sum+item.quantity*item.unit_price,0),[items]);
