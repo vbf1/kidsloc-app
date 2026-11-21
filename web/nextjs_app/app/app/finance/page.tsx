@@ -35,9 +35,9 @@ export default function FinancePage(){
   }
   setLoading(false);
  }
+ useCompanyRealtimeRefresh(companyId, ['financial_transactions', 'payments', 'rentals'], () => { void load(); });
  // This effect starts the asynchronous finance data request.
  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
-  useCompanyRealtimeRefresh(companyId, ['financial_transactions', 'payments', 'rentals'], () => { void load(); });
  useEffect(()=>{void load();},[]);
  const rentalForTransaction=useCallback((t:Tx)=>{const linkedPayment=payments.find(p=>p.transaction_id===t.id&&p.rental_id);const rentalId=t.rental_id??linkedPayment?.rental_id;return rentalId?rentalInfo[rentalId]:undefined;},[payments,rentalInfo]);
  const paymentTotals=useMemo(()=>{const m=new Map<string,number>();for(const p of payments)if(p.transaction_id)m.set(p.transaction_id,(m.get(p.transaction_id)??0)+Number(p.amount));return m;},[payments]);
