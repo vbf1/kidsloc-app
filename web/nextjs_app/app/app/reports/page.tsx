@@ -10,7 +10,11 @@ type Tx = { id: string; transaction_type: 'income' | 'expense'; amount: number |
 type Rental = { id: string; rental_number: number; start_date: string; end_date: string; status: string; total_amount: number | string };
 type Product = { id: string; name: string };
 type RentalItem = { rental_id: string; product_id: string; quantity: number; subtotal: number | string };
-async function fetchAllRows<T>(query: any): Promise<T[]> {
+type PagedQuery<T> = {
+  range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+};
+
+async function fetchAllRows<T>(query: PagedQuery<T>): Promise<T[]> {
   const rows: T[] = [];
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
