@@ -31,11 +31,15 @@ export function useModuleData<T>(
   const currentValue = useRef(value);
 
   useEffect(() => {
-    if (!key || !moduleData.has(key)) return;
-    const cachedValue = moduleData.get(key) as T;
-    currentValue.current = cachedValue;
-    setValue(cachedValue);
-  }, [key]);
+    if (key && moduleData.has(key)) {
+      const cachedValue = moduleData.get(key) as T;
+      currentValue.current = cachedValue;
+      setValue(cachedValue);
+      return;
+    }
+    currentValue.current = initialValue;
+    setValue(initialValue);
+  }, [key, initialValue]);
 
   const updateValue = useCallback<Dispatch<SetStateAction<T>>>((nextValue) => {
     const resolved = typeof nextValue === 'function'
