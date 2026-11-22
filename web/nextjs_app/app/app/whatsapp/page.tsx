@@ -15,7 +15,7 @@ type Connection = {
   connected_at: string | null;
   last_error_message: string | null;
   contacts_sync_status: 'not_requested' | 'requested' | 'received' | 'failed';
-  history_sync_preference: 'do_not_import' | 'import';
+  history_sync_preference: 'do_not_import';
   history_sync_status: 'not_requested' | 'declined' | 'unexpected_data_ignored';
 };
 type SignupSession = {
