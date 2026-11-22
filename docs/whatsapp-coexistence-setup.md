@@ -51,7 +51,9 @@ Quando as Edge Functions forem implantadas, configure no produto WhatsApp:
 - Callback URL: `https://wfwohnssvftegnhwdzmt.supabase.co/functions/v1/whatsapp-webhook`
 - Verify token: o mesmo valor definido em `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
 - Assinatura do webhook: a função valida `X-Hub-Signature-256` com o App Secret.
-- Campos mínimos para a primeira etapa: `account_update` e `messages`.
+- Campos de Coexistence exigidos pela Meta: `account_update`, `history`, `smb_app_state_sync` e `smb_message_echoes`; também acompanhe `messages` para os estados de entrega.
+
+A documentação da Meta exige iniciar a sincronização de contatos e histórico dentro de 24 horas após o onboarding. A etapa de sincronização e armazenamento de histórico ainda precisa ser concluída antes de liberar o botão de conexão no KidsLoc.
 
 O endpoint registra somente metadados resumidos dos eventos e atualiza estados de entrega; ele não grava o conteúdo das conversas recebido nos webhooks.
 
@@ -64,7 +66,7 @@ Depois de:
 - implantar a migração e as Edge Functions;
 - configurar o webhook;
 
-acesse **KidsLoc → WhatsApp Business → Conectar WhatsApp Business** e conclua o fluxo da Meta. A função de conexão verifica se a Meta confirma `is_on_biz_app = true` e `platform_type = CLOUD_API`. Se a confirmação não ocorrer, a conexão fica em atenção e o KidsLoc não registra nem migra o número.
+acesse **KidsLoc → WhatsApp Business** e conclua o fluxo da Meta somente depois que a etapa de sincronização estiver liberada no aplicativo. Durante o fluxo, a Meta pode solicitar autorização para compartilhar o histórico. A função de conexão verifica se a Meta confirma `is_on_biz_app = true` e `platform_type = CLOUD_API`. Se a confirmação não ocorrer, a conexão fica em atenção e o KidsLoc não registra nem migra o número.
 
 ## 6. Antes de ativar mensagens automáticas
 
