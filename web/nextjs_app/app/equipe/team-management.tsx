@@ -82,12 +82,14 @@ export default function TeamManagement() {
       try {
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
+        if (mounted) setSessionReady(true);
         if (data.session && mounted) {
-          try {
-            await loadCompanies();
-          } catch (e) {
-            setError(e instanceof Error ? e.message : 'Não foi possível carregar as empresas.');
-          }
+          // Resolve the screen gate as soon as the session is known.
+          // Company queries continue in the background and must not keep
+          // the whole page on the initial loading screen.
+          void loadCompanies().catch((e) => {
+            if (mounted) setError(e instanceof Error ? e.message : 'Não foi possível carregar as empresas.');
+          });
         }
       } catch (e) {
         if (mounted) setError(e instanceof Error ? e.message : 'Não foi possível verificar sua sessão. Tente atualizar a página.');
