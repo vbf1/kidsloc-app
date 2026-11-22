@@ -51,6 +51,12 @@ export default function ContractsPage(){
  useCompanyRealtimeRefresh(companyId, ['rental_contracts', 'rentals', 'rental_items', 'customers', 'products'], () => { void load(); });
  const filteredContracts=contracts.filter(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||contractStatus(c)===statusFilter);});
  const paginatedContracts=filteredContracts.slice(page*pageSize,(page+1)*pageSize);
+ const contractSummary=[
+  {id:'all',label:'Total de contratos',count:contracts.length,description:'Todos os registros',style:'border-slate-200 bg-white text-slate-800'},
+  {id:'active',label:'Em andamento',count:contracts.filter(c=>['draft','sent','viewed'].includes(contractStatus(c))).length,description:'Rascunhos e aguardando assinatura',style:'border-blue-100 bg-blue-50/60 text-blue-800'},
+  {id:'signed',label:'Assinados',count:contracts.filter(c=>contractStatus(c)==='signed').length,description:'Assinatura concluída',style:'border-green-100 bg-green-50/60 text-green-800'},
+  {id:'expired',label:'Expirados',count:contracts.filter(c=>contractStatus(c)==='expired').length,description:'Links que venceram',style:'border-orange-100 bg-orange-50/60 text-orange-800'}
+ ];
  // This effect starts an asynchronous data request; state updates occur after the request resolves.
  // eslint-disable-next-line react-hooks/set-state-in-effect
  useEffect(()=>{void load();},[load]);
@@ -155,6 +161,13 @@ export default function ContractsPage(){
    </div>
 
    <section className="min-w-0 space-y-4">
+    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+     {contractSummary.map(item=><button key={item.id} type="button" onClick={()=>{setStatusFilter(item.id==='active'?'all':item.id);setPage(0);}} className={`min-w-0 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm sm:p-4 ${item.style}`}>
+      <p className="text-[10px] font-bold uppercase tracking-wide opacity-75 sm:text-[11px]">{item.label}</p>
+      <p className="mt-1 text-2xl font-extrabold tabular-nums sm:text-3xl">{item.count}</p>
+      <p className="mt-1 text-[10px] leading-4 opacity-75 sm:text-[11px]">{item.description}</p>
+     </button>)}
+    </div>
     <div className="space-y-3">
      <div><h2 className="text-lg font-bold text-slate-900">Seus contratos</h2><p className="mt-1 text-xs text-slate-500">Pesquise pelo nome do cliente ou número do contrato e filtre por situação.</p></div>
      <input value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} placeholder="Buscar por cliente ou número do contrato" className="w-full min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-sm"/>
