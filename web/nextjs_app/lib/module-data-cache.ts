@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useRef, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 
 const moduleData = new Map<string, unknown>();
 
@@ -23,24 +23,18 @@ export function useModuleData<T>(
   initialValue: T,
 ): [T, Dispatch<SetStateAction<T>>] {
   const key = cacheKey(moduleName, scope, field);
-  const [value, setValue] = useState<T>(() => {
-    if (!key || !moduleData.has(key)) return initialValue;
-    return moduleData.get(key) as T;
-  });
-
+  const [stored, setStored] = useState<{ key: string; value: T }>(() => ({
+    key,
+    value: key && moduleData.has(key) ? moduleData.get(key) as T : initialValue,
+  }));
+  const value = stored.key === key
+    ? stored.value
+    : key && moduleData.has(key) ? moduleData.get(key) as T : initialValue;
   const currentValue = useRef(value);
-  const initialValueRef = useRef(initialValue);
 
   useEffect(() => {
-    if (key && moduleData.has(key)) {
-      const cachedValue = moduleData.get(key) as T;
-      currentValue.current = cachedValue;
-      setValue(cachedValue);
-      return;
-    }
-    currentValue.current = initialValueRef.current;
-    setValue(initialValueRef.current);
-  }, [key]);
+    currentValue.current = value;
+  }, [key, value]);
 
   const updateValue = useCallback<Dispatch<SetStateAction<T>>>((nextValue) => {
     const resolved = typeof nextValue === 'function'
@@ -48,7 +42,7 @@ export function useModuleData<T>(
       : nextValue;
     currentValue.current = resolved;
     if (key) moduleData.set(key, resolved);
-    setValue(resolved);
+    setStored({ key, value: resolved });
   }, [key]);
 
   return [value, updateValue];
