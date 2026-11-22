@@ -64,13 +64,16 @@ Deno.serve(async (req) => {
     }
 
     for (const entry of payload.entry) {
-      const wabaId = String(entry.id || "");
-      const { data: connection } = await admin.from("whatsapp_connections")
-        .select("company_id,status").eq("waba_id", wabaId).maybeSingle();
-      const companyId = connection?.company_id || null;
+      const entryId = String(entry.id || "");
       for (const change of Array.isArray(entry.changes) ? entry.changes : []) {
         const field = String(change.field || "unknown");
         const value = change.value || {};
+        // account_update uses the partner business ID in entry.id and carries
+        // the customer's Messaging account ID inside value.waba_info.waba_id.
+        const wabaId = String(value.waba_info?.waba_id || entryId);
+        const { data: connection } = await admin.from("whatsapp_connections")
+          .select("company_id,status").eq("waba_id", wabaId).maybeSingle();
+        const companyId = connection?.company_id || null;
         const eventType = field === "account_update" ? String(value.event || field) : field;
         const eventKey = await digest(JSON.stringify({ wabaId, entryTime: entry.time || null, change }));
         const summary = {
