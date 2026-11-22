@@ -147,7 +147,7 @@ export default function ReportsPage() {
           <h1 className="mt-2 text-3xl font-bold">Relatórios avançados</h1>
           <p className="mt-2 text-sm text-gray-500">Indicadores financeiros e operacionais da {companyName}.</p></div>
         <label className="text-sm font-semibold text-gray-600">Período
-          <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className="mt-1 block rounded-xl border border-purple-100 bg-white px-3 py-2.5"/>
+          <input type="month" value={month} onChange={e=>{setMonth(e.target.value);setTopPage(0);}} className="mt-1 block rounded-xl border border-purple-100 bg-white px-3 py-2.5"/>
         </label>
       </div>
       {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
