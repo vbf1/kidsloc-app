@@ -12,6 +12,7 @@ import { SearchablePicker } from '../../../components/searchable-picker';
 import { formatProductInventoryError, formatPrice, matchesProductSearch, parsePrice, type ProductFormValues, type ProductRecord, type ProductType } from '../../../lib/products';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { supabase } from '../../../lib/supabase';
+import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type CompanyRole = 'admin' | 'staff';
 
@@ -61,11 +62,12 @@ function fromRecord(product: ProductRecord): ProductFormValues {
 }
 export default function ProductsPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [role, setRole] = useState<CompanyRole | undefined>(undefined);
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [accessLoading, setAccessLoading] = useState(true);
+  const cachedWorkspace = getWorkspaceSessionCache();
+  const [email, setEmail] = useState(cachedWorkspace?.email ?? '');
+  const [companyName, setCompanyName] = useState(cachedWorkspace?.companyName ?? '');
+  const [role, setRole] = useState<CompanyRole | undefined>(cachedWorkspace?.role === 'admin' || cachedWorkspace?.role === 'staff' ? cachedWorkspace.role : undefined);
+  const [companyId, setCompanyId] = useState<string | null>(cachedWorkspace?.companyId ?? null);
+  const [accessLoading, setAccessLoading] = useState(!cachedWorkspace);
   const [accessError, setAccessError] = useState('');
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -103,7 +105,7 @@ export default function ProductsPage() {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (!active) return;
         if (authError) { setAccessError('Não foi possível validar sua sessão agora. Confira sua conexão e tente novamente.'); return; }
-        if (!user) { router.replace('/login/'); return; }
+        if (!user) { clearWorkspaceSessionCache(); router.replace('/login/'); return; }
         setEmail(user.email ?? 'E-mail não informado');
         const { data: membership, error: membershipError } = await supabase
           .from('company_members').select('company_id, role, companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
@@ -116,6 +118,7 @@ export default function ProductsPage() {
         setCompanyName(name.trim());
         setRole(membership.role as CompanyRole);
         setCompanyId(membership.company_id);
+        setWorkspaceSessionCache({ userId: user.id, email: user.email ?? 'E-mail não informado', companyName: name.trim(), companyId: membership.company_id, role: membership.role as CompanyRole });
       } catch {
         if (active) setAccessError('Ocorreu um erro ao verificar seu acesso. Confira sua conexão.');
       } finally { if (active) setAccessLoading(false); }
@@ -259,6 +262,7 @@ export default function ProductsPage() {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) { setListError('Não foi possível encerrar sua sessão. Tente novamente.'); return; }
+      clearWorkspaceSessionCache();
       router.push('/login/');
     } catch { setListError('Não foi possível encerrar sua sessão. Tente novamente.'); }
     finally { setSigningOut(false); }
