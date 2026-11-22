@@ -233,6 +233,7 @@ class _AgendaPageState extends State<AgendaPage> {
                                   ]),
                                 );
                               }),
+                            PaginationControls(totalCount: _products.length, page: _productPage, pageSize: 6, onPageChanged: (value) => setState(() => _productPage = value)),
                             const SizedBox(height: 4),
                             Text('A confirmação definitiva do estoque acontece ao salvar a locação.', style: Theme.of(context).textTheme.bodySmall),
                           ]),
