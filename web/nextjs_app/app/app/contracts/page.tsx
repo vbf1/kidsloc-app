@@ -49,7 +49,7 @@ export default function ContractsPage(){
   setRentals(rlist);setCustomers(Object.fromEntries((cr.data??[]).map(c=>[c.id,c])));setContracts((co.data??[]) as Contract[]);setItemsByRental(by);setLoading(false);
  },[router]);
  useCompanyRealtimeRefresh(companyId, ['rental_contracts', 'rentals', 'rental_items', 'customers', 'products'], () => { void load(); });
- const filteredContracts=contracts.filter(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||contractStatus(c)===statusFilter);});
+ const filteredContracts=contracts.filter(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||(statusFilter==='active'?['draft','sent','viewed'].includes(contractStatus(c)):contractStatus(c)===statusFilter));});
  const paginatedContracts=filteredContracts.slice(page*pageSize,(page+1)*pageSize);
  const contractSummary=[
   {id:'all',label:'Total de contratos',count:contracts.length,description:'Todos os registros',style:'border-slate-200 bg-white text-slate-800'},
@@ -162,7 +162,7 @@ export default function ContractsPage(){
 
    <section className="min-w-0 space-y-4">
     <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-     {contractSummary.map(item=><button key={item.id} type="button" onClick={()=>{setStatusFilter(item.id==='active'?'all':item.id);setPage(0);}} className={`min-w-0 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm sm:p-4 ${item.style}`}>
+     {contractSummary.map(item=><button key={item.id} type="button" onClick={()=>{setStatusFilter(item.id);setPage(0);}} className={`min-w-0 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm sm:p-4 ${item.style}`}>
       <p className="text-[10px] font-bold uppercase tracking-wide opacity-75 sm:text-[11px]">{item.label}</p>
       <p className="mt-1 text-2xl font-extrabold tabular-nums sm:text-3xl">{item.count}</p>
       <p className="mt-1 text-[10px] leading-4 opacity-75 sm:text-[11px]">{item.description}</p>
@@ -196,7 +196,7 @@ export default function ContractsPage(){
       </article>;
      })}
      {!contracts.length&&<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500 lg:col-span-2">Nenhum contrato criado.</div>}
-     {contracts.length>0&&!contracts.some(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||contractStatus(c)===statusFilter);})&&<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center text-sm text-slate-500 lg:col-span-2">Nenhum contrato corresponde à busca ou ao filtro.</div>}
+     {contracts.length>0&&!contracts.some(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||(statusFilter==='active'?['draft','sent','viewed'].includes(contractStatus(c)):contractStatus(c)===statusFilter));})&&<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center text-sm text-slate-500 lg:col-span-2">Nenhum contrato corresponde à busca ou ao filtro.</div>}
     </div>
    </section>
      <Pagination totalCount={filteredContracts.length} page={page} pageSize={pageSize} onPageChange={setPage}/>
