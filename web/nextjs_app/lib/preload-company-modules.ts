@@ -272,8 +272,10 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
       preloadReports(client, companyId, scope, role),
     ] : []),
     preloadContracts(client, companyId, scope),
-    preloadTeam(client, userId, companyId, scope),
-    ...(role === 'admin' ? [preloadLeadFesta(client, companyId, scope, role)] : []),
+    ...(role === 'admin' ? [
+      preloadTeam(client, userId, companyId, scope),
+      preloadLeadFesta(client, companyId, scope, role),
+    ] : []),
   ];
 
   // allSettled lets successful modules become usable even when another module
