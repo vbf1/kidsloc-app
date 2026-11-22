@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
@@ -71,7 +72,7 @@ export default function LeadFestaAdminPage() {
 
   return <main className="min-h-screen bg-[#f8f7fc] px-4 py-6 text-gray-900 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-5xl space-y-6">
-      <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/admin/'} className="text-sm font-semibold text-[#6840bd]">← Painel do proprietário</a>
+      <Link href="/app/admin/" className="text-sm font-semibold text-[#6840bd]">← Painel do proprietário</Link>
       <header><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Administração global</p><h1 className="mt-2 text-3xl font-bold">Acesso ao LeadFesta</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Ative o adicional comercial para empresas que contrataram o módulo. A suspensão bloqueia o acesso, mas preserva todos os leads e históricos.</p></header>
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
