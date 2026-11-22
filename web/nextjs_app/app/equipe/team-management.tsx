@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { SelectField } from '@/components/ui/select-field';
 import { AppShell } from '@/components/app-shell';
 import { WorkspaceModal } from '@/components/workspace-modal';
+import { getWorkspaceSessionCache } from '@/lib/workspace-session-cache';
+import { getModuleData, setModuleData } from '@/lib/module-data-cache';
 
 type Role = 'admin' | 'staff';
 type Company = { id: string; name: string; role: Role };
@@ -15,14 +17,16 @@ const roleLabels: Record<Role, string> = {
 };
 
 export default function TeamManagement() {
+  const cachedWorkspace = getWorkspaceSessionCache();
+  const cacheScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   const [sessionReady, setSessionReady] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [companyId, setCompanyId] = useState('');
-  const [members, setMembers] = useState<Member[]>([]);
+  const [companies, setCompanies] = useState<Company[]>(() => getModuleData('team', 'companies', cacheScope, []));
+  const [companyId, setCompanyId] = useState(cachedWorkspace?.companyId ?? '');
+  const [members, setMembers] = useState<Member[]>(() => getModuleData('team', 'members', cacheScope, []));
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
@@ -52,6 +56,8 @@ export default function TeamManagement() {
       role: (data ?? []).find((item) => item.company_id === company.id)?.role as Role,
     }));
     setCompanies(next);
+    const currentWorkspace = getWorkspaceSessionCache();
+    if (currentWorkspace?.userId === auth.user.id) setModuleData('team', 'companies', `${auth.user.id}:${currentWorkspace.companyId}`, next);
     setCompanyId((current) => next.some((item) => item.id === current) ? current : next[0]?.id ?? '');
   }, []);
 
@@ -66,10 +72,13 @@ export default function TeamManagement() {
       ? await supabase.from('profiles').select('id, full_name, phone').in('id', ids)
       : { data: [], error: null };
     if (profileError) throw profileError;
-    setMembers((data ?? []).map((item) => {
+    const nextMembers = (data ?? []).map((item) => {
       const profile = (profiles ?? []).find((entry) => entry.id === item.user_id);
       return { ...item, role: item.role as Role, name: profile?.full_name || 'Usuário sem nome', phone: profile?.phone ?? null };
-    }));
+    });
+    setMembers(nextMembers);
+    const currentWorkspace = getWorkspaceSessionCache();
+    if (currentWorkspace) setModuleData('team', 'members', `${currentWorkspace.userId}:${companyId}`, nextMembers);
   }, [companyId]);
 
   useEffect(() => {
