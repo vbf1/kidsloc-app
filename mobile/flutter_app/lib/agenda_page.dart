@@ -249,6 +249,7 @@ class _AgendaPageState extends State<AgendaPage> {
                             trailing: Text('R\$ ${(r['total_amount'] as num? ?? 0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         )),
+                       PaginationControls(totalCount: selectedRentals.length, page: _page, pageSize: 6, onPageChanged: (value) => setState(() => _page = value)),
                     ],
                   ),
                 ),
