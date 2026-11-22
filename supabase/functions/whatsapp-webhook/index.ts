@@ -111,9 +111,11 @@ Deno.serve(async (req) => {
                   ? item.contact as Record<string, unknown>
                   : {};
                 const phoneNumber = String(contact.phone_number || "").replace(/[^0-9]/g, "");
-                if (!/^[0-9]{8,20}$/.test(phoneNumber)) continue;
                 const action = String(item.action || "").toLowerCase();
-                if (action !== "add" && action !== "remove") continue;
+                if (!/^[0-9]{8,20}$/.test(phoneNumber) || (action !== "add" && action !== "remove")) {
+                  failed = true;
+                  continue;
+                }
                 const rawTimestamp = item.metadata && typeof item.metadata === "object"
                   ? (item.metadata as Record<string, unknown>).timestamp
                   : null;
