@@ -28,7 +28,7 @@ type ContractRow = {
 
 function clean(value: unknown, max = 1200) {
   return String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/[·×—–]/g, "-").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[·×—–]/g, "-").replace(/\u00a0/g, " ")
     .slice(0, max).trim();
 }
 function dateBr(value: unknown) {
