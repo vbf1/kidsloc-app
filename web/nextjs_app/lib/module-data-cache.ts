@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 
 const moduleData = new Map<string, unknown>();
 
+export function clearModuleDataCache(): void {
+  moduleData.clear();
+}
+
 function cacheKey(moduleName: string, scope: string, field: string) {
   return scope ? `kidsloc:${scope}:${moduleName}:${field}` : '';
 }
