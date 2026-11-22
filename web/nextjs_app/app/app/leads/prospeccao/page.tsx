@@ -189,7 +189,7 @@ export default function LeadProspectingPage() {
         .select('id,name,phone,contact_company').eq('company_id', workspace.companyId).limit(500);
       if (existingError) throw new Error('A busca encontrou empresas, mas não foi possível conferir duplicados no seu CRM.');
       setExistingLeads((existing ?? []) as ExistingLead[]);
-      setResults(ordered);
+      setResults(ordered); setPage(0);
       setSearchLabel(location.display_name);
       if (ordered.length === 0) {
         setNotice('A base aberta não retornou estabelecimentos nomeados nessa região. Tente aumentar o raio ou outra localidade.');
