@@ -14,6 +14,14 @@ create table public.whatsapp_connections (
   verified_name text,
   is_on_biz_app boolean not null default false,
   platform_type text,
+  contacts_sync_status text not null default 'not_requested'
+    check (contacts_sync_status in ('not_requested', 'requested', 'received', 'failed')),
+  contacts_sync_request_id text,
+  contacts_sync_requested_at timestamptz,
+  history_sync_preference text not null default 'do_not_import'
+    check (history_sync_preference in ('do_not_import', 'import')),
+  history_sync_status text not null default 'not_requested'
+    check (history_sync_status in ('not_requested', 'declined', 'unexpected_data_ignored')),
   connected_at timestamptz,
   last_webhook_at timestamptz,
   last_error_code text,
