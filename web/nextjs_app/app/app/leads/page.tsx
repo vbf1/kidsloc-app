@@ -5,6 +5,8 @@ import type { FormEvent } from 'react';
 import { AppShell } from '../../../components/app-shell';
 import { EMPTY_LEAD, formatLeadCurrency, formatLeadDate, matchesLeadSearch, normalizeLead, validateLead, type LeadActivity, type LeadFormValues, type LeadRecord, type LeadStage } from '../../../lib/leadfesta';
 import { supabase } from '../../../lib/supabase';
+import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
+import { Pagination } from '../../../components/pagination';
 
 type CompanyOption = { id: string; name: string };
 type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'platform_owner' };
@@ -43,6 +45,8 @@ export default function LeadFestaPage() {
   const [accessMessage, setAccessMessage] = useState('');
   const [pageError, setPageError] = useState('');
   const [notice, setNotice] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = useResponsivePageSize();
 
   useEffect(() => {
     let active = true;
@@ -149,6 +153,7 @@ export default function LeadFestaPage() {
 
   const selectedLead = useMemo(() => leads.find((lead) => lead.id === selectedLeadId) ?? null, [leads, selectedLeadId]);
   const filteredLeads = useMemo(() => leads.filter((lead) => {
+  const paginatedLeads = filteredLeads.slice(page * pageSize, (page + 1) * pageSize);
     if (!matchesLeadSearch(lead, search)) return false;
     if (stageFilter !== 'all' && lead.stage_id !== stageFilter) return false;
     return true;
@@ -411,13 +416,13 @@ export default function LeadFestaPage() {
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,.9fr)]">
         <section className={panel}>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <input className={field + ' mt-0'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nome, telefone, e-mail ou origem..." aria-label="Buscar leads" />
-            <select className={field + ' mt-0 sm:max-w-52'} value={stageFilter} onChange={(event) => setStageFilter(event.target.value)} aria-label="Filtrar por etapa">
+            <input className={field + ' mt-0'} value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="Buscar por nome, telefone, e-mail ou origem..." aria-label="Buscar leads" />
+            <select className={field + ' mt-0 sm:max-w-52'} value={stageFilter} onChange={(event) => { setStageFilter(event.target.value); setPage(0); }} aria-label="Filtrar por etapa">
               <option value="all">Todas as etapas</option>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
             </select>
           </div>
           <div className="mt-4 space-y-2">
-            {filteredLeads.length ? filteredLeads.map((lead) => {
+            {filteredLeads.length ? paginatedLeads.map((lead) => {
               const stage = stages.find((item) => item.id === lead.stage_id);
               return <button type="button" key={lead.id} onClick={() => setSelectedLeadId(lead.id)}
                 className={'w-full rounded-xl border p-4 text-left transition ' + (selectedLeadId === lead.id ? 'border-purple-300 bg-purple-50/70 shadow-sm' : 'border-gray-100 hover:border-purple-200 hover:bg-purple-50/30')}>
@@ -429,6 +434,7 @@ export default function LeadFestaPage() {
               </button>;
             }) : <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center"><p className="font-semibold text-gray-700">Nenhum lead encontrado</p><p className="mt-1 text-sm text-gray-500">Cadastre uma oportunidade ou ajuste os filtros.</p></div>}
           </div>
+          <Pagination totalCount={filteredLeads.length} page={page} pageSize={pageSize} onPageChange={setPage}/>
         </section>
 
         <section className={panel}>
