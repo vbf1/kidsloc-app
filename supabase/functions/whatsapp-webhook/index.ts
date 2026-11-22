@@ -100,12 +100,47 @@ Deno.serve(async (req) => {
         }, { onConflict: "event_key", ignoreDuplicates: true });
 
         if (companyId) {
+          let contactsSyncStatus: "received" | "failed" | undefined;
+          if (field === "smb_app_state_sync") {
+            const contacts = Array.isArray(value.contacts) ? value.contacts : [];
+            const rows = contacts.flatMap((contact: Record<string, unknown>) => {
+              const waId = String(contact.wa_id || "").replace(/[^0-9]/g, "");
+              if (!/^[0-9]{8,20}$/.test(waId)) return [];
+              const profile = contact.profile && typeof contact.profile === "object"
+                ? contact.profile as Record<string, unknown>
+                : {};
+              const displayName = typeof profile.name === "string"
+                ? profile.name.trim().slice(0, 160)
+                : null;
+              return [{
+                company_id: companyId,
+                wa_id: waId,
+                display_name: displayName || null,
+                synced_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }];
+            });
+            if (rows.length > 0) {
+              const { error: contactsError } = await admin.from("whatsapp_synced_contacts")
+                .upsert(rows, { onConflict: "company_id,wa_id" });
+              if (contactsError) {
+                console.error("WhatsApp contacts persistence failed:", contactsError.code || "DB_ERROR");
+                contactsSyncStatus = "failed";
+              } else {
+                contactsSyncStatus = "received";
+              }
+            } else {
+              // A valid empty contacts array is a completed sync; missing data is not.
+              contactsSyncStatus = Array.isArray(value.contacts) ? "received" : "failed";
+            }
+          }
+
           await admin.from("whatsapp_connections").update({
             last_webhook_at: new Date().toISOString(),
             ...(field === "account_update" && ["PARTNER_REMOVED", "ACCOUNT_OFFBOARDED"].includes(eventType)
               ? { status: "disconnected", is_on_biz_app: false }
               : {}),
-            ...(field === "smb_app_state_sync" ? { contacts_sync_status: "received" } : {}),
+            ...(contactsSyncStatus ? { contacts_sync_status: contactsSyncStatus } : {}),
             ...(field === "history" && historyErrors.includes(2593109)
               ? { history_sync_status: "declined" }
               : {}),
