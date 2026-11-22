@@ -29,6 +29,18 @@ class _ReportsPageState extends State<ReportsPage> {
   String get _monthKey =>
       '${_month.year.toString().padLeft(4, '0')}-${_month.month.toString().padLeft(2, '0')}';
 
+  Future<List<Map<String, dynamic>>> _fetchAllRows(
+    Future<List<Map<String, dynamic>>> Function(int start, int end) fetchPage,
+  ) async {
+    const pageSize = 1000;
+    final rows = <Map<String, dynamic>>[];
+    for (var offset = 0;; offset += pageSize) {
+      final page = await fetchPage(offset, offset + pageSize - 1);
+      rows.addAll(page);
+      if (page.length < pageSize) return rows;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,29 +87,33 @@ class _ReportsPageState extends State<ReportsPage> {
         throw Exception('Relatórios disponíveis apenas para administradores.');
       }
       final results = await Future.wait([
-        db
+        _fetchAllRows((start, end) => db
             .from('financial_transactions')
             .select('id,transaction_type,amount,status,due_date,paid_at')
             .eq('company_id', widget.companyId)
             .neq('status', 'cancelled')
-            .limit(5000),
-        db
+            .range(start, end)),
+        _fetchAllRows((start, end) => db
             .from('payments')
             .select('transaction_id,amount,paid_at')
             .eq('company_id', widget.companyId)
-            .limit(5000),
-        db
+            .range(start, end)),
+        _fetchAllRows((start, end) => db
             .from('rentals')
             .select('id,rental_number,start_date,end_date,status,total_amount')
             .eq('company_id', widget.companyId)
             .neq('status', 'cancelled')
-            .limit(5000),
-        db
+            .range(start, end)),
+        _fetchAllRows((start, end) => db
             .from('rental_items')
             .select('rental_id,product_id,quantity')
             .eq('company_id', widget.companyId)
-            .limit(10000),
-        db.from('products').select('id,name').eq('company_id', widget.companyId),
+            .range(start, end)),
+        _fetchAllRows((start, end) => db
+            .from('products')
+            .select('id,name')
+            .eq('company_id', widget.companyId)
+            .range(start, end)),
       ]);
       if (!mounted) return;
       setState(() {
