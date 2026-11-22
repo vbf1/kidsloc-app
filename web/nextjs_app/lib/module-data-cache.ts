@@ -29,6 +29,7 @@ export function useModuleData<T>(
   });
 
   const currentValue = useRef(value);
+  const initialValueRef = useRef(initialValue);
 
   useEffect(() => {
     if (key && moduleData.has(key)) {
@@ -37,9 +38,9 @@ export function useModuleData<T>(
       setValue(cachedValue);
       return;
     }
-    currentValue.current = initialValue;
-    setValue(initialValue);
-  }, [key, initialValue]);
+    currentValue.current = initialValueRef.current;
+    setValue(initialValueRef.current);
+  }, [key]);
 
   const updateValue = useCallback<Dispatch<SetStateAction<T>>>((nextValue) => {
     const resolved = typeof nextValue === 'function'
