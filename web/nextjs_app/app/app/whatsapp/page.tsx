@@ -94,7 +94,7 @@ export default function WhatsAppPage() {
         setLoading(false);
         return;
       }
-      if (member.role !== 'admin') {
+      if (!['owner', 'admin'].includes(member.role)) {
         setError('A configuração do WhatsApp está disponível apenas para o administrador da empresa.');
         setLoading(false);
         return;
