@@ -63,7 +63,7 @@ O endpoint registra metadados resumidos dos eventos, atualiza estados de entrega
 Depois de:
 - aprovar o aplicativo e as permissões na Meta;
 - cadastrar as duas variáveis públicas no GitHub;
-- cadastrar os quatro segredos no Supabase;
+- cadastrar os cinco segredos no Supabase;
 - implantar a migração e as Edge Functions;
 - configurar o webhook;
 
