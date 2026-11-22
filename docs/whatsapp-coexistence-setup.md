@@ -53,7 +53,7 @@ Quando as Edge Functions forem implantadas, configure no produto WhatsApp:
 - Assinatura do webhook: a função valida `X-Hub-Signature-256` com o App Secret.
 - Campos de Coexistence exigidos pela Meta: `account_update`, `history`, `smb_app_state_sync` e `smb_message_echoes`; também acompanhe `messages` para os estados de entrega.
 
-A documentação da Meta exige iniciar a sincronização de contatos e histórico dentro de 24 horas após o onboarding. A etapa de sincronização e armazenamento de histórico ainda precisa ser concluída antes de liberar o botão de conexão no KidsLoc.
+**Preferência definida nesta implementação: não importar conversas antigas.** Após a confirmação da Coexistence, o backend solicita somente `smb_app_state_sync` para os contatos. Ele não chama `smb_app_data` com `sync_type: history`. Se a Meta enviar um evento `history` indicando recusa (código 2593109), o webhook registra apenas o código e o estado; não grava o conteúdo das conversas. A sincronização de contatos ainda precisa de processamento e persistência apropriados antes de liberar o fluxo em produção.
 
 O endpoint registra somente metadados resumidos dos eventos e atualiza estados de entrega; ele não grava o conteúdo das conversas recebido nos webhooks.
 
