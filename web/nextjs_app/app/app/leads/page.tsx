@@ -153,11 +153,11 @@ export default function LeadFestaPage() {
 
   const selectedLead = useMemo(() => leads.find((lead) => lead.id === selectedLeadId) ?? null, [leads, selectedLeadId]);
   const filteredLeads = useMemo(() => leads.filter((lead) => {
-  const paginatedLeads = filteredLeads.slice(page * pageSize, (page + 1) * pageSize);
     if (!matchesLeadSearch(lead, search)) return false;
     if (stageFilter !== 'all' && lead.stage_id !== stageFilter) return false;
     return true;
   }), [leads, search, stageFilter]);
+  const paginatedLeads = filteredLeads.slice(page * pageSize, (page + 1) * pageSize);
 
   const loadActivities = useCallback(async () => {
     if (!supabase || !companyId || !selectedLeadId) {
