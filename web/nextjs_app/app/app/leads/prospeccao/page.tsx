@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ProspectResult, OSMElement } from '../../../../lib/leadfesta-prospecting';
@@ -330,13 +331,13 @@ export default function LeadProspectingPage() {
   }
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p role="status" className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso...</p></main>;
-  if (error && !workspace) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5"><section className="w-full max-w-lg rounded-2xl border border-purple-100 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • Prospecção</p><h1 className="mt-2 text-2xl font-bold">Acesso não disponível</h1><p role="alert" className="mt-3 text-sm leading-6 text-gray-600">{error}</p><a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/leads/'} className="mt-5 inline-flex rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-semibold text-white">Voltar ao LeadFesta</a></section></main>;
+  if (error && !workspace) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5"><section className="w-full max-w-lg rounded-2xl border border-purple-100 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • Prospecção</p><h1 className="mt-2 text-2xl font-bold">Acesso não disponível</h1><p role="alert" className="mt-3 text-sm leading-6 text-gray-600">{error}</p><Link href="/app/leads/" className="mt-5 inline-flex rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-semibold text-white">Voltar ao LeadFesta</Link></section></main>;
 
   return <AppShell companyName={workspace?.companyName ?? ''} email={workspace?.email ?? ''} role={workspace?.role} companyId={workspace?.companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={false} onSignOut={() => { void supabase?.auth.signOut().then(() => window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/login/')); }}>
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • captação de oportunidades</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Encontrar clientes interessados</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Pesquise manifestações públicas de pessoas procurando produtos ou serviços e registre oportunidades no funil da empresa ativa.</p></div>
-        <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/leads/'} className={secondary}>← Voltar ao CRM</a>
+        <Link href="/app/leads/" className={secondary}>← Voltar ao CRM</Link>
       </div>
 
       {notice && <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
@@ -366,7 +367,7 @@ export default function LeadProspectingPage() {
           </label>
         </div>
         {intentLinks.length > 0 && <div className="mt-4"><p className="text-sm font-semibold text-gray-800">Pesquisas prontas por fonte</p><p className="mt-1 text-xs leading-5 text-gray-500">As pesquisas procuram expressões de intenção, como “procuro”, “preciso”, “alguém indica” e “quero contratar”. O período é aplicado automaticamente nas pesquisas do Google e DuckDuckGo; no Bing, ajuste o filtro de data após abrir. Abra uma fonte, confira a publicação original e confirme que a pessoa está procurando o serviço — não oferecendo.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {intentLinks.map((link) => <a key={link.source} href={link.url} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 p-3 transition hover:border-purple-300 hover:bg-purple-50"><span className="block text-sm font-semibold text-[#6840bd]">{link.source} ↗</span><span className="mt-1 block text-xs text-gray-500">{link.description}</span></a>)}
+          {intentLinks.map((link) => <a key={link.source} href={link.url} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 p-3 transition hover:border-purple-300 hover:bg-purple-50"><span className="block text-sm font-semibold text-[#6840bd]">{link.source} ↗</span><span className="mt-1 block text-xs text-gray-500">{link.description}</span></Link>)}
         </div></div>}
         <div className="mt-5 border-t border-gray-100 pt-5"><h3 className="text-sm font-bold">Registrar uma oportunidade encontrada</h3><p className="mt-1 text-xs text-gray-500">Depois de verificar a publicação, registre somente informações públicas e necessárias. O cadastro ficará na empresa ativa.</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -427,7 +428,7 @@ export default function LeadProspectingPage() {
                 <span className="flex flex-wrap items-center gap-2"><strong className="text-sm text-gray-900">{item.name}</strong>{duplicate && <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">Possível duplicado</span>}</span>
                 <span className="mt-1 block text-xs text-gray-500">{item.category}{item.address ? ' • ' + item.address : ''}</span>
                 <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">{item.phone && <span>Tel.: {item.phone}</span>}{item.mobile && <span>Celular: {item.mobile}</span>}{item.whatsapp && <span>WhatsApp: {item.whatsapp}</span>}{item.email && <span>{item.email}</span>}{item.website && <span>{item.website}</span>}</span>
-                <span className="mt-2 block space-y-1 text-xs text-gray-600">{item.openingHours && <span className="block">Funcionamento: {item.openingHours}</span>}{item.brand && <span className="block">Marca: {item.brand}</span>}{item.operator && <span className="block">Responsável: {item.operator}</span>}{item.description && <span className="block">{item.description}</span>}</span><span className="mt-2 flex flex-wrap gap-3 text-xs font-semibold text-[#6840bd]">{item.instagram && <span>Instagram: {item.instagram}</span>}{item.facebook && <span>Facebook: {item.facebook}</span>}{item.linkedin && <span>LinkedIn: {item.linkedin}</span>}</span><span className="mt-2 inline-block text-xs font-semibold text-[#6840bd]" onClick={(event) => event.stopPropagation()}><a href={item.osmUrl} target="_blank" rel="noreferrer">Ver no OpenStreetMap ↗</a></span>
+                <span className="mt-2 block space-y-1 text-xs text-gray-600">{item.openingHours && <span className="block">Funcionamento: {item.openingHours}</span>}{item.brand && <span className="block">Marca: {item.brand}</span>}{item.operator && <span className="block">Responsável: {item.operator}</span>}{item.description && <span className="block">{item.description}</span>}</span><span className="mt-2 flex flex-wrap gap-3 text-xs font-semibold text-[#6840bd]">{item.instagram && <span>Instagram: {item.instagram}</span>}{item.facebook && <span>Facebook: {item.facebook}</span>}{item.linkedin && <span>LinkedIn: {item.linkedin}</span>}</span><span className="mt-2 inline-block text-xs font-semibold text-[#6840bd]" onClick={(event) => event.stopPropagation()}><a href={item.osmUrl} target="_blank" rel="noreferrer">Ver no OpenStreetMap ↗</Link></span>
               </span>
             </label>;
           })}
