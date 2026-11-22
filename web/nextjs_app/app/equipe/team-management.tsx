@@ -24,9 +24,9 @@ export default function TeamManagement() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [companies, setCompanies] = useState<Company[]>(() => getModuleData('team', 'companies', cacheScope, []));
+  const [companies, setCompanies] = useState<Company[]>(() => getModuleData<Company[]>('team', 'companies', cacheScope, []));
   const [companyId, setCompanyId] = useState(cachedWorkspace?.companyId ?? '');
-  const [members, setMembers] = useState<Member[]>(() => getModuleData('team', 'members', cacheScope, []));
+  const [members, setMembers] = useState<Member[]>(() => getModuleData<Member[]>('team', 'members', cacheScope, []));
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
