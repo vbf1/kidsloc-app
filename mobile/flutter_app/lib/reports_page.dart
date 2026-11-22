@@ -82,7 +82,7 @@ class _ReportsPageState extends State<ReportsPage> {
     final expense = expenses.fold<double>(0,(s,t)=>s+_number(t['amount']));
     final paidBy = <String,double>{};
     for (final p in _payments) { final id=p['transaction_id']?.toString(); if(id!=null) paidBy[id]=(paidBy[id]??0)+_number(p['amount']); }
-    final pending = income.fold<double>(0,(s,t)=>s+(_number(t['amount'])-(paidBy[t['id']?.toString()]??(t['status']=='paid'?_number(t['amount']):0))).clamp(0,double.infinity));
+    final pending = income.fold<double>(0,(s,t)=>s+(_number(t['amount'])-(paidBy[t['id']?.toString()]??(t['status']=='paid'?_number(t['amount']):0))).clamp(0,double.infinity).toDouble());
     final activeRentals = _rentals.where((r)=>(r['start_date']?.toString() ?? '9999')<=end && (r['end_date']?.toString() ?? '')>=start).toList();
     final activeIds = activeRentals.map((r)=>r['id'].toString()).toSet();
     final productNames = {for(final p in _products) p['id'].toString():p['name']?.toString() ?? 'Item'};
