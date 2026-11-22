@@ -102,11 +102,22 @@ export default function ReportsPage() {
     const activeRentals = rentals.filter(r => r.start_date <= until && r.end_date >= from);
     const activeRentalIds = new Set(activeRentals.map(r=>r.id));
     const booked = activeRentals.reduce((s,r) => s + Number(r.total_amount),0);
-    const counts = new Map<string,number>();
-    for (const item of items) if (activeRentalIds.has(item.rental_id)) counts.set(item.product_id, (counts.get(item.product_id) ?? 0) + Number(item.quantity));
+    const productTotals = new Map<string,{ quantity:number; gross:number; rentalIds:Set<string> }>();
+    for (const item of items) {
+      if (!activeRentalIds.has(item.rental_id)) continue;
+      const current = productTotals.get(item.product_id) ?? { quantity:0, gross:0, rentalIds:new Set<string>() };
+      current.quantity += Number(item.quantity);
+      current.gross += Number(item.subtotal);
+      current.rentalIds.add(item.rental_id);
+      productTotals.set(item.product_id,current);
+    }
     const names = new Map(products.map(p => [p.id,p.name]));
-    const top = [...counts.entries()].map(([id,quantity]) => ({ name:names.get(id) ?? 'Item removido', quantity }))
-      .sort((a,b) => b.quantity-a.quantity).slice(0,5);
+    const grossTotal = [...productTotals.values()].reduce((s,p) => s+p.gross,0);
+    const top = [...productTotals.entries()].map(([id,p]) => {
+      const allocatedExpense = grossTotal > 0 ? expense * p.gross / grossTotal : 0;
+      return { name:names.get(id) ?? 'Item removido', quantity:p.quantity, rentals:p.rentalIds.size,
+        gross:p.gross, allocatedExpense, net:p.gross-allocatedExpense };
+    }).sort((a,b) => b.gross-a.gross);
     const statuses = new Map<string,number>();
     for (const r of activeRentals) statuses.set(r.status,(statuses.get(r.status) ?? 0)+1);
     return { revenue, received, expense, result: revenue-expense, pending, rentals: activeRentals.length, booked, top, statuses: [...statuses.entries()] };
@@ -123,7 +134,7 @@ export default function ReportsPage() {
     ['A receber', brl(summary.pending), 'Receitas ainda não marcadas como pagas'],
     ['Locações', String(summary.rentals), 'Locações com evento no período'],
   ];
-  const maxTop = Math.max(1,...summary.top.map(x=>x.quantity));
+  const maxTop = Math.max(1,...summary.top.map(x=>x.gross));
   return <AppShell companyName={companyName} email={email} role="admin" companyId={companyId}
     basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={false} onSignOut={signOut}>
     <section>
@@ -143,10 +154,11 @@ export default function ReportsPage() {
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-purple-100 bg-white p-5">
-          <h2 className="font-bold">Itens mais locados</h2><p className="mt-1 text-xs text-gray-500">Quantidade de unidades nos registros carregados</p>
-          {summary.top.length ? <div className="mt-5 space-y-4">{summary.top.map(item=><div key={item.name}>
-            <div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate">{item.name}</span><strong>{item.quantity}</strong></div>
-            <div className="h-2 overflow-hidden rounded-full bg-purple-50"><div className="h-full rounded-full bg-[#8054d8]" style={{width:(item.quantity/maxTop*100)+'%'}}/></div>
+          <h2 className="font-bold">Desempenho financeiro por brinquedo</h2><p className="mt-1 text-xs text-gray-500">Faturamento bruto, despesas rateadas e lucro líquido estimado no período</p>
+          {summary.top.length ? <div className="mt-5 space-y-4">{summary.top.map(item=><div key={item.name} className="border-b border-gray-100 pb-3 last:border-0">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm"><strong className="truncate">{item.name}</strong><span className="text-xs text-gray-500">{item.rentals} locações · {item.quantity} unidades</span></div>
+            <div className="h-2 overflow-hidden rounded-full bg-purple-50"><div className="h-full rounded-full bg-[#8054d8]" style={{width:(item.gross/maxTop*100)+'%'}}/></div>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-xs"><span><span className="block text-gray-400">Bruto</span><strong>{brl(item.gross)}</strong></span><span><span className="block text-gray-400">Despesas</span><strong>{brl(item.allocatedExpense)}</strong></span><span><span className="block text-gray-400">Líquido*</span><strong className={item.net<0?'text-red-600':'text-green-700'}>{brl(item.net)}</strong></span></div>
           </div>)}</div> : <p className="mt-5 text-sm text-gray-500">Ainda não há itens de locação para exibir.</p>}
         </article>
         <article className="rounded-2xl border border-purple-100 bg-white p-5">
@@ -155,7 +167,7 @@ export default function ReportsPage() {
           <div className="mt-5 rounded-xl bg-purple-50 p-4"><p className="text-xs text-purple-700">Valor contratado no período</p><p className="mt-1 text-xl font-bold text-purple-900">{brl(summary.booked)}</p></div>
         </article>
       </div>
-      <p className="mt-5 text-xs leading-5 text-gray-400">Os indicadores consideram os registros disponíveis na empresa. Resultado é calculado por lançamentos financeiros; recebimentos são exibidos separadamente. Confira os lançamentos antes de usar os números como demonstrativo contábil.</p>
+      <p className="mt-5 text-xs leading-5 text-gray-400">*Lucro líquido estimado: as despesas financeiras registradas no mês são distribuídas proporcionalmente ao faturamento bruto de cada brinquedo. Custos não lançados no financeiro não entram no cálculo. Resultado geral e recebimentos são exibidos separadamente; confira os lançamentos antes de usar os números como demonstrativo contábil.</p>
     </section>
   </AppShell>;
 }

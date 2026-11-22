@@ -109,7 +109,7 @@ class _ReportsPageState extends State<ReportsPage> {
             .range(start, end)),
         _fetchAllRows((start, end) => db
             .from('rental_items')
-            .select('rental_id,product_id,quantity')
+            .select('rental_id,product_id,quantity,subtotal')
             .eq('company_id', widget.companyId)
             .order('id', ascending: true)
             .range(start, end)),
@@ -191,15 +191,33 @@ class _ReportsPageState extends State<ReportsPage> {
       for (final p in _products)
         p['id'].toString(): p['name']?.toString() ?? 'Item'
     };
-    final counts = <String, int>{};
+    final productTotals = <String, Map<String, dynamic>>{};
     for (final item in _items) {
-      if (activeIds.contains(item['rental_id']?.toString())) {
-        final id = item['product_id'].toString();
-        counts[id] = (counts[id] ?? 0) + (_number(item['quantity']).toInt());
-      }
+      if (!activeIds.contains(item['rental_id']?.toString())) continue;
+      final id = item['product_id'].toString();
+      final current = productTotals.putIfAbsent(id, () => {
+        'quantity': 0, 'gross': 0.0, 'rentalIds': <String>{},
+      });
+      current['quantity'] = (current['quantity'] as int) + _number(item['quantity']).toInt();
+      current['gross'] = (current['gross'] as double) + _number(item['subtotal']);
+      (current['rentalIds'] as Set<String>).add(item['rental_id'].toString());
     }
-    final top = counts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final grossTotal = productTotals.values.fold<double>(
+        0, (sum, product) => sum + (product['gross'] as double));
+    final top = productTotals.entries.map((entry) {
+      final product = entry.value;
+      final gross = product['gross'] as double;
+      final allocatedExpense = grossTotal > 0 ? expense * gross / grossTotal : 0.0;
+      return {
+        'name': productNames[entry.key] ?? 'Item removido',
+        'quantity': product['quantity'] as int,
+        'rentals': (product['rentalIds'] as Set<String>).length,
+        'gross': gross,
+        'allocatedExpense': allocatedExpense,
+        'net': gross - allocatedExpense,
+      };
+    }).toList()
+      ..sort((a, b) => (b['gross'] as double).compareTo(a['gross'] as double));
     return {
       'revenue': revenue,
       'received': received,
@@ -210,9 +228,6 @@ class _ReportsPageState extends State<ReportsPage> {
       'booked': activeRentals.fold<double>(
           0, (s, r) => s + _number(r['total_amount'])),
       'top': top
-          .take(5)
-          .map((e) => '${productNames[e.key] ?? 'Item'} · ${e.value}')
-          .toList()
     };
   }
 
@@ -323,24 +338,62 @@ class _ReportsPageState extends State<ReportsPage> {
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Itens mais locados',
+                                    Text('Desempenho financeiro por brinquedo',
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleMedium),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'Faturamento bruto, despesas rateadas e lucro líquido estimado.',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                    const SizedBox(height: 10),
                                     if ((s['top'] as List).isEmpty)
-                                      const Text(
-                                          'Sem itens para o período selecionado.')
+                                      const Text('Sem itens para o período selecionado.')
                                     else
-                                      for (final item in s['top'] as List<String>)
+                                      for (final item in s['top'] as List<Map<String, dynamic>>)
                                         Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 5),
-                                            child: Text(item)),
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(child: Text(item['name'].toString(),
+                                                    style: const TextStyle(fontWeight: FontWeight.w600))),
+                                                  Text('${item['rentals']} locações · ${item['quantity']} unidades',
+                                                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: LinearProgressIndicator(
+                                                  value: ((item['gross'] as double) /
+                                                    ((s['top'] as List<Map<String, dynamic>>)
+                                                      .map((e) => e['gross'] as double)
+                                                      .fold<double>(1, (a, b) => a > b ? a : b))).clamp(0.0, 1.0),
+                                                  minHeight: 7,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Wrap(
+                                                spacing: 12,
+                                                runSpacing: 4,
+                                                children: [
+                                                  Text('Bruto: ${_money(item['gross'] as double)}', style: const TextStyle(fontSize: 12)),
+                                                  Text('Despesas: ${_money(item['allocatedExpense'] as double)}', style: const TextStyle(fontSize: 12)),
+                                                  Text('Líquido*: ${_money(item['net'] as double)}',
+                                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
+                                                      color: (item['net'] as double) < 0 ? Colors.red : Colors.green)),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                   ]))),
                       const SizedBox(height: 12),
                       const Text(
-                          'Indicadores gerenciais. Resultado calculado por lançamentos financeiros; não substitui demonstrativos contábeis.',
+                          '*Lucro líquido estimado: despesas financeiras registradas no mês distribuídas proporcionalmente ao faturamento bruto de cada brinquedo. Custos não lançados no financeiro não entram no cálculo. Indicadores gerenciais; não substituem demonstrativos contábeis.',
                           style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
