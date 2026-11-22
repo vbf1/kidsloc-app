@@ -25,7 +25,7 @@ async function fetchAll<T>(query: any): Promise<T[]> {
  * never hold up the cache for another module. The signed-in client keeps RLS
  * enforcement intact; cache keys remain isolated by user + company.
  */
-async function preloadCoreData(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+async function preloadCoreData(client: NonNullable<typeof supabase>, companyId: string, scope: string): Promise<void> {
 const core = await Promise.all([
     client.from('customers')
       .select('id,company_id,name,phone,email,address,notes,created_at,updated_at,cpf,rg,zip,neighborhood,city_state', { count: 'exact' })
@@ -44,7 +44,7 @@ const core = await Promise.all([
   }
 }
 
-async function preloadRentals(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+async function preloadRentals(client: NonNullable<typeof supabase>, companyId: string, scope: string): Promise<void> {
 const rentalResult = await client.from('rentals')
     .select('id,company_id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,delivery_fee,discount,total_amount,deposit_amount,notes,created_by,created_at,updated_at')
     .eq('company_id', companyId).order('start_date', { ascending: false }).limit(1000);
@@ -92,7 +92,7 @@ const rentalResult = await client.from('rentals')
   }
 }
 
-async function preloadCalendar(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+async function preloadCalendar(client: NonNullable<typeof supabase>, companyId: string, scope: string): Promise<void> {
 const [calendarRentals, calendarCustomers, calendarProducts] = await Promise.all([
     client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,total_amount').eq('company_id', companyId).neq('status', 'cancelled').order('start_date').limit(1000),
     client.from('customers').select('id,name').eq('company_id', companyId),
@@ -117,7 +117,7 @@ const [calendarRentals, calendarCustomers, calendarProducts] = await Promise.all
   }
 }
 
-async function preloadQuotes(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+async function preloadQuotes(client: NonNullable<typeof supabase>, companyId: string, scope: string): Promise<void> {
 const [quoteCustomers, quoteProducts, quoteRows] = await Promise.all([
     client.from('customers').select('id,name,phone').eq('company_id', companyId).order('name'),
     client.from('products').select('id,name,daily_price,event_price,item_type').eq('company_id', companyId).eq('active', true).order('name'),
@@ -136,7 +136,7 @@ const [quoteCustomers, quoteProducts, quoteRows] = await Promise.all([
   }
 }
 
-async function preloadFinance(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+async function preloadFinance(client: NonNullable<typeof supabase>, companyId: string, scope: string, role: Role): Promise<void> {
 if (role === 'admin') {
     const [tx, payments] = await Promise.all([
       client.from('financial_transactions').select('id,transaction_type,category,description,amount,due_date,paid_at,status,rental_id').eq('company_id', companyId).order('due_date', { ascending: false }).limit(500),
@@ -161,7 +161,7 @@ if (role === 'admin') {
   }
 }
 
-async function preloadContracts(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+async function preloadContracts(client: NonNullable<typeof supabase>, companyId: string, scope: string): Promise<void> {
 const [contractRentals, contractCustomers, contracts] = await Promise.all([
     client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,total_amount,discount,delivery_fee').eq('company_id', companyId).neq('status', 'cancelled').order('start_date', { ascending: false }).limit(300),
     client.from('customers').select('id,name,phone,email,address,cpf,rg,zip,neighborhood,city_state').eq('company_id', companyId),
@@ -185,7 +185,7 @@ const [contractRentals, contractCustomers, contracts] = await Promise.all([
   }
 }
 
-async function preloadReports(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+async function preloadReports(client: NonNullable<typeof supabase>, companyId: string, scope: string, role: Role): Promise<void> {
 if (role === 'admin') {
     const reportResults = await Promise.all([
       fetchAll<any>(client.from('financial_transactions').select('id,transaction_type,amount,status,due_date,paid_at,category').eq('company_id', companyId).order('id', { ascending: true }).neq('status', 'cancelled')),
@@ -208,15 +208,15 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
   const scope = `${userId}:${companyId}`;
 
   const tasks = [
-    preloadCoreData(client, companyId, scope, role),
-    preloadRentals(client, companyId, scope, role),
-    preloadCalendar(client, companyId, scope, role),
-    preloadQuotes(client, companyId, scope, role),
+    preloadCoreData(client, companyId, scope),
+    preloadRentals(client, companyId, scope),
+    preloadCalendar(client, companyId, scope),
+    preloadQuotes(client, companyId, scope),
     ...(role === 'admin' ? [
       preloadFinance(client, companyId, scope, role),
       preloadReports(client, companyId, scope, role),
     ] : []),
-    preloadContracts(client, companyId, scope, role),
+    preloadContracts(client, companyId, scope),
   ];
 
   // allSettled lets successful modules become usable even when another module
