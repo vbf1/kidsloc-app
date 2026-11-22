@@ -111,7 +111,7 @@ export default function RentalsPage() {
     const client = supabase;
     let active = true;
     async function loadRentals() {
-      if (!hasModuleData('rentals', workspaceScope)) setListLoading(true);
+      if (!hasModuleData('rentals', workspaceScope)) 
       setListError('');
       try {
         const [rentalResult, customerResult, productResult, memberResult] = await Promise.all([
@@ -261,7 +261,7 @@ export default function RentalsPage() {
       setFormOpen(false);
       setEditingRental(null);
       setPage(0);
-      setListLoading(true);
+      
       setRefreshIndex((current) => current + 1);
     } catch {
       setFormError('Ocorreu um erro ao salvar a locação. Confira sua conexão e tente novamente.');
