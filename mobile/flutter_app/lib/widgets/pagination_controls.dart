@@ -11,7 +11,7 @@ class PaginationControls extends StatelessWidget {
   Widget build(BuildContext context) {
     if (totalCount <= pageSize) return const SizedBox.shrink();
     final pageCount = (totalCount / pageSize).ceil();
-    final currentPage = page.clamp(0, pageCount - 1);
+    final currentPage = page.clamp(0, pageCount - 1).toInt();
     final first = currentPage * pageSize + 1;
     final last = (first + pageSize - 1).clamp(0, totalCount);
     return Padding(
