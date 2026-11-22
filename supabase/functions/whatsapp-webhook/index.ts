@@ -21,7 +21,8 @@ async function validSignature(rawBody: Uint8Array, signature: string, appSecret:
     name: "HMAC",
     hash: "SHA-256",
   }, false, ["sign"]);
-  const digest = new Uint8Array(await crypto.subtle.sign("HMAC", key, rawBody));
+  const bodyBuffer = rawBody.buffer.slice(rawBody.byteOffset, rawBody.byteOffset + rawBody.byteLength) as ArrayBuffer;
+  const digest = new Uint8Array(await crypto.subtle.sign("HMAC", key, bodyBuffer));
   return constantTimeEqual(signature.slice(7), toHex(digest));
 }
 async function digest(value: string): Promise<string> {
