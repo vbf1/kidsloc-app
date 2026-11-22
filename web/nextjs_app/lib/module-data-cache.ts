@@ -8,6 +8,12 @@ export function clearModuleDataCache(): void {
   moduleData.clear();
 }
 
+/** Seed a module cache before its page is opened. Scope is always user + company. */
+export function setModuleData<T>(moduleName: string, field: string, scope: string, value: T): void {
+  const key = cacheKey(moduleName, scope, field);
+  if (key) moduleData.set(key, value);
+}
+
 function cacheKey(moduleName: string, scope: string, field: string) {
   return scope ? `kidsloc:${scope}:${moduleName}:${field}` : '';
 }
