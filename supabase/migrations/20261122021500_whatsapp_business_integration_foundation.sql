@@ -234,53 +234,53 @@ to service_role;
 
 create policy whatsapp_connections_admin_select
   on public.whatsapp_connections for select to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_connections_admin_insert
   on public.whatsapp_connections for insert to authenticated
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_connections_admin_update
   on public.whatsapp_connections for update to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]))
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]))
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 
 create policy whatsapp_automation_admin_select
   on public.whatsapp_automation_settings for select to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_automation_admin_insert
   on public.whatsapp_automation_settings for insert to authenticated
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_automation_admin_update
   on public.whatsapp_automation_settings for update to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]))
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]))
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 
 create policy whatsapp_consents_admin_select
   on public.whatsapp_message_consents for select to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_consents_admin_insert
   on public.whatsapp_message_consents for insert to authenticated
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_consents_admin_update
   on public.whatsapp_message_consents for update to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]))
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]))
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 
 create policy whatsapp_templates_admin_select
   on public.whatsapp_message_templates for select to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_templates_admin_insert
   on public.whatsapp_message_templates for insert to authenticated
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_templates_admin_update
   on public.whatsapp_message_templates for update to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]))
-  with check (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]))
+  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 
 create policy whatsapp_outbox_admin_select
   on public.whatsapp_message_outbox for select to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 create policy whatsapp_logs_admin_select
   on public.whatsapp_message_logs for select to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
 
 -- Secrets and webhook receipts have no authenticated/anon policies or grants.
