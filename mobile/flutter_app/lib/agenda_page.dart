@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'widgets/pagination_controls.dart';
 import 'services/company_realtime.dart';
 
 class AgendaPage extends StatefulWidget {
@@ -173,7 +174,7 @@ class _AgendaPageState extends State<AgendaPage> {
                                 final active = DateUtils.isSameDay(date, _selected);
                                 return InkWell(
                                   borderRadius: BorderRadius.circular(10),
-                                  onTap: () => setState(() => _selected = date),
+                                  onTap: () => setState(() { _selected = date; _page = 0; }),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: active ? Theme.of(context).colorScheme.primaryContainer : count > 0 ? Theme.of(context).colorScheme.surfaceContainerHighest : null,
@@ -239,7 +240,7 @@ class _AgendaPageState extends State<AgendaPage> {
                       if (selectedRentals.isEmpty)
                         const Padding(padding: EdgeInsets.symmetric(vertical: 36), child: Center(child: Text('Nenhuma locação programada para este dia.')))
                       else
-                        ...selectedRentals.map((r) => Card(
+                        ...selectedRentals.skip(_page * 6).take(6).map((r) => Card(
                           child: ListTile(
                             leading: const CircleAvatar(child: Icon(Icons.celebration_outlined)),
                             title: Text('Locação #${r['rental_number']} · ${_customerNames[r['customer_id']?.toString()] ?? 'Cliente'}'),
