@@ -21,17 +21,12 @@ async function fetchAll<T>(query: any): Promise<T[]> {
 }
 
 /**
- * Warm the in-memory cache after authentication and workspace resolution.
- * Queries run with the signed-in Supabase client (therefore existing RLS applies),
- * are scoped to the active company, and are isolated by user + company.
+ * Each module warms independently. A slow or failed query in one module must
+ * never hold up the cache for another module. The signed-in client keeps RLS
+ * enforcement intact; cache keys remain isolated by user + company.
  */
-export async function preloadCompanyModules(userId: string, companyId: string, role: Role): Promise<void> {
-  if (!supabase || !userId || !companyId) return;
-  const client = supabase;
-  const scope = `${userId}:${companyId}`;
-
-  // Small, frequently used datasets first. Keep the home screen independent.
-  const core = await Promise.all([
+async function preloadCoreData(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+const core = await Promise.all([
     client.from('customers')
       .select('id,company_id,name,phone,email,address,notes,created_at,updated_at,cpf,rg,zip,neighborhood,city_state', { count: 'exact' })
       .eq('company_id', companyId).order('name', { ascending: true }).limit(1000),
@@ -47,9 +42,10 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
     setModuleData('products', 'records', scope, core[1].data ?? []);
     setModuleData('products', 'totalCount', scope, core[1].count ?? (core[1].data ?? []).length);
   }
+}
 
-  // Rentals and their related display data.
-  const rentalResult = await client.from('rentals')
+async function preloadRentals(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+const rentalResult = await client.from('rentals')
     .select('id,company_id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,delivery_fee,discount,total_amount,deposit_amount,notes,created_by,created_at,updated_at')
     .eq('company_id', companyId).order('start_date', { ascending: false }).limit(1000);
   const [rentalCustomers, rentalProducts, members] = await Promise.all([
@@ -94,9 +90,10 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
       setModuleData('rentals', 'members', scope, members.data ?? []);
     }
   }
+}
 
-  // Calendar uses a smaller, date-oriented projection of rentals and inventory.
-  const [calendarRentals, calendarCustomers, calendarProducts] = await Promise.all([
+async function preloadCalendar(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+const [calendarRentals, calendarCustomers, calendarProducts] = await Promise.all([
     client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,total_amount').eq('company_id', companyId).neq('status', 'cancelled').order('start_date').limit(1000),
     client.from('customers').select('id,name').eq('company_id', companyId),
     client.from('products').select('id,name,total_quantity,inventory_mode').eq('company_id', companyId).eq('active', true).in('item_type', ['toy', 'machine']).order('name'),
@@ -118,9 +115,10 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
       setModuleData('calendar', 'availableUnits', scope, counts);
     }
   }
+}
 
-  // Quotes are bounded to the same recent window used by the screen.
-  const [quoteCustomers, quoteProducts, quoteRows] = await Promise.all([
+async function preloadQuotes(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+const [quoteCustomers, quoteProducts, quoteRows] = await Promise.all([
     client.from('customers').select('id,name,phone').eq('company_id', companyId).order('name'),
     client.from('products').select('id,name,daily_price,event_price,item_type').eq('company_id', companyId).eq('active', true).order('name'),
     client.from('rental_quotes').select('id,quote_number,customer_id,status,issue_date,valid_until,event_date,start_time,end_time,delivery_method,delivery_address,delivery_fee,discount,subtotal,total_amount,notes').eq('company_id', companyId).order('created_at', { ascending: false }).limit(200),
@@ -136,9 +134,10 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
     setModuleData('quotes', 'quoteLines', scope, grouped);
     setModuleData('quotes', 'names', scope, Object.fromEntries((quoteCustomers.data ?? []).map((x: any) => [x.id, x.name])));
   }
+}
 
-  // Finance is restricted to administrators, just like the destination page.
-  if (role === 'admin') {
+async function preloadFinance(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+if (role === 'admin') {
     const [tx, payments] = await Promise.all([
       client.from('financial_transactions').select('id,transaction_type,category,description,amount,due_date,paid_at,status,rental_id').eq('company_id', companyId).order('due_date', { ascending: false }).limit(500),
       client.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id', companyId).order('paid_at', { ascending: false }).limit(500),
@@ -160,9 +159,10 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
       setModuleData('finance', 'rentalInfo', scope, rentalInfo);
     }
   }
+}
 
-  // Contracts use the same bounded record windows and snapshots as their page.
-  const [contractRentals, contractCustomers, contracts] = await Promise.all([
+async function preloadContracts(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+const [contractRentals, contractCustomers, contracts] = await Promise.all([
     client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,total_amount,discount,delivery_fee').eq('company_id', companyId).neq('status', 'cancelled').order('start_date', { ascending: false }).limit(300),
     client.from('customers').select('id,name,phone,email,address,cpf,rg,zip,neighborhood,city_state').eq('company_id', companyId),
     client.from('rental_contracts').select('id,contract_number,rental_id,status,created_at,contract_snapshot,token_expires_at,signed_at,signer_name,signer_document,signature_svg').eq('company_id', companyId).order('created_at', { ascending: false }).limit(300),
@@ -183,9 +183,10 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
       setModuleData('contracts', 'itemsByRental', scope, grouped);
     }
   }
+}
 
-  // Reports are intentionally warmed only for admins and paged like the report screen.
-  if (role === 'admin') {
+async function preloadReports(client: typeof supabase, companyId: string, scope: string, role: Role): Promise<void> {
+if (role === 'admin') {
     const reportResults = await Promise.all([
       fetchAll<any>(client.from('financial_transactions').select('id,transaction_type,amount,status,due_date,paid_at,category').eq('company_id', companyId).order('id', { ascending: true }).neq('status', 'cancelled')),
       fetchAll<any>(client.from('payments').select('transaction_id,amount,paid_at').eq('company_id', companyId).order('id', { ascending: true })),
@@ -199,4 +200,27 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
     setModuleData('reports', 'products', scope, reportResults[3]);
     setModuleData('reports', 'items', scope, reportResults[4]);
   }
+}
+
+export async function preloadCompanyModules(userId: string, companyId: string, role: Role): Promise<void> {
+  if (!supabase || !userId || !companyId) return;
+  const client = supabase;
+  const scope = `${userId}:${companyId}`;
+
+  const tasks = [
+    preloadCoreData(client, companyId, scope, role),
+    preloadRentals(client, companyId, scope, role),
+    preloadCalendar(client, companyId, scope, role),
+    preloadQuotes(client, companyId, scope, role),
+    ...(role === 'admin' ? [
+      preloadFinance(client, companyId, scope, role),
+      preloadReports(client, companyId, scope, role),
+    ] : []),
+    preloadContracts(client, companyId, scope, role),
+  ];
+
+  // allSettled lets successful modules become usable even when another module
+  // is unavailable or temporarily fails; destination pages retain their own
+  // authenticated fallback requests.
+  await Promise.allSettled(tasks);
 }
