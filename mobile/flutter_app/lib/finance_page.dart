@@ -310,29 +310,64 @@ class _FinancePageState extends State<FinancePage> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      Wrap(spacing: 8, runSpacing: 8, children: [
-                        _SummaryCard(title: 'Receitas', value: fmt(_income), icon: Icons.trending_up),
-                        _SummaryCard(title: 'Despesas', value: fmt(_expenses), icon: Icons.trending_down),
-                        _SummaryCard(title: 'Recebido', value: fmt(_received), icon: Icons.payments_outlined),
-                        _SummaryCard(title: 'A receber', value: fmt(_pending), icon: Icons.account_balance_wallet_outlined),
-                        _SummaryCard(title: 'Resultado', value: fmt(_income - _expenses), icon: Icons.balance),
+                      const Text('GESTÃO DA EMPRESA', style: TextStyle(color: Color(0xFF8054D8), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                      const SizedBox(height: 6),
+                      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('Financeiro', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF172033))),
+                          const SizedBox(height: 5),
+                          Text('Acompanhe receitas, despesas, recebimentos e saldos pendentes.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
+                        ])),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                          decoration: BoxDecoration(color: const Color(0xFFF5F0FF), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE9DFFF))),
+                          child: Text('${_transactions.length} ${_transactions.length == 1 ? 'lançamento' : 'lançamentos'}', style: const TextStyle(color: Color(0xFF6840BD), fontSize: 11, fontWeight: FontWeight.w700)),
+                        ),
                       ]),
-                      const SizedBox(height: 20),
-                      Text('Lançamentos', style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 18),
+                      LayoutBuilder(builder: (context, constraints) {
+                        final columns = constraints.maxWidth >= 1050 ? 5 : constraints.maxWidth >= 650 ? 3 : 2;
+                        return GridView.count(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: constraints.maxWidth < 380 ? 1.75 : 2.05,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            _SummaryCard(title: 'Receitas lançadas', value: fmt(_income), icon: Icons.trending_up, accent: const Color(0xFF15803D)),
+                            _SummaryCard(title: 'Recebido', value: fmt(_received), icon: Icons.payments_outlined, accent: const Color(0xFF047857)),
+                            _SummaryCard(title: 'Despesas lançadas', value: fmt(_expenses), icon: Icons.trending_down, accent: const Color(0xFFBE123C)),
+                            _SummaryCard(title: 'A receber', value: fmt(_pending), icon: Icons.account_balance_wallet_outlined, accent: const Color(0xFFB45309)),
+                            _SummaryCard(title: 'Resultado', value: fmt(_income - _expenses), icon: Icons.balance, accent: const Color(0xFF6840BD)),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 24),
+                      Text('Lançamentos financeiros', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF172033))),
+                      const SizedBox(height: 4),
+                      Text('Pesquise por descrição, categoria, cliente ou locação e filtre por situação.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
+                      const SizedBox(height: 12),
                       TextField(
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search),
-                          hintText: 'Buscar por descrição, categoria, cliente ou locação',
-                          border: OutlineInputBorder(),
-                          isDense: true,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.search, color: Color(0xFF8054D8)),
+                          hintText: 'Buscar lançamentos',
+                          hintStyle: const TextStyle(fontSize: 13),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF8054D8), width: 1.5)),
                         ),
                         onChanged: (value) => setState(() => _search = value),
                       ),
-                      const SizedBox(height: 10),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(children: [
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
                           for (final option in [
                             ('all', 'Todos'),
                             ('income', 'Receitas'),
@@ -343,21 +378,35 @@ class _FinancePageState extends State<FinancePage> {
                             ('paid', 'Pagos'),
                             ('cancelled', 'Cancelados'),
                           ])
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(option.$2),
-                                selected: _filter == option.$1,
-                                onSelected: (_) => setState(() => _filter = option.$1),
-                              ),
+                            ChoiceChip(
+                              label: Text(option.$2),
+                              selected: _filter == option.$1,
+                              showCheckmark: false,
+                              onSelected: (_) => setState(() => _filter = option.$1),
+                              labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _filter == option.$1 ? const Color(0xFF6840BD) : const Color(0xFF475569)),
+                              selectedColor: const Color(0xFFF3ECFF),
+                              backgroundColor: Colors.white,
+                              shape: StadiumBorder(side: BorderSide(color: _filter == option.$1 ? const Color(0xFFD8C5FF) : const Color(0xFFE2E8F0))),
                             ),
-                        ]),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       if (_transactions.isEmpty)
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 48), child: Center(child: Text('Nenhum lançamento financeiro.')))
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 20),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
+                          child: const Column(children: [
+                            Icon(Icons.account_balance_wallet_outlined, size: 32, color: Color(0xFF94A3B8)),
+                            SizedBox(height: 10),
+                            Text('Nenhum lançamento financeiro.', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                          ]),
+                        )
                       else if (filteredTransactions.isEmpty)
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 32), child: Center(child: Text('Nenhum lançamento corresponde à busca ou ao filtro.')))
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
+                          child: const Center(child: Text('Nenhum lançamento corresponde à busca ou ao filtro.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B)))),
+                        )
                       else
                         ...filteredTransactions.map((row) {
                           final id = row['id'].toString();
@@ -372,51 +421,80 @@ class _FinancePageState extends State<FinancePage> {
                           final overdue = income && balance > 0 && row['status'] != 'cancelled' && dueDate.isNotEmpty && dueDate.compareTo(today) < 0;
                           final dueSoon = income && balance > 0 && row['status'] != 'cancelled' && dueDate.isNotEmpty && dueDate.compareTo(today) >= 0 && dueDate.compareTo(dueSoonLimit) <= 0;
                           final status = row['status'] == 'cancelled' ? 'Cancelado' : balance <= 0 ? 'Pago' : overdue ? 'Vencido' : dueSoon ? 'Vence em breve' : paid > 0 ? 'Parcial' : 'Pendente';
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Row(children: [
-                                  Icon(income ? Icons.arrow_downward : Icons.arrow_upward, color: income ? Colors.green : Theme.of(context).colorScheme.error),
-                                  const SizedBox(width: 8),
-                                  Expanded(child: Text(row['description']?.toString() ?? 'Lançamento', style: const TextStyle(fontWeight: FontWeight.w600))),
-                                  Text(fmt(amount), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          final statusColor = row['status'] == 'cancelled' ? const Color(0xFF64748B) : balance <= 0 ? const Color(0xFF15803D) : overdue ? const Color(0xFFB91C1C) : dueSoon ? const Color(0xFFB45309) : const Color(0xFF6840BD);
+                          final rental = _rentalForTransaction(row);
+                          final linkedPayments = _payments.where((p) => p['transaction_id']?.toString() == id).toList();
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0)), boxShadow: const [BoxShadow(color: Color(0x080F172A), blurRadius: 12, offset: Offset(0, 3))]),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Container(
+                                  width: 38, height: 38,
+                                  decoration: BoxDecoration(color: income ? const Color(0xFFECFDF3) : const Color(0xFFFFF1F2), borderRadius: BorderRadius.circular(12)),
+                                  child: Icon(income ? Icons.south_west : Icons.north_east, size: 19, color: income ? const Color(0xFF15803D) : const Color(0xFFBE123C)),
+                                ),
+                                const SizedBox(width: 11),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                    decoration: BoxDecoration(color: income ? const Color(0xFFECFDF3) : const Color(0xFFFFF1F2), borderRadius: BorderRadius.circular(20)),
+                                    child: Text(income ? 'RECEITA' : 'DESPESA', style: TextStyle(fontSize: 9, letterSpacing: .7, fontWeight: FontWeight.w800, color: income ? const Color(0xFF15803D) : const Color(0xFFBE123C))),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(row['description']?.toString() ?? 'Lançamento', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF172033))),
+                                  const SizedBox(height: 4),
+                                  Text('${row['category'] ?? 'Sem categoria'} · Vencimento: ${_displayDate(row['due_date'])}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                  if (rental != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text('${rental['customer_name'] ?? ''}${rental['rental_number'] != null ? ' · Locação #${rental['rental_number']}' : ''}', style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+                                  ],
+                                ])),
+                                const SizedBox(width: 8),
+                                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                  Text(fmt(amount), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF172033))),
+                                  const SizedBox(height: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(color: statusColor.withOpacity(.09), borderRadius: BorderRadius.circular(20)),
+                                    child: Text(status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor)),
+                                  ),
                                 ]),
-                                const SizedBox(height: 6),
-                                Text('${income ? 'Receita' : 'Despesa'} • ${row['category'] ?? 'Sem categoria'} • ${_displayDate(row['due_date'])}'),
-                                if (_rentalForTransaction(row) != null) ...[
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    [
-                                      if ((_rentalForTransaction(row)?['customer_name']?.toString() ?? '').isNotEmpty) _rentalForTransaction(row)!['customer_name'].toString(),
-                                      if ((_rentalForTransaction(row)?['rental_number']?.toString() ?? '').isNotEmpty) 'Locação #${_rentalForTransaction(row)!['rental_number']}',
-                                    ].join(' • '),
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ],
-                                const SizedBox(height: 4),
-                                Text('Recebido/pago: ${fmt(paid)}  •  Saldo: ${fmt(balance)}  •  $status', style: Theme.of(context).textTheme.bodySmall),
-                                ..._payments.where((p) => p['transaction_id']?.toString() == id).map((payment) => Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Row(
-                                    children: [
-                                      Expanded(child: Text('${fmt(_money(payment['amount']))} · ${_labelDate(payment['paid_at'].toString().split('T').first)} · ${payment['payment_method'] ?? 'Sem forma'}', style: Theme.of(context).textTheme.bodySmall)),
-                                      TextButton.icon(
-                                        onPressed: () => _showReceipt(row, payment),
-                                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                                        label: const Text('Comprovante'),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                                if (income && balance > 0 && _canManage && row['status'] != 'cancelled')
-                                  Align(alignment: Alignment.centerRight, child: TextButton.icon(
-                                    onPressed: _saving ? null : () => _openReceive(row),
-                                    icon: const Icon(Icons.payments_outlined),
-                                    label: const Text('Registrar recebimento'),
-                                  )),
                               ]),
-                            ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+                                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                                child: Wrap(spacing: 16, runSpacing: 5, children: [
+                                  Text('Recebido/pago: ${fmt(paid)}', style: const TextStyle(fontSize: 11, color: Color(0xFF475569))),
+                                  Text('Saldo: ${fmt(balance)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+                                ]),
+                              ),
+                              if (linkedPayments.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                const Text('HISTÓRICO DE RECEBIMENTOS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .8, color: Color(0xFF64748B))),
+                                const SizedBox(height: 7),
+                                ...linkedPayments.map((payment) => Container(
+                                  margin: const EdgeInsets.only(bottom: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFF1F5F9))),
+                                  child: Row(children: [
+                                    Expanded(child: Text('${fmt(_money(payment['amount']))} · ${_labelDate(payment['paid_at'].toString().split('T').first)} · ${payment['payment_method'] ?? 'Sem forma'}', style: const TextStyle(fontSize: 11, color: Color(0xFF475569)))),
+                                    TextButton.icon(onPressed: () => _showReceipt(row, payment), icon: const Icon(Icons.receipt_long_outlined, size: 16), label: const Text('Comprovante', style: TextStyle(fontSize: 11))),
+                                  ]),
+                                )),
+                              ],
+                              if (income && balance > 0 && _canManage && row['status'] != 'cancelled') ...[
+                                const SizedBox(height: 8),
+                                Align(alignment: Alignment.centerRight, child: FilledButton.tonalIcon(
+                                  onPressed: _saving ? null : () => _openReceive(row),
+                                  icon: const Icon(Icons.payments_outlined, size: 17),
+                                  label: const Text('Registrar recebimento'),
+                                  style: FilledButton.styleFrom(foregroundColor: const Color(0xFF166534), backgroundColor: const Color(0xFFECFDF3)),
+                                )),
+                              ],
+                            ]),
                           );
                         }),
                       if (!_canManage) const Padding(
@@ -431,24 +509,30 @@ class _FinancePageState extends State<FinancePage> {
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.title, required this.value, required this.icon});
+  const _SummaryCard({required this.title, required this.value, required this.icon, required this.accent});
   final String title;
   final String value;
   final IconData icon;
+  final Color accent;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 164,
-    child: Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20),
-        const SizedBox(height: 8),
-        Text(title, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 3),
-        Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-      ],
-    ))),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+      boxShadow: const [BoxShadow(color: Color(0x060F172A), blurRadius: 10, offset: Offset(0, 2))],
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Row(children: [
+        Icon(icon, size: 18, color: accent),
+        const SizedBox(width: 6),
+        Expanded(child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, height: 1.2, fontWeight: FontWeight.w700, color: Color(0xFF64748B)))),
+      ]),
+      const SizedBox(height: 8),
+      FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown, child: Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: accent))),
+    ]),
   );
 }
 
