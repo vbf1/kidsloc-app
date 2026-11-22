@@ -9,7 +9,7 @@ import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 type Tx = { id: string; transaction_type: 'income' | 'expense'; amount: number | string; status: string; due_date: string | null; paid_at: string | null; category: string | null };
 type Rental = { id: string; rental_number: number; start_date: string; end_date: string; status: string; total_amount: number | string };
 type Product = { id: string; name: string };
-type RentalItem = { product_id: string; quantity: number; subtotal: number | string };
+type RentalItem = { rental_id: string; product_id: string; quantity: number; subtotal: number | string };
 const brl = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
 const iso = (d: Date) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
 
@@ -22,7 +22,7 @@ export default function ReportsPage() {
   const [error, setError] = useState('');
   const [month, setMonth] = useState(() => iso(new Date()).slice(0,7));
   const [transactions, setTransactions] = useState<Tx[]>([]);
-  const [payments, setPayments] = useState<{ amount: number | string; paid_at: string }[]>([]);
+  const [payments, setPayments] = useState<{ transaction_id: string | null; amount: number | string; paid_at: string }[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [items, setItems] = useState<RentalItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -52,13 +52,13 @@ export default function ReportsPage() {
       const rentalIds = rentalRows.map(r => r.id);
       let itemRows: RentalItem[] = [];
       if (rentalIds.length) {
-        const { data, error: itemError } = await supabase.from('rental_items').select('product_id,quantity,subtotal').eq('company_id', cid).in('rental_id', rentalIds).limit(10000);
+        const { data, error: itemError } = await supabase.from('rental_items').select('rental_id,product_id,quantity,subtotal').eq('company_id', cid).in('rental_id', rentalIds).limit(10000);
         if (itemError) { setError('Não foi possível carregar os itens das locações.'); setLoading(false); return; }
         itemRows = (data ?? []) as RentalItem[];
       }
       setCompanyId(cid); setCompanyName(company?.name ?? 'Empresa'); setEmail(user.email ?? '');
       setTransactions((tx.data ?? []) as Tx[]);
-      setPayments((pay.data ?? []) as { amount: number | string; paid_at: string }[]);
+      setPayments((pay.data ?? []) as { transaction_id: string | null; amount: number | string; paid_at: string }[]);
       setRentals(rentalRows); setItems(itemRows); setProducts((prod.data ?? []) as Product[]);
       setLoading(false);
     }
@@ -77,11 +77,14 @@ export default function ReportsPage() {
     const received = payments.filter(p => p.paid_at.slice(0,7) === month).reduce((s,p) => s + Number(p.amount),0);
     const revenue = income.reduce((s,t) => s + Number(t.amount),0);
     const expense = expenses.reduce((s,t) => s + Number(t.amount),0);
-    const pending = income.filter(t => t.status !== 'paid').reduce((s,t) => s + Number(t.amount),0);
+    const paidByTransaction = new Map<string,number>();
+    for (const payment of payments) if (payment.transaction_id) paidByTransaction.set(payment.transaction_id,(paidByTransaction.get(payment.transaction_id) ?? 0)+Number(payment.amount));
+    const pending = income.reduce((s,t) => s + Math.max(0,Number(t.amount)-(paidByTransaction.get(t.id) ?? (t.status === 'paid' ? Number(t.amount) : 0))),0);
     const activeRentals = rentals.filter(r => r.start_date <= until && r.end_date >= from);
+    const activeRentalIds = new Set(activeRentals.map(r=>r.id));
     const booked = activeRentals.reduce((s,r) => s + Number(r.total_amount),0);
     const counts = new Map<string,number>();
-    for (const item of items) counts.set(item.product_id, (counts.get(item.product_id) ?? 0) + Number(item.quantity));
+    for (const item of items) if (activeRentalIds.has(item.rental_id)) counts.set(item.product_id, (counts.get(item.product_id) ?? 0) + Number(item.quantity));
     const names = new Map(products.map(p => [p.id,p.name]));
     const top = [...counts.entries()].map(([id,quantity]) => ({ name:names.get(id) ?? 'Item removido', quantity }))
       .sort((a,b) => b.quantity-a.quantity).slice(0,5);
