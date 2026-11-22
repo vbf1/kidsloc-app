@@ -8,6 +8,7 @@ import { EMPTY_LEAD, formatLeadCurrency, formatLeadDate, matchesLeadSearch, norm
 import { supabase } from '../../../lib/supabase';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { Pagination } from '../../../components/pagination';
+import { useModuleData } from '../../../lib/module-data-cache';
 
 type CompanyOption = { id: string; name: string };
 type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'platform_owner' };
@@ -26,11 +27,13 @@ function toLocalDateTimeInput(value: string | null): string {
 
 export default function LeadFestaPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [userId, setUserId] = useState('');
   const [platformOwner, setPlatformOwner] = useState(false);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [companyId, setCompanyId] = useState('');
-  const [stages, setStages] = useState<LeadStage[]>([]);
-  const [leads, setLeads] = useState<LeadRecord[]>([]);
+  const workspaceScope = userId && companyId ? `${userId}:${companyId}` : '';
+  const [stages, setStages] = useModuleData<LeadStage[]>('leads', 'stages', workspaceScope, []);
+  const [leads, setLeads] = useModuleData<LeadRecord[]>('leads', 'records', workspaceScope, []);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState('');
   const [search, setSearch] = useState('');
@@ -63,6 +66,7 @@ export default function LeadFestaPage() {
           window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/login/');
           return;
         }
+        setUserId(user.id);
         const { data: isOwner, error: ownerError } = await supabase.rpc('is_platform_owner_for_company');
         if (ownerError) throw ownerError;
         if (!active) return;
