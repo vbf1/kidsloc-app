@@ -22,7 +22,8 @@ function encodeBase64(value: Uint8Array): string {
 async function encryptToken(token: string, secret: string) {
   const rawKey = decodeBase64(secret);
   if (rawKey.length !== 32) throw new Error("WHATSAPP_TOKEN_ENCRYPTION_KEY precisa conter 32 bytes em Base64.");
-  const key = await crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["encrypt"]);
+  const keyBuffer = rawKey.buffer.slice(rawKey.byteOffset, rawKey.byteOffset + rawKey.byteLength) as ArrayBuffer;
+  const key = await crypto.subtle.importKey("raw", keyBuffer, "AES-GCM", false, ["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(token));
   return { token_ciphertext: encodeBase64(new Uint8Array(ciphertext)), token_iv: encodeBase64(iv) };
