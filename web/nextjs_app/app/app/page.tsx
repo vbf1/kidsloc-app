@@ -177,7 +177,7 @@ export default function AppHomePage() {
         <div className="mt-6 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Locações recentes</h2>
-            <Link href="/app/rentals/" className="text-sm font-semibold text-[#8054d8]">Ver todas</a>
+            <Link href="/app/rentals/" className="text-sm font-semibold text-[#8054d8]">Ver todas</Link>
           </div>
           {statsLoading ? <p role="status" className="mt-4 text-sm text-gray-500">Carregando movimentações...</p>
             : recentRentals.length ? <ul className="mt-3 divide-y divide-gray-100">
