@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     for (const entry of payload.entry) {
       const entryId = String(entry.id || "");
-      for (const change of Array.isArray(entry.changes) ? entry.changes : []) {
+      for (const [changeIndex, change] of (Array.isArray(entry.changes) ? entry.changes : []).entries()) {
         const field = String(change.field || "unknown");
         const value = change.value || {};
         // account_update uses the partner business ID in entry.id and carries
@@ -88,7 +88,17 @@ Deno.serve(async (req) => {
           .select("company_id,status").eq("waba_id", wabaId).maybeSingle();
         const companyId = connection?.company_id || null;
         const eventType = field === "account_update" ? String(value.event || field) : field;
-        const eventKey = await digest(JSON.stringify({ wabaId, entryTime: entry.time || null, change }));
+        // Build the idempotency key only from delivery metadata. Never hash the
+        // webhook payload itself: it may contain message bodies, history or contact PII.
+        const eventKey = await digest(JSON.stringify({
+          wabaId,
+          field,
+          entryTime: entry.time || null,
+          changeIndex,
+          event: value.event || null,
+          requestId: value.request_id || null,
+          phoneNumberId: value.metadata?.phone_number_id || null,
+        }));
         const historyErrors = Array.isArray(value.history)
           ? value.history.flatMap((item: Record<string, unknown>) =>
             Array.isArray(item.errors) ? item.errors.map((error: Record<string, unknown>) => Number(error.code)) : [])
