@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/company_realtime.dart';
+import 'widgets/pagination_controls.dart';
 
 class ContractsPage extends StatefulWidget {
   const ContractsPage({super.key, required this.companyId});
@@ -52,6 +53,7 @@ class _ContractsPageState extends State<ContractsPage> {
   Map<String, dynamic> _companySettings = {};
   final TextEditingController _searchController = TextEditingController();
   String _statusFilter = 'all';
+  int _page = 0;
   final TextEditingController _termsController = TextEditingController();
   List<Map<String, dynamic>> _rentals = [];
   List<Map<String, dynamic>> _contracts = [];
@@ -548,7 +550,7 @@ class _ContractsPageState extends State<ContractsPage> {
                       minLines: 3,
                       maxLines: 6,
                       maxLength: 5000,
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => setState(() => _page = 0),
                       decoration: const InputDecoration(
                         labelText: 'Condições adicionais (opcional)',
                         hintText: 'Inclua condições específicas combinadas com o cliente, se houver.',
@@ -596,7 +598,7 @@ class _ContractsPageState extends State<ContractsPage> {
                               child: ChoiceChip(
                                 label: Text(filter.$2),
                                 selected: _statusFilter == filter.$1,
-                                onSelected: (_) => setState(() => _statusFilter = filter.$1),
+                                onSelected: (_) => setState(() { _statusFilter = filter.$1; _page = 0; }),
                               ),
                             ),
                         ])),
@@ -610,7 +612,7 @@ class _ContractsPageState extends State<ContractsPage> {
                         child: Center(child: Text('Nenhum contrato corresponde à busca ou ao filtro.')),
                       )
                     else
-                      ..._filteredContracts.map((contract) {
+                      ..._filteredContracts.skip(_page * 6).take(6).map((contract) {
                         final snapshot = Map<String, dynamic>.from(contract['contract_snapshot'] ?? {});
                         final customer = Map<String, dynamic>.from(snapshot['customer'] ?? {});
                         final rental = Map<String, dynamic>.from(snapshot['rental'] ?? {});
@@ -659,6 +661,7 @@ class _ContractsPageState extends State<ContractsPage> {
                           ),
                         );
                       }),
+                    PaginationControls(totalCount: _filteredContracts.length, page: _page, pageSize: 6, onPageChanged: (value) => setState(() => _page = value)),
                   ],
                 ),
               ),

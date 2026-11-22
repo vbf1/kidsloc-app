@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/company_realtime.dart';
+import 'widgets/pagination_controls.dart';
 
 class FinancePage extends StatefulWidget {
   const FinancePage({super.key, required this.companyId});
@@ -22,6 +23,7 @@ class _FinancePageState extends State<FinancePage> {
   Map<String, Map<String, dynamic>> _rentalInfo = {};
   String _filter = 'all';
   String _search = '';
+  int _page = 0;
   CompanyRealtimeSubscription? _realtime;
 
   @override
@@ -262,6 +264,7 @@ class _FinancePageState extends State<FinancePage> {
   @override
   Widget build(BuildContext context) {
     final fmt = _format;
+    final pageSize = MediaQuery.sizeOf(context).width >= 1024 ? 21 : 6;
     final filteredTransactions = _transactions.where((row) {
       final id = row['id'].toString();
       final amount = _money(row['amount']);
@@ -289,6 +292,7 @@ class _FinancePageState extends State<FinancePage> {
       final text = normalize('${row['description'] ?? ''} ${row['category'] ?? ''} ${rental?['customer_name'] ?? ''} ${rental?['rental_number'] ?? ''}');
       return matchesFilter && (query.isEmpty || text.contains(query));
     }).toList();
+    final currentPage = _page.clamp(0, (filteredTransactions.length / pageSize).ceil().clamp(1, 999999) - 1).toInt();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Financeiro'),
@@ -361,7 +365,7 @@ class _FinancePageState extends State<FinancePage> {
                           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF8054D8), width: 1.5)),
                         ),
-                        onChanged: (value) => setState(() => _search = value),
+                        onChanged: (value) => setState(() { _search = value; _page = 0; }),
                       ),
                       const SizedBox(height: 12),
                       Wrap(
@@ -382,7 +386,7 @@ class _FinancePageState extends State<FinancePage> {
                               label: Text(option.$2),
                               selected: _filter == option.$1,
                               showCheckmark: false,
-                              onSelected: (_) => setState(() => _filter = option.$1),
+                              onSelected: (_) => setState(() { _filter = option.$1; _page = 0; }),
                               labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _filter == option.$1 ? const Color(0xFF6840BD) : const Color(0xFF475569)),
                               selectedColor: const Color(0xFFF3ECFF),
                               backgroundColor: Colors.white,
@@ -408,7 +412,7 @@ class _FinancePageState extends State<FinancePage> {
                           child: const Center(child: Text('Nenhum lançamento corresponde à busca ou ao filtro.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B)))),
                         )
                       else
-                        ...filteredTransactions.map((row) {
+                        ...filteredTransactions.skip(currentPage * pageSize).take(pageSize).map((row) {
                           final id = row['id'].toString();
                           final amount = _money(row['amount']);
                           final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0);
@@ -497,6 +501,7 @@ class _FinancePageState extends State<FinancePage> {
                             ]),
                           );
                         }),
+                       PaginationControls(totalCount: filteredTransactions.length, page: currentPage, pageSize: pageSize, onPageChanged: (value) => setState(() => _page = value)),
                       if (!_canManage) const Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: Text('Somente administradores podem criar lançamentos ou registrar recebimentos.', textAlign: TextAlign.center),

@@ -5,6 +5,8 @@ import type { ProspectResult, OSMElement } from '../../../../lib/leadfesta-prosp
 import { buildIntentSearchLinks, classifyPublicIntent, isDuplicateProspect, mapOSMElement, matchesProspectingSegment } from '../../../../lib/leadfesta-prospecting';
 import { AppShell } from '../../../../components/app-shell';
 import { supabase } from '../../../../lib/supabase';
+import { useResponsivePageSize } from '../../../../lib/use-responsive-page-size';
+import { Pagination } from '../../../../components/pagination';
 
 type CompanyOption = { id: string; name: string };
 type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'platform_owner' };
@@ -45,6 +47,8 @@ export default function LeadProspectingPage() {
   const [intentPostUrl, setIntentPostUrl] = useState('');
   const [intentText, setIntentText] = useState('');
   const [intentVerified, setIntentVerified] = useState(false);
+  const [page, setPage] = useState(0);
+  const pageSize = useResponsivePageSize();
   const [intentPhone, setIntentPhone] = useState('');
   const [savingIntent, setSavingIntent] = useState(false);
   const intentLinks = useMemo(() => buildIntentSearchLinks(intentService, intentLocation, intentPeriod), [intentService, intentLocation, intentPeriod]);
@@ -185,7 +189,7 @@ export default function LeadProspectingPage() {
         .select('id,name,phone,contact_company').eq('company_id', workspace.companyId).limit(500);
       if (existingError) throw new Error('A busca encontrou empresas, mas não foi possível conferir duplicados no seu CRM.');
       setExistingLeads((existing ?? []) as ExistingLead[]);
-      setResults(ordered);
+      setResults(ordered); setPage(0);
       setSearchLabel(location.display_name);
       if (ordered.length === 0) {
         setNotice('A base aberta não retornou estabelecimentos nomeados nessa região. Tente aumentar o raio ou outra localidade.');
@@ -415,7 +419,7 @@ export default function LeadProspectingPage() {
           <div className="flex flex-wrap gap-2"><button type="button" className={secondary} onClick={toggleAll}>{selected.length === results.filter((item) => !duplicateIds.has(item.id)).length ? 'Desmarcar todos' : 'Selecionar disponíveis'}</button><button type="button" className={primary} onClick={() => { void importSelected(); }} disabled={saving || selectedNewCount === 0}>{saving ? 'Importando...' : 'Importar ' + selectedNewCount + ' selecionada(s)'}</button></div>
         </div>
         <div className="mt-4 space-y-3">
-          {results.map((item) => {
+          {results.slice(page * pageSize, (page + 1) * pageSize).map((item) => {
             const duplicate = duplicateIds.has(item.id);
             return <label key={item.id} className={'flex cursor-pointer gap-3 rounded-xl border p-4 transition ' + (duplicate ? 'border-gray-100 bg-gray-50 opacity-70' : selected.includes(item.id) ? 'border-purple-300 bg-purple-50/60' : 'border-gray-200 hover:border-purple-200')}>
               <input type="checkbox" className="mt-1 size-4 accent-[#8054d8]" checked={selected.includes(item.id)} disabled={duplicate || saving} onChange={() => toggleSelected(item.id)} />
@@ -428,6 +432,7 @@ export default function LeadProspectingPage() {
             </label>;
           })}
         </div>
+        <Pagination totalCount={results.length} page={page} pageSize={pageSize} onPageChange={setPage}/>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4"><p className="text-xs text-gray-500">{duplicateIds.size} possível(is) duplicado(s) bloqueado(s) • {selectedNewCount} selecionada(s) para importar</p><button type="button" className={primary} onClick={() => { void importSelected(); }} disabled={saving || selectedNewCount === 0}>{saving ? 'Importando...' : 'Importar selecionadas para o funil'}</button></div>
       </section>}
       </details>

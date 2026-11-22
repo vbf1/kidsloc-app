@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'widgets/pagination_controls.dart';
 import 'services/company_realtime.dart';
 
 class AgendaPage extends StatefulWidget {
@@ -15,6 +16,8 @@ class _AgendaPageState extends State<AgendaPage> {
   String? _error;
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selected = DateUtils.dateOnly(DateTime.now());
+  int _page = 0;
+  int _productPage = 0;
   List<Map<String, dynamic>> _rentals = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _rentalItems = [];
@@ -92,6 +95,8 @@ class _AgendaPageState extends State<AgendaPage> {
     setState(() {
       _month = DateTime(_month.year, _month.month + amount);
       _selected = DateTime(_month.year, _month.month, 1);
+      _page = 0;
+      _productPage = 0;
     });
   }
 
@@ -173,7 +178,7 @@ class _AgendaPageState extends State<AgendaPage> {
                                 final active = DateUtils.isSameDay(date, _selected);
                                 return InkWell(
                                   borderRadius: BorderRadius.circular(10),
-                                  onTap: () => setState(() => _selected = date),
+                                  onTap: () => setState(() { _selected = date; _page = 0; _productPage = 0; }),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: active ? Theme.of(context).colorScheme.primaryContainer : count > 0 ? Theme.of(context).colorScheme.surfaceContainerHighest : null,
@@ -210,7 +215,7 @@ class _AgendaPageState extends State<AgendaPage> {
                             if (_products.isEmpty)
                               const Text('Nenhum brinquedo ativo cadastrado.')
                             else
-                              ..._products.map((product) {
+                              ..._products.skip(_productPage * 6).take(6).map((product) {
                                 final used = occupiedByProduct[product['id'].toString()] ?? 0;
                                 final total = product['inventory_mode'] == 'individual' ? (_availableUnits[product['id'].toString()] ?? 0) : (product['total_quantity'] as num? ?? 0).toInt();
                                 final available = (total - used).clamp(0, total);
@@ -228,6 +233,7 @@ class _AgendaPageState extends State<AgendaPage> {
                                   ]),
                                 );
                               }),
+                            PaginationControls(totalCount: _products.length, page: _productPage, pageSize: 6, onPageChanged: (value) => setState(() => _productPage = value)),
                             const SizedBox(height: 4),
                             Text('A confirmação definitiva do estoque acontece ao salvar a locação.', style: Theme.of(context).textTheme.bodySmall),
                           ]),
@@ -239,7 +245,7 @@ class _AgendaPageState extends State<AgendaPage> {
                       if (selectedRentals.isEmpty)
                         const Padding(padding: EdgeInsets.symmetric(vertical: 36), child: Center(child: Text('Nenhuma locação programada para este dia.')))
                       else
-                        ...selectedRentals.map((r) => Card(
+                        ...selectedRentals.skip(_page * 6).take(6).map((r) => Card(
                           child: ListTile(
                             leading: const CircleAvatar(child: Icon(Icons.celebration_outlined)),
                             title: Text('Locação #${r['rental_number']} · ${_customerNames[r['customer_id']?.toString()] ?? 'Cliente'}'),
@@ -248,6 +254,7 @@ class _AgendaPageState extends State<AgendaPage> {
                             trailing: Text('R\$ ${(r['total_amount'] as num? ?? 0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         )),
+                       PaginationControls(totalCount: selectedRentals.length, page: _page, pageSize: 6, onPageChanged: (value) => setState(() => _page = value)),
                     ],
                   ),
                 ),

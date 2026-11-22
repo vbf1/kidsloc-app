@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
+import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
+import { Pagination } from '../../../components/pagination';
 import { contractClauses, contractDate, contractTime } from '../../../lib/contract-template';
 
 type Role='admin'|'staff';
@@ -20,7 +22,7 @@ function contractStatus(c:Contract){const expiry=c.token_expires_at?new Date(c.t
 function esc(v:unknown){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));}
 
 export default function ContractsPage(){
- const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [rentals,setRentals]=useState<Rental[]>([]);const [customers,setCustomers]=useState<Record<string,Customer>>({});const [contracts,setContracts]=useState<Contract[]>([]);const [itemsByRental,setItemsByRental]=useState<Record<string,Item[]>>({});const [links,setLinks]=useState<Record<string,string>>({});const [selectedRental,setSelectedRental]=useState('');const [terms,setTerms]=useState('');const [search,setSearch]=useState('');const [statusFilter,setStatusFilter]=useState('all');const [previewHtml,setPreviewHtml]=useState('');const [editing,setEditing]=useState<Contract|null>(null);const [editName,setEditName]=useState('');const [editCpf,setEditCpf]=useState('');const [editPhone,setEditPhone]=useState('');const [editEmail,setEditEmail]=useState('');const [editDate,setEditDate]=useState('');const [editEndDate,setEditEndDate]=useState('');const [editItemsText,setEditItemsText]=useState('');const [editDeliveryFee,setEditDeliveryFee]=useState('0');const [editDiscount,setEditDiscount]=useState('0');const [editStartTime,setEditStartTime]=useState('');const [editEndTime,setEditEndTime]=useState('');const [editAddress,setEditAddress]=useState('');const [editTerms,setEditTerms]=useState('');const [companySettings,setCompanySettings]=useState<Record<string,string>>({});const [companyForm,setCompanyForm]=useState({name:'',legal_name:'',document:'',phone:'',email:'',address:'',zip:''});const [companyFormOpen,setCompanyFormOpen]=useState(false);const [deleteTarget,setDeleteTarget]=useState<Contract|null>(null);const [savingEdit,setSavingEdit]=useState(false);
+ const router=useRouter();const [companyId,setCompanyId]=useState('');const [companyName,setCompanyName]=useState('');const [email,setEmail]=useState('');const [role,setRole]=useState<Role>();const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [rentals,setRentals]=useState<Rental[]>([]);const [customers,setCustomers]=useState<Record<string,Customer>>({});const [contracts,setContracts]=useState<Contract[]>([]);const [itemsByRental,setItemsByRental]=useState<Record<string,Item[]>>({});const [links,setLinks]=useState<Record<string,string>>({});const [selectedRental,setSelectedRental]=useState('');const [terms,setTerms]=useState('');const [search,setSearch]=useState('');const [statusFilter,setStatusFilter]=useState('all');const [previewHtml,setPreviewHtml]=useState('');const [editing,setEditing]=useState<Contract|null>(null);const [editName,setEditName]=useState('');const [editCpf,setEditCpf]=useState('');const [editPhone,setEditPhone]=useState('');const [editEmail,setEditEmail]=useState('');const [editDate,setEditDate]=useState('');const [editEndDate,setEditEndDate]=useState('');const [editItemsText,setEditItemsText]=useState('');const [editDeliveryFee,setEditDeliveryFee]=useState('0');const [editDiscount,setEditDiscount]=useState('0');const [editStartTime,setEditStartTime]=useState('');const [editEndTime,setEditEndTime]=useState('');const [editAddress,setEditAddress]=useState('');const [editTerms,setEditTerms]=useState('');const [companySettings,setCompanySettings]=useState<Record<string,string>>({});const [companyForm,setCompanyForm]=useState({name:'',legal_name:'',document:'',phone:'',email:'',address:'',zip:''});const [companyFormOpen,setCompanyFormOpen]=useState(false);const [deleteTarget,setDeleteTarget]=useState<Contract|null>(null);const [savingEdit,setSavingEdit]=useState(false);const [page,setPage]=useState(0);const pageSize=useResponsivePageSize();
  const load=useCallback(async()=>{
   await Promise.resolve();
   if(!supabase){setError('Banco não configurado.');setLoading(false);return;}
@@ -45,6 +47,8 @@ export default function ContractsPage(){
   setRentals(rlist);setCustomers(Object.fromEntries((cr.data??[]).map(c=>[c.id,c])));setContracts((co.data??[]) as Contract[]);setItemsByRental(by);setLoading(false);
  },[router]);
  useCompanyRealtimeRefresh(companyId, ['rental_contracts', 'rentals', 'rental_items', 'customers', 'products'], () => { void load(); });
+ const filteredContracts=contracts.filter(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||contractStatus(c)===statusFilter);});
+ const paginatedContracts=filteredContracts.slice(page*pageSize,(page+1)*pageSize);
  // This effect starts an asynchronous data request; state updates occur after the request resolves.
  // eslint-disable-next-line react-hooks/set-state-in-effect
  useEffect(()=>{void load();},[load]);
@@ -150,11 +154,11 @@ export default function ContractsPage(){
    <section className="min-w-0 space-y-4">
     <div className="space-y-3">
      <div><h2 className="text-lg font-bold text-slate-900">Seus contratos</h2><p className="mt-1 text-xs text-slate-500">Pesquise pelo nome do cliente ou número do contrato e filtre por situação.</p></div>
-     <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por cliente ou número do contrato" className="w-full min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-sm"/>
-     <div className="flex flex-wrap gap-2">{[{id:'all',label:'Todos'},{id:'draft',label:'Rascunhos'},{id:'sent',label:'Enviados'},{id:'viewed',label:'Visualizados'},{id:'signed',label:'Assinados'},{id:'expired',label:'Expirados'},{id:'cancelled',label:'Cancelados'}].map(f=><button key={f.id} onClick={()=>setStatusFilter(f.id)} aria-pressed={statusFilter===f.id} className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${statusFilter===f.id?'border-purple-300 bg-purple-50 text-purple-800':'border-slate-200 bg-white text-slate-600 hover:border-purple-200 hover:bg-purple-50'}`}>{f.label}</button>)}</div>
+     <input value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} placeholder="Buscar por cliente ou número do contrato" className="w-full min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-sm"/>
+     <div className="flex flex-wrap gap-2">{[{id:'all',label:'Todos'},{id:'draft',label:'Rascunhos'},{id:'sent',label:'Enviados'},{id:'viewed',label:'Visualizados'},{id:'signed',label:'Assinados'},{id:'expired',label:'Expirados'},{id:'cancelled',label:'Cancelados'}].map(f=><button key={f.id} onClick={()=>{setStatusFilter(f.id);setPage(0);}} aria-pressed={statusFilter===f.id} className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${statusFilter===f.id?'border-purple-300 bg-purple-50 text-purple-800':'border-slate-200 bg-white text-slate-600 hover:border-purple-200 hover:bg-purple-50'}`}>{f.label}</button>)}</div>
     </div>
     <div className="grid min-w-0 gap-3 lg:grid-cols-2">
-     {contracts.filter(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||contractStatus(c)===statusFilter);}).map(c=>{
+     {paginatedContracts.map(c=>{
       const customerName=String((c.contract_snapshot.customer as Customer|undefined)?.name??'Cliente');
       const status=contractStatus(c);
       const statusLabel=({draft:'Rascunho',sent:'Enviado',viewed:'Visualizado',signed:'Assinado',cancelled:'Cancelado',expired:'Link expirado'} as Record<string,string>)[status]??c.status;
@@ -178,6 +182,7 @@ export default function ContractsPage(){
      {contracts.length>0&&!contracts.some(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||contractStatus(c)===statusFilter);})&&<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center text-sm text-slate-500 lg:col-span-2">Nenhum contrato corresponde à busca ou ao filtro.</div>}
     </div>
    </section>
+     <Pagination totalCount={filteredContracts.length} page={page} pageSize={pageSize} onPageChange={setPage}/>
    <p className="rounded-xl bg-slate-100/80 p-3 text-[11px] leading-5 text-slate-500">A assinatura eletrônica registra identidade declarada, desenho da assinatura, consentimento e data/hora. Ela não é uma assinatura ICP-Brasil ou certificado digital qualificado.</p>
 
    {previewHtml&&<div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-5"><section className="flex h-[96dvh] w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:h-[94dvh]">
