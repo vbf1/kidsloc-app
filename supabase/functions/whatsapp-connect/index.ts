@@ -146,6 +146,15 @@ Deno.serve(async (req) => {
 
     // Sync contacts only. The user explicitly chose not to import historical chats.
     // Never call smb_app_data with sync_type='history' for this connection.
+    // Mark the request before calling Meta so a fast webhook cannot be
+    // overwritten from "received" back to "requested" by this function.
+    const { error: syncStartError } = await admin.from("whatsapp_connections").update({
+      contacts_sync_status: "requested",
+      contacts_sync_requested_at: now,
+      updated_at: now,
+    }).eq("company_id", companyId);
+    if (syncStartError) throw syncStartError;
+
     const contactsSyncResponse = await fetch(
       `https://graph.facebook.com/v27.0/${encodeURIComponent(phoneNumberId)}/smb_app_data`,
       {
@@ -160,14 +169,15 @@ Deno.serve(async (req) => {
         }),
       },
     );
-    const contactsSyncBody = await contactsSyncResponse.json();
-    const contactsSyncStatus = contactsSyncResponse.ok ? "requested" : "failed";
-    const { error: syncUpdateError } = await admin.from("whatsapp_connections").update({
-      contacts_sync_status: contactsSyncStatus,
+    const contactsSyncBody = await contactsSyncResponse.json().catch(() => ({}));
+    const syncPatch: Record<string, unknown> = {
       contacts_sync_request_id: contactsSyncBody.request_id || null,
-      contacts_sync_requested_at: contactsSyncResponse.ok ? now : null,
       updated_at: new Date().toISOString(),
-    }).eq("company_id", companyId);
+    };
+    if (!contactsSyncResponse.ok) syncPatch.contacts_sync_status = "failed";
+    let syncUpdate = admin.from("whatsapp_connections").update(syncPatch).eq("company_id", companyId);
+    if (!contactsSyncResponse.ok) syncUpdate = syncUpdate.neq("contacts_sync_status", "received");
+    const { error: syncUpdateError } = await syncUpdate;
     if (syncUpdateError) throw syncUpdateError;
 
     if (!contactsSyncResponse.ok) {
