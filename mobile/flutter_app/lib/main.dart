@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'quote_create_page.dart';
 import 'rental_create_page.dart';
 import 'finance_page.dart';
+import 'reports_page.dart';
 import 'contracts_page.dart';
 import 'agenda_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -467,7 +468,7 @@ class _HomePageState extends State<HomePage> {
   ];
 
   List<List<String>> get _visibleModules => _role == 'admin'
-      ? _modules
+      ? [..._modules, ['Relatórios avançados', 'reports']]
       : _modules.where((module) => module[1] != 'financial_transactions').toList();
 
   @override
@@ -553,7 +554,11 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openModule(String title, String table) async {
     if (_companyId == null) return;
     if (table == 'financial_transactions' && _role != 'admin') return;
-    if (table == 'financial_transactions') {
+    if (table == 'reports' && _role == 'admin') {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => ReportsPage(companyId: _companyId!),
+      ));
+    } else if (table == 'financial_transactions') {
       await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => FinancePage(companyId: _companyId!),
       ));

@@ -11,7 +11,7 @@ type NavItem = {
   shortLabel: string;
   href: string;
   active: boolean;
-  icon: 'home' | 'users' | 'toy' | 'calendar' | 'team' | 'funnel' | 'map-pin';
+  icon: 'home' | 'users' | 'toy' | 'calendar' | 'team' | 'funnel' | 'map-pin' | 'chart' | 'message-circle';
 };
 
 function NavIcon({ name }: { name: NavItem['icon'] }) {
@@ -24,7 +24,7 @@ function NavIcon({ name }: { name: NavItem['icon'] }) {
       {name === 'calendar' && <><rect x="3.5" y="5" width="17" height="16" rx="2" /><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h3" /></>}
       {name === 'team' && <><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h.5M16 13v7M12.5 16.5h7" /><path d="M16 10a2.5 2.5 0 1 0-1.5-4.5" /></>}
       {name === 'funnel' && <><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" /><path d="M7 7h10" /></>}
-      {name === 'map-pin' && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>}
+      {name === 'map-pin' && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>}{name === 'chart' && <><path d="M4 19V5M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/></>}{name === 'message-circle' && <><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></>}
     </svg>
   );
 }
@@ -66,12 +66,14 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
   const isQuotes = pathname.endsWith('/app/quotes') || pathname.endsWith('/app/quotes/');
   const isFinance = pathname.endsWith('/app/finance') || pathname.endsWith('/app/finance/');
+  const isReports = pathname.endsWith('/app/reports') || pathname.endsWith('/app/reports/');
+  const isWhatsApp = pathname.endsWith('/app/whatsapp') || pathname.endsWith('/app/whatsapp/');
   const isContracts = pathname.endsWith('/app/contracts') || pathname.endsWith('/app/contracts/');
   const isCalendar = pathname.endsWith('/app/calendar') || pathname.endsWith('/app/calendar/');
   const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
   const isLeadFesta = (pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/')) && !pathname.includes('/prospeccao');
   const isProspecting = pathname.includes('/app/leads/prospeccao');
-  const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isFinance && !isContracts && !isCalendar && !isTeam && !isLeadFesta && !isProspecting;
+  const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isFinance && !isReports && !isWhatsApp && !isContracts && !isCalendar && !isTeam && !isLeadFesta && !isProspecting;
 
   const companyItems: NavItem[] = role === 'platform_owner'
     ? [{ label: 'Administração', shortLabel: 'Admin', href: basePath + '/app/admin/', active: pathname.includes('/app/admin'), icon: 'home' }]
@@ -81,7 +83,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
       { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
       { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
       { label: 'Orçamentos', shortLabel: 'Orçamentos', href: basePath + '/app/quotes/', active: isQuotes, icon: 'toy' },
-      ...(role === 'admin' ? [{ label: 'Financeiro', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance, icon: 'home' as const }] : []),
+      ...(role === 'admin' ? [{ label: 'Financeiro', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance, icon: 'home' as const }, { label: 'Relatórios avançados', shortLabel: 'Relatórios', href: basePath + '/app/reports/', active: isReports, icon: 'chart' as const }, { label: 'WhatsApp Business', shortLabel: 'WhatsApp', href: basePath + '/app/whatsapp/', active: isWhatsApp, icon: 'message-circle' as const }] : []),
       { label: 'Contratos', shortLabel: 'Contratos', href: basePath + '/app/contracts/', active: isContracts, icon: 'toy' },
       { label: 'Agenda', shortLabel: 'Agenda', href: basePath + '/app/calendar/', active: isCalendar, icon: 'calendar' },
     ];
