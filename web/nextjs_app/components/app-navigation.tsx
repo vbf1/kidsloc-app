@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
@@ -35,6 +36,12 @@ function MoreIcon({ open }: { open: boolean }) {
       {open ? <path d="m6 6 12 12M18 6 6 18" /> : <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>}
     </svg>
   );
+}
+
+function toNextHref(href: string, basePath: string): string {
+  return basePath && href.startsWith(basePath)
+    ? href.slice(basePath.length) || '/'
+    : href;
 }
 
 export function AppNavigation({ basePath, role, companyId }: AppNavigationProps) {
@@ -104,13 +111,13 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
       <div className="hidden md:block">
         <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">Menu principal</p>
         <div className="space-y-1.5">
-          {items.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
+          {items.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} aria-current={item.active ? 'page' : undefined}
             className={item.active
               ? 'relative flex items-center gap-3 rounded-2xl bg-[#8054d8] px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-purple-200/60'
               : 'flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-600 transition hover:bg-white hover:text-[#6840bd]'}>
             <NavIcon name={item.icon} />{item.label}
             {item.active && <span className="ml-auto size-2 rounded-full bg-[#ffd34e]" />}
-          </a>)}
+          </Link>)}
         </div>
       </div>
 
