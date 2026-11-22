@@ -432,6 +432,7 @@ export default function LeadProspectingPage() {
             </label>;
           })}
         </div>
+        <Pagination totalCount={results.length} page={page} pageSize={pageSize} onPageChange={setPage}/>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4"><p className="text-xs text-gray-500">{duplicateIds.size} possível(is) duplicado(s) bloqueado(s) • {selectedNewCount} selecionada(s) para importar</p><button type="button" className={primary} onClick={() => { void importSelected(); }} disabled={saving || selectedNewCount === 0}>{saving ? 'Importando...' : 'Importar selecionadas para o funil'}</button></div>
       </section>}
       </details>
