@@ -28,6 +28,18 @@ async function validSignature(rawBody: Uint8Array, signature: string, appSecret:
 async function digest(value: string): Promise<string> {
   return toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value))));
 }
+async function contactFingerprint(phoneNumber: string): Promise<string> {
+  const secret = Deno.env.get("WHATSAPP_CONTACT_HASH_KEY") || "";
+  if (!secret) throw new Error("WHATSAPP_CONTACT_HASH_KEY is not configured.");
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  return toHex(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(phoneNumber))));
+}
 
 Deno.serve(async (req) => {
   const verifyToken = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN") || "";
@@ -128,7 +140,7 @@ Deno.serve(async (req) => {
                   .from("whatsapp_synced_contacts")
                   .select("last_change_at")
                   .eq("company_id", companyId)
-                  .eq("phone_number", phoneNumber)
+                  .eq("contact_key", await contactFingerprint(phoneNumber))
                   .maybeSingle();
                 if (lookupError) {
                   failed = true;
@@ -146,13 +158,14 @@ Deno.serve(async (req) => {
                     : null;
                 const { error: saveError } = await admin.from("whatsapp_synced_contacts").upsert({
                   company_id: companyId,
-                  phone_number: phoneNumber,
+                  contact_key: await contactFingerprint(phoneNumber),
+                  phone_number: action === "remove" ? null : phoneNumber,
                   display_name: action === "remove" ? null : (fullName || null),
                   is_deleted: action === "remove",
                   last_change_at: changedAt,
                   synced_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
-                }, { onConflict: "company_id,phone_number" });
+                }, { onConflict: "company_id,contact_key" });
                 if (saveError) {
                   failed = true;
                   console.error("WhatsApp contact persistence failed:", saveError.code || "DB_ERROR");
