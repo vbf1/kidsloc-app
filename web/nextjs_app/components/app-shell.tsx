@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
+import { clearWorkspaceSessionCache } from '../lib/workspace-session-cache';
 import { AppNavigation } from './app-navigation';
 import { WebPushControl } from './web-push-control';
 
@@ -77,7 +78,7 @@ export function AppShell({
             <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
             <span className="truncate text-xl font-bold tracking-tight">KidsLoc <span className="text-[#8054d8]">App</span></span>
           </Link>
-          <button type="button" onClick={onSignOut} disabled={signingOut}
+          <button type="button" onClick={() => { clearWorkspaceSessionCache(); onSignOut(); }} disabled={signingOut}
             className="shrink-0 rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-purple-200 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4">
             {signingOut ? 'Saindo...' : 'Sair'}
           </button>

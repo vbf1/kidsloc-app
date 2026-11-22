@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { AppShell } from '../../components/app-shell';
 import { getWorkspaceCompanyName } from '../../lib/workspace';
 import { supabase } from '../../lib/supabase';
+import { setWorkspaceSessionCache } from '../../lib/workspace-session-cache';
 
 type CompanyRole = 'admin' | 'staff';
 type Workspace = { email: string; companyName: string; companyId: string; role: CompanyRole };
@@ -58,7 +59,9 @@ export default function AppHomePage() {
       if (!data) { router.replace('/app/company/'); return; }
       const companyName = getWorkspaceCompanyName(data.companies);
       if (!companyName) { setMessage('Não foi possível identificar a empresa vinculada à sua conta.'); return; }
-      setWorkspace({ email: user.email ?? 'E-mail não informado', companyName, companyId: data.company_id, role: data.role as CompanyRole });
+      const nextWorkspace = { email: user.email ?? 'E-mail não informado', companyName, companyId: data.company_id, role: data.role as CompanyRole };
+      setWorkspace(nextWorkspace);
+      setWorkspaceSessionCache({ userId: user.id, ...nextWorkspace });
     } catch {
       setMessage('Ocorreu um erro ao carregar sua área de trabalho. Confira sua conexão.');
     } finally { setLoading(false); }
