@@ -116,6 +116,8 @@ Deno.serve(async (req) => {
       verified_name: phoneBody.verified_name || null,
       is_on_biz_app: coexistenceConfirmed,
       platform_type: phoneBody.platform_type || null,
+      history_sync_preference: 'do_not_import',
+      history_sync_status: 'not_requested',
       connected_at: connected ? now : null,
       last_error_code: !subscribeResponse.ok ? String(subscribeBody.error?.code || "WEBHOOK_SUBSCRIPTION_FAILED") : (!coexistenceConfirmed ? "COEXISTENCE_NOT_CONFIRMED" : null),
       last_error_message: !subscribeResponse.ok
@@ -141,12 +143,47 @@ Deno.serve(async (req) => {
         message: "A autorização foi recebida, mas a Meta ainda não confirmou a conexão coexistente. O KidsLoc não registrou nem migrou o número.",
       }, 202);
     }
+
+    // Sync contacts only. The user explicitly chose not to import historical chats.
+    // Never call smb_app_data with sync_type='history' for this connection.
+    const contactsSyncResponse = await fetch(
+      `https://graph.facebook.com/v27.0/${encodeURIComponent(phoneNumberId)}/smb_app_data`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${businessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          sync_type: "smb_app_state_sync",
+        }),
+      },
+    );
+    const contactsSyncBody = await contactsSyncResponse.json();
+    const contactsSyncStatus = contactsSyncResponse.ok ? "requested" : "failed";
+    const { error: syncUpdateError } = await admin.from("whatsapp_connections").update({
+      contacts_sync_status: contactsSyncStatus,
+      contacts_sync_request_id: contactsSyncBody.request_id || null,
+      contacts_sync_requested_at: contactsSyncResponse.ok ? now : null,
+      updated_at: new Date().toISOString(),
+    }).eq("company_id", companyId);
+    if (syncUpdateError) throw syncUpdateError;
+
+    if (!contactsSyncResponse.ok) {
+      console.error("WhatsApp contacts sync request failed:", contactsSyncBody.error?.code || contactsSyncResponse.status);
+    }
     return reply({
       status: "connected",
       display_phone_number: phoneBody.display_phone_number || null,
       verified_name: phoneBody.verified_name || null,
       is_on_biz_app: true,
       platform_type: "CLOUD_API",
+      contacts_sync_status: contactsSyncStatus,
+      history_sync_status: "not_requested",
+      message: contactsSyncResponse.ok
+        ? "WhatsApp conectado. Apenas os contatos serão sincronizados; o histórico antigo não será importado."
+        : "WhatsApp conectado. A sincronização de contatos precisa de atenção; o histórico antigo não será importado.",
     });
   } catch (error) {
     console.error("whatsapp-connect:", error);
