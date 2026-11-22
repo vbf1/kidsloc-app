@@ -134,7 +134,6 @@ export default function ProductsPage() {
     const client = supabase;
     let active = true;
     async function loadProducts() {
-      if (!hasModuleData('products', workspaceScope)) 
       setListError('');
       try {
         let request = client.from('products').select(PRODUCT_COLUMNS, { count: 'exact' })
