@@ -91,8 +91,8 @@ class _ReportsPageState extends State<ReportsPage> {
             .from('financial_transactions')
             .select('id,transaction_type,amount,status,due_date,paid_at')
             .eq('company_id', widget.companyId)
-            .order('id', ascending: true)
             .neq('status', 'cancelled')
+            .order('id', ascending: true)
             .range(start, end)),
         _fetchAllRows((start, end) => db
             .from('payments')
