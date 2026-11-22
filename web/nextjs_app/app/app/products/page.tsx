@@ -1,4 +1,5 @@
 'use client';
+import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -63,17 +64,18 @@ function fromRecord(product: ProductRecord): ProductFormValues {
 export default function ProductsPage() {
   const router = useRouter();
   const cachedWorkspace = getWorkspaceSessionCache();
+  const workspaceScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const [email, setEmail] = useState(cachedWorkspace?.email ?? '');
   const [companyName, setCompanyName] = useState(cachedWorkspace?.companyName ?? '');
   const [role, setRole] = useState<CompanyRole | undefined>(cachedWorkspace?.role === 'admin' || cachedWorkspace?.role === 'staff' ? cachedWorkspace.role : undefined);
   const [companyId, setCompanyId] = useState<string | null>(cachedWorkspace?.companyId ?? null);
   const [accessLoading, setAccessLoading] = useState(!cachedWorkspace);
   const [accessError, setAccessError] = useState('');
-  const [products, setProducts] = useState<ProductRecord[]>([]);
-  const [listLoading, setListLoading] = useState(true);
+  const [products, setProducts] = useModuleData<ProductRecord[]>('products','records',workspaceScope,[]);
+  const [listLoading, setListLoading] = useState(!hasModuleData('products', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useModuleData<number>('products','totalCount',workspaceScope,0);
   const pageSize = useResponsivePageSize();
   const [pagination, setPagination] = useState({ page: 0, pageSize: 6 });
   const page = pagination.pageSize === pageSize ? pagination.page : 0;
@@ -132,7 +134,7 @@ export default function ProductsPage() {
     const client = supabase;
     let active = true;
     async function loadProducts() {
-      setListLoading(true);
+      if (!hasModuleData('products', workspaceScope)) setListLoading(true);
       setListError('');
       try {
         let request = client.from('products').select(PRODUCT_COLUMNS, { count: 'exact' })
