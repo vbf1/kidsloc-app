@@ -8,6 +8,12 @@ export function clearModuleDataCache(): void {
   moduleData.clear();
 }
 
+/** Read a previously warmed snapshot without creating or mutating cache state. */
+export function getModuleData<T>(moduleName: string, field: string, scope: string, initialValue: T): T {
+  const key = cacheKey(moduleName, scope, field);
+  return key && moduleData.has(key) ? moduleData.get(key) as T : initialValue;
+}
+
 /** Seed a module cache before its page is opened. Scope is always user + company. */
 export function setModuleData<T>(moduleName: string, field: string, scope: string, value: T): void {
   const key = cacheKey(moduleName, scope, field);
