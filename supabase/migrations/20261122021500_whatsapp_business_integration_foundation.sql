@@ -210,8 +210,11 @@ revoke all privileges on table
   public.whatsapp_webhook_events
 from public, anon, authenticated;
 
+-- Connection identity and provider metadata are server-managed. Authenticated
+-- clients may read their own company's connection, but only Edge Functions
+-- using service_role may create or change WABA/phone identifiers or status.
+grant select on table public.whatsapp_connections to authenticated;
 grant select, insert, update on table
-  public.whatsapp_connections,
   public.whatsapp_automation_settings,
   public.whatsapp_message_consents,
   public.whatsapp_message_templates
@@ -235,14 +238,6 @@ to service_role;
 create policy whatsapp_connections_admin_select
   on public.whatsapp_connections for select to authenticated
   using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
-create policy whatsapp_connections_admin_insert
-  on public.whatsapp_connections for insert to authenticated
-  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
-create policy whatsapp_connections_admin_update
-  on public.whatsapp_connections for update to authenticated
-  using (public.has_company_role(company_id, array['owner', 'admin']::text[]))
-  with check (public.has_company_role(company_id, array['owner', 'admin']::text[]));
-
 create policy whatsapp_automation_admin_select
   on public.whatsapp_automation_settings for select to authenticated
   using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
