@@ -35,7 +35,7 @@ export default function AppHomePage() {
   const usableCachedWorkspace = cachedWorkspace && (cachedWorkspace.role === 'admin' || cachedWorkspace.role === 'staff') ? cachedWorkspace : null;
   const [workspace, setWorkspace] = useState<Workspace | null>(() => usableCachedWorkspace ? {
     email: usableCachedWorkspace.email, companyName: usableCachedWorkspace.companyName,
-    companyId: usableCachedWorkspace.companyId, role: usableCachedWorkspace.role,
+    companyId: usableCachedWorkspace.companyId, role: usableCachedWorkspace.role as CompanyRole,
   } : null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(!usableCachedWorkspace);
