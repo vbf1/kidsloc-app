@@ -1,5 +1,8 @@
 'use client';
 
+/* Supabase query results are dynamically typed across generated schema revisions. */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { supabase } from './supabase';
 import { setModuleData } from './module-data-cache';
 
@@ -171,7 +174,6 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
       client.from('products').select('id,name').eq('company_id', companyId),
     ]) : [{ data: [], error: null }, { data: [], error: null }];
     if (!items.error && !products.error) {
-      const names = new Map((contractCustomers.data ?? []).map((x: any) => [x.id, x]));
       const productNames = new Map((products.data ?? []).map((x: any) => [x.id, x.name]));
       const grouped: Record<string, any[]> = {};
       for (const item of items.data ?? []) (grouped[item.rental_id] ??= []).push({ ...item, name: productNames.get(item.product_id) ?? 'Item removido' });
