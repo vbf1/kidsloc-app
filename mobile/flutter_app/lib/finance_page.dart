@@ -265,6 +265,7 @@ class _FinancePageState extends State<FinancePage> {
   Widget build(BuildContext context) {
     final fmt = _format;
     final pageSize = MediaQuery.sizeOf(context).width >= 1024 ? 21 : 6;
+    final currentPage = _page.clamp(0, ((filteredTransactions.length) / pageSize).ceil().clamp(1, 999999) - 1).toInt();
     final filteredTransactions = _transactions.where((row) {
       final id = row['id'].toString();
       final amount = _money(row['amount']);
@@ -411,7 +412,7 @@ class _FinancePageState extends State<FinancePage> {
                           child: const Center(child: Text('Nenhum lançamento corresponde à busca ou ao filtro.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B)))),
                         )
                       else
-                        ...filteredTransactions.skip(_page.clamp(0, (filteredTransactions.length / pageSize).ceil().clamp(1, 999999) - 1) * pageSize).take(pageSize).map((row) {
+                        ...filteredTransactions.skip(currentPage * pageSize).take(pageSize).map((row) {
                           final id = row['id'].toString();
                           final amount = _money(row['amount']);
                           final paid = _paidByTransaction[id] ?? (row['status'] == 'paid' ? amount : 0);
