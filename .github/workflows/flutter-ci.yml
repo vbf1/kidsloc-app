@@ -57,10 +57,7 @@ jobs:
             adb install build/app/outputs/flutter-apk/app-debug.apk
             adb shell am start -n br.com.kidsloc.app/.MainActivity
             sleep 10
-            if [ -z "$(adb shell pidof br.com.kidsloc.app)" ]; then
-              adb logcat -d -s AndroidRuntime:E flutter:E
-              exit 1
-            fi
+            test -n "$(adb shell pidof br.com.kidsloc.app)" || { adb logcat -d -s AndroidRuntime:E flutter:E; exit 1; }
       - name: Commit resolved Flutter lockfile
         working-directory: .
         shell: bash
