@@ -45,6 +45,7 @@ declare global {
 
 const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID ?? '';
 const metaConfigId = process.env.NEXT_PUBLIC_META_CONFIG_ID ?? '';
+// Keep onboarding blocked until the required 24-hour Coexistence sync workflow is implemented.
 
 export default function WhatsAppPage() {
   const router = useRouter();
@@ -262,13 +263,16 @@ export default function WhatsAppPage() {
             <p>• O KidsLoc usará a API oficial da Meta para automações autorizadas.</p>
             <p>• A conexão não solicita o registro tradicional que substituiria o aplicativo móvel.</p>
           </div>
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            <strong>Importante antes de conectar:</strong> a Meta exige que a integração inicie a sincronização de contatos e histórico dentro de 24 horas após o onboarding. Se você autorizar o compartilhamento, conversas individuais dos últimos seis meses podem ser sincronizadas. Grupos não são sincronizados e os dispositivos complementares serão desconectados para que você os vincule novamente depois. Estamos preparando essa sincronização antes de liberar a conexão, para não colocar seu número em risco.
+          </div>
 
           {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           {notice && <p role="status" className="mt-4 rounded-xl bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
 
-          <button type="button" onClick={connectWhatsApp} disabled={connecting || connection?.status === 'connected'}
-            className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#6840bd] disabled:cursor-not-allowed disabled:opacity-60">
-            {connecting ? 'Conectando...' : connection?.status === 'connected' ? 'WhatsApp conectado' : 'Conectar WhatsApp Business'}
+          <button type="button" onClick={connectWhatsApp} disabled={true}
+            className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-bold text-white opacity-60">
+            Sincronização necessária antes de conectar
           </button>
           {!metaAppId || !metaConfigId ? (
             <p className="mt-3 text-xs leading-5 text-amber-700">
