@@ -19,4 +19,4 @@ grant select on table public.whatsapp_synced_contacts to authenticated;
 grant all privileges on table public.whatsapp_synced_contacts to service_role;
 create policy whatsapp_synced_contacts_admin_select
   on public.whatsapp_synced_contacts for select to authenticated
-  using (public.has_company_role(company_id, array['admin']::text[]));
+  using (public.has_company_role(company_id, array['owner', 'admin']::text[]));
