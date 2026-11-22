@@ -104,8 +104,8 @@ class _ReportsPageState extends State<ReportsPage> {
             .from('rentals')
             .select('id,rental_number,start_date,end_date,status,total_amount')
             .eq('company_id', widget.companyId)
-            .order('id', ascending: true)
             .neq('status', 'cancelled')
+            .order('id', ascending: true)
             .range(start, end)),
         _fetchAllRows((start, end) => db
             .from('rental_items')
