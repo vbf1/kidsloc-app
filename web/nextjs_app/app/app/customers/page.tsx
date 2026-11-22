@@ -107,7 +107,6 @@ export default function CustomersPage() {
     async function loadCustomers() {
       await Promise.resolve();
       if (!active) return;
-      if (!hasModuleData('customers', workspaceScope)) 
       setListError('');
       try {
         let request = supabaseClient.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
