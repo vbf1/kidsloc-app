@@ -8,6 +8,7 @@ import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { Pagination } from '../../../components/pagination';
+import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type Role='admin'|'staff';
 type Tx={id:string;transaction_type:'income'|'expense';category:string|null;description:string;amount:number|string;due_date:string|null;paid_at:string|null;status:'pending'|'paid'|'cancelled';rental_id:string|null};
@@ -23,16 +24,20 @@ export default function FinancePage(){
  async function load(){
   await Promise.resolve();
   if(!supabase){setError('Banco não configurado.');setLoading(false);return;}
-  const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace('/login/');return;}setEmail(user.email??'');
-  const {data:m,error:e}=await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
-  if(e||!m){setError('Não foi possível identificar sua empresa.');setLoading(false);return;}
-  const c=Array.isArray(m.companies)?m.companies[0]:m.companies;const companyRole=m.role as Role;setCompanyId(m.company_id);setCompanyName(c?.name??'Empresa');setRole(companyRole);if(companyRole!=='admin'){setError('O módulo Financeiro está disponível apenas para administradores.');setLoading(false);return;}
-  const [tr,pr]=await Promise.all([supabase.from('financial_transactions').select('id,transaction_type,category,description,amount,due_date,paid_at,status,rental_id').eq('company_id',m.company_id).order('due_date',{ascending:false}).limit(500),supabase.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id',m.company_id).order('paid_at',{ascending:false}).limit(500)]);
+  const {data:{user}}=await supabase.auth.getUser();if(!user){clearWorkspaceSessionCache();router.replace('/login/');return;}setEmail(user.email??'');
+  const cached=getWorkspaceSessionCache();let workspaceCompanyId:string;let workspaceCompanyName:string;let companyRole:Role;
+  if(cached?.userId===user.id){workspaceCompanyId=cached.companyId;workspaceCompanyName=cached.companyName;companyRole=cached.role as Role;}
+  else {const {data:m,error:e}=await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
+   if(e||!m){setError('Não foi possível identificar sua empresa.');setLoading(false);return;}
+   const c=Array.isArray(m.companies)?m.companies[0]:m.companies;workspaceCompanyId=m.company_id;workspaceCompanyName=c?.name??'Empresa';companyRole=m.role as Role;
+   setWorkspaceSessionCache({userId:user.id,email:user.email??'',companyName:workspaceCompanyName,companyId:workspaceCompanyId,role:companyRole});}
+  setCompanyId(workspaceCompanyId);setCompanyName(workspaceCompanyName);setRole(companyRole);if(companyRole!=='admin'){setError('O módulo Financeiro está disponível apenas para administradores.');setLoading(false);return;}
+  const [tr,pr]=await Promise.all([supabase.from('financial_transactions').select('id,transaction_type,category,description,amount,due_date,paid_at,status,rental_id').eq('company_id',workspaceCompanyId).order('due_date',{ascending:false}).limit(500),supabase.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id',workspaceCompanyId).order('paid_at',{ascending:false}).limit(500)]);
   if(tr.error||pr.error)setError('Não foi possível carregar o financeiro.');else{
    const txRows=(tr.data??[]) as Tx[];const paymentRows=(pr.data??[]) as Payment[];setTransactions(txRows);setPayments(paymentRows);
    const rentalIds=[...new Set([...txRows.map(x=>x.rental_id),...paymentRows.map(x=>x.rental_id)].filter((x):x is string=>Boolean(x)))];
    let nextRentalInfo:Record<string,{rentalNumber:number;customerName:string}>={};
-   if(rentalIds.length){const {data:rentals}=await supabase.from('rentals').select('id,rental_number,customer_id').eq('company_id',m.company_id).in('id',rentalIds);const customerIds=[...new Set((rentals??[]).map(x=>x.customer_id).filter((x):x is string=>Boolean(x)))];const {data:customers}=customerIds.length?await supabase.from('customers').select('id,name').eq('company_id',m.company_id).in('id',customerIds):{data:[]};const names=Object.fromEntries((customers??[]).map(x=>[x.id,x.name]));nextRentalInfo=Object.fromEntries((rentals??[]).map(x=>[x.id,{rentalNumber:x.rental_number,customerName:names[x.customer_id]??'Cliente não identificado'}]));}
+   if(rentalIds.length){const {data:rentals}=await supabase.from('rentals').select('id,rental_number,customer_id').eq('company_id',workspaceCompanyId).in('id',rentalIds);const customerIds=[...new Set((rentals??[]).map(x=>x.customer_id).filter((x):x is string=>Boolean(x)))];const {data:customers}=customerIds.length?await supabase.from('customers').select('id,name').eq('company_id',workspaceCompanyId).in('id',customerIds):{data:[]};const names=Object.fromEntries((customers??[]).map(x=>[x.id,x.name]));nextRentalInfo=Object.fromEntries((rentals??[]).map(x=>[x.id,{rentalNumber:x.rental_number,customerName:names[x.customer_id]??'Cliente não identificado'}]));}
    setRentalInfo(nextRentalInfo);
   }
   setLoading(false);

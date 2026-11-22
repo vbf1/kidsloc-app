@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { Pagination } from '../../../components/pagination';
+import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type Tx = { id: string; transaction_type: 'income' | 'expense'; amount: number | string; status: string; due_date: string | null; paid_at: string | null; category: string | null };
 type Rental = { id: string; rental_number: number; start_date: string; end_date: string; status: string; total_amount: number | string };
@@ -52,13 +53,18 @@ export default function ReportsPage() {
     async function load() {
       if (!supabase) { setError('Banco de dados não configurado.'); setLoading(false); return; }
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace('/login/'); return; }
-      const { data: member, error: memberError } = await supabase.from('company_members')
-        .select('company_id, role, companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
-      if (memberError || !member) { setError('Não foi possível identificar sua empresa.'); setLoading(false); return; }
-      if (member.role !== 'admin') { setError('Os relatórios estão disponíveis apenas para administradores.'); setLoading(false); return; }
-      const company = Array.isArray(member.companies) ? member.companies[0] : member.companies;
-      const cid = member.company_id as string;
+      if (!user) { clearWorkspaceSessionCache(); router.replace('/login/'); return; }
+      const cached=getWorkspaceSessionCache();let cid:string;let companyNameValue:string;let memberRole:string;
+      if(cached?.userId===user.id){cid=cached.companyId;companyNameValue=cached.companyName;memberRole=cached.role;}
+      else {
+        const { data: member, error: memberError } = await supabase.from('company_members')
+          .select('company_id, role, companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
+        if (memberError || !member) { setError('Não foi possível identificar sua empresa.'); setLoading(false); return; }
+        const company = Array.isArray(member.companies) ? member.companies[0] : member.companies;
+        cid = member.company_id as string;companyNameValue=company?.name??'Empresa';memberRole=member.role;
+        setWorkspaceSessionCache({userId:user.id,email:user.email??'',companyName:companyNameValue,companyId:cid,role:member.role});
+      }
+      if (memberRole !== 'admin') { setError('Os relatórios estão disponíveis apenas para administradores.'); setLoading(false); return; }
       let txRows: Tx[];
       let paymentRows: { transaction_id: string | null; amount: number | string; paid_at: string }[];
       let rentalRows: Rental[];
@@ -79,7 +85,7 @@ export default function ReportsPage() {
         return;
       }
       if (!active) return;
-      setCompanyId(cid); setCompanyName(company?.name ?? 'Empresa'); setEmail(user.email ?? '');
+      setCompanyId(cid); setCompanyName(companyNameValue); setEmail(user.email ?? '');
       setTransactions(txRows);
       setPayments(paymentRows);
       setRentals(rentalRows); setItems(itemRows); setProducts(productRows);
