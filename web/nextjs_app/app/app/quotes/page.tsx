@@ -1,4 +1,5 @@
 'use client';
+import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,19 +24,21 @@ const statusLabel: Record<string,string> = { draft:'Rascunho', sent:'Enviado', a
 
 export default function QuotesPage() {
   const router = useRouter();
+  const cachedWorkspace = getWorkspaceSessionCache();
+  const workspaceScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const [companyId,setCompanyId] = useState('');
   const [companyName,setCompanyName] = useState('');
   const [email,setEmail] = useState('');
   const [role,setRole] = useState<Role>();
-  const [loading,setLoading] = useState(true);
+  const [loading,setLoading] = useState(!hasModuleData('quotes', workspaceScope));
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
   const [notice,setNotice] = useState('');
-  const [customers,setCustomers] = useState<Customer[]>([]);
-  const [products,setProducts] = useState<Product[]>([]);
-  const [quotes,setQuotes] = useState<Quote[]>([]);
-  const [quoteLines,setQuoteLines] = useState<Record<string,QuoteLine[]>>({});
-  const [names,setNames] = useState<Record<string,string>>({});
+  const [customers,setCustomers] = useModuleData<Customer[]>('quotes','customers',workspaceScope,[]);
+  const [products,setProducts] = useModuleData<Product[]>('quotes','products',workspaceScope,[]);
+  const [quotes,setQuotes] = useModuleData<Quote[]>('quotes','quotes',workspaceScope,[]);
+  const [quoteLines,setQuoteLines] = useModuleData<Record<string,QuoteLine[]>>('quotes','quoteLines',workspaceScope,{});
+  const [names,setNames] = useModuleData<Record<string,string>>('quotes','names',workspaceScope,{});
   const [showForm,setShowForm] = useState(false);
   const [customerId,setCustomerId] = useState('');
   const [validUntil,setValidUntil] = useState('');
