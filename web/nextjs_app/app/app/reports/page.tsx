@@ -62,11 +62,11 @@ export default function ReportsPage() {
       let itemRows: RentalItem[];
       try {
         [txRows, paymentRows, rentalRows, productRows, itemRows] = await Promise.all([
-          fetchAllRows<Tx>(supabase.from('financial_transactions').select('id,transaction_type,amount,status,due_date,paid_at,category').eq('company_id', cid).neq('status','cancelled')),
-          fetchAllRows<{ transaction_id: string | null; amount: number | string; paid_at: string }>(supabase.from('payments').select('transaction_id,amount,paid_at').eq('company_id', cid)),
-          fetchAllRows<Rental>(supabase.from('rentals').select('id,rental_number,start_date,end_date,status,total_amount').eq('company_id', cid).neq('status','cancelled')),
-          fetchAllRows<Product>(supabase.from('products').select('id,name').eq('company_id', cid)),
-          fetchAllRows<RentalItem>(supabase.from('rental_items').select('rental_id,product_id,quantity,subtotal').eq('company_id', cid)),
+          fetchAllRows<Tx>(supabase.from('financial_transactions').select('id,transaction_type,amount,status,due_date,paid_at,category').eq('company_id', cid).order('id', { ascending: true }).neq('status','cancelled')),
+          fetchAllRows<{ transaction_id: string | null; amount: number | string; paid_at: string }>(supabase.from('payments').select('transaction_id,amount,paid_at').eq('company_id', cid).order('id', { ascending: true })),
+          fetchAllRows<Rental>(supabase.from('rentals').select('id,rental_number,start_date,end_date,status,total_amount').eq('company_id', cid).order('id', { ascending: true }).neq('status','cancelled')),
+          fetchAllRows<Product>(supabase.from('products').select('id,name').eq('company_id', cid).order('id', { ascending: true })),
+          fetchAllRows<RentalItem>(supabase.from('rental_items').select('rental_id,product_id,quantity,subtotal').eq('company_id', cid).order('id', { ascending: true })),
         ]);
       } catch {
         if (!active) return;
