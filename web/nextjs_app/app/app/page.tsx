@@ -104,7 +104,7 @@ export default function AppHomePage() {
     void preloadCompanyModules(cached.userId, companyId, workspace.role).catch(() => {
       // Individual modules keep their normal on-demand fallback if preload fails.
     });
-  }, [companyId, workspace?.role]);
+  }, [companyId, workspace]);
   useCompanyRealtimeRefresh(companyId, ['customers', 'products', 'rentals'], () => setRealtimeRefresh((value) => value + 1));
 
   useEffect(() => {
