@@ -107,7 +107,7 @@ export default function CustomersPage() {
     async function loadCustomers() {
       await Promise.resolve();
       if (!active) return;
-      if (!hasModuleData('customers', workspaceScope)) setListLoading(true);
+      if (!hasModuleData('customers', workspaceScope)) 
       setListError('');
       try {
         let request = supabaseClient.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
@@ -155,7 +155,7 @@ export default function CustomersPage() {
         if (error) { setFormError('Não foi possível cadastrar o cliente. Confira os dados e tente novamente.'); return; }
         setNotice('Cliente cadastrado com sucesso.');
       }
-      setFormOpen(false); setEditingCustomer(null); setPage(0); setListLoading(true);
+      setFormOpen(false); setEditingCustomer(null); setPage(0); 
       setRefreshIndex((current) => current + 1);
     } catch {
       setFormError('Ocorreu um erro ao salvar o cliente. Confira sua conexão e tente novamente.');
@@ -163,14 +163,14 @@ export default function CustomersPage() {
   }
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim()); setListLoading(true); setNotice('');
+    event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim());  setNotice('');
     setRefreshIndex((current) => current + 1);
   }
   function clearSearch() {
-    setSearchDraft(''); setSearchTerm(''); setPage(0); setListLoading(true);
+    setSearchDraft(''); setSearchTerm(''); setPage(0); 
     setRefreshIndex((current) => current + 1);
   }
-  function changePage(nextPage: number) { setPage(nextPage); setListLoading(true); }
+  function changePage(nextPage: number) { setPage(nextPage);  }
   async function signOut() {
     if (!supabase || signingOut) return;
     setSigningOut(true);
