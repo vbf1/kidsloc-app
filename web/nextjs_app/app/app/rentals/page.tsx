@@ -1,4 +1,5 @@
 'use client';
+import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -41,6 +42,7 @@ function formatSaveError(message: string | undefined): string {
 export default function RentalsPage() {
   const router = useRouter();
   const cachedWorkspace = getWorkspaceSessionCache();
+  const workspaceScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const [email, setEmail] = useState(cachedWorkspace?.email ?? '');
   const [companyName, setCompanyName] = useState(cachedWorkspace?.companyName ?? '');
   const [role, setRole] = useState<CompanyRole | undefined>(cachedWorkspace?.role === 'admin' || cachedWorkspace?.role === 'staff' ? cachedWorkspace.role : undefined);
@@ -48,11 +50,11 @@ export default function RentalsPage() {
   const [currentUserId, setCurrentUserId] = useState(cachedWorkspace?.userId ?? '');
   const [accessLoading, setAccessLoading] = useState(!cachedWorkspace);
   const [accessError, setAccessError] = useState('');
-  const [rentals, setRentals] = useState<RentalRecord[]>([]);
-  const [customers, setCustomers] = useState<RentalCustomer[]>([]);
-  const [products, setProducts] = useState<RentalProduct[]>([]);
-  const [members, setMembers] = useState<RentalMember[]>([]);
-  const [listLoading, setListLoading] = useState(true);
+  const [rentals, setRentals] = useModuleData<RentalRecord[]>('rentals','records',workspaceScope,[]);
+  const [customers, setCustomers] = useModuleData<RentalCustomer[]>('rentals','customers',workspaceScope,[]);
+  const [products, setProducts] = useModuleData<RentalProduct[]>('rentals','products',workspaceScope,[]);
+  const [members, setMembers] = useModuleData<RentalMember[]>('rentals','members',workspaceScope,[]);
+  const [listLoading, setListLoading] = useState(!hasModuleData('rentals', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
@@ -109,7 +111,6 @@ export default function RentalsPage() {
     const client = supabase;
     let active = true;
     async function loadRentals() {
-      setListLoading(true);
       setListError('');
       try {
         const [rentalResult, customerResult, productResult, memberResult] = await Promise.all([
@@ -259,7 +260,7 @@ export default function RentalsPage() {
       setFormOpen(false);
       setEditingRental(null);
       setPage(0);
-      setListLoading(true);
+      
       setRefreshIndex((current) => current + 1);
     } catch {
       setFormError('Ocorreu um erro ao salvar a locação. Confira sua conexão e tente novamente.');

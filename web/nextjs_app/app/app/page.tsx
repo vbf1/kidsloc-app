@@ -1,4 +1,5 @@
 'use client';
+import { hasModuleData, useModuleData } from '../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../lib/use-company-realtime';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -32,6 +33,7 @@ function rentalStatus(value: string) {
 export default function AppHomePage() {
   const router = useRouter();
   const cachedWorkspace = getWorkspaceSessionCache();
+  const workspaceScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const usableCachedWorkspace = cachedWorkspace && (cachedWorkspace.role === 'admin' || cachedWorkspace.role === 'staff') ? cachedWorkspace : null;
   const [workspace, setWorkspace] = useState<Workspace | null>(() => usableCachedWorkspace ? {
     email: usableCachedWorkspace.email, companyName: usableCachedWorkspace.companyName,
@@ -40,9 +42,9 @@ export default function AppHomePage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(!usableCachedWorkspace);
   const [signingOut, setSigningOut] = useState(false);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentRentals, setRecentRentals] = useState<RecentRental[]>([]);
-  const [statsLoading, setStatsLoading] = useState(false);
+  const [stats, setStats] = useModuleData<DashboardStats | null>('dashboard','stats',workspaceScope,null);
+  const [recentRentals, setRecentRentals] = useModuleData<RecentRental[]>('dashboard','recentRentals',workspaceScope,[]);
+  const [statsLoading, setStatsLoading] = useState(!hasModuleData('dashboard', workspaceScope));
   const [statsError, setStatsError] = useState('');
   const [realtimeRefresh, setRealtimeRefresh] = useState(0);
 
@@ -97,7 +99,7 @@ export default function AppHomePage() {
     if (!companyId || !supabase) return;
     let active = true;
     async function loadDashboard() {
-      setStatsLoading(true);
+      if (!hasModuleData('dashboard', workspaceScope)) setStatsLoading(true);
       setStatsError('');
       try {
         const [customersResult, productsResult, rentalsResult, recentResult] = await Promise.all([

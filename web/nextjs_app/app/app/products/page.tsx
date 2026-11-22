@@ -1,4 +1,5 @@
 'use client';
+import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -63,17 +64,18 @@ function fromRecord(product: ProductRecord): ProductFormValues {
 export default function ProductsPage() {
   const router = useRouter();
   const cachedWorkspace = getWorkspaceSessionCache();
+  const workspaceScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const [email, setEmail] = useState(cachedWorkspace?.email ?? '');
   const [companyName, setCompanyName] = useState(cachedWorkspace?.companyName ?? '');
   const [role, setRole] = useState<CompanyRole | undefined>(cachedWorkspace?.role === 'admin' || cachedWorkspace?.role === 'staff' ? cachedWorkspace.role : undefined);
   const [companyId, setCompanyId] = useState<string | null>(cachedWorkspace?.companyId ?? null);
   const [accessLoading, setAccessLoading] = useState(!cachedWorkspace);
   const [accessError, setAccessError] = useState('');
-  const [products, setProducts] = useState<ProductRecord[]>([]);
-  const [listLoading, setListLoading] = useState(true);
+  const [products, setProducts] = useModuleData<ProductRecord[]>('products','records',workspaceScope,[]);
+  const [listLoading, setListLoading] = useState(!hasModuleData('products', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useModuleData<number>('products','totalCount',workspaceScope,0);
   const pageSize = useResponsivePageSize();
   const [pagination, setPagination] = useState({ page: 0, pageSize: 6 });
   const page = pagination.pageSize === pageSize ? pagination.page : 0;
@@ -132,7 +134,6 @@ export default function ProductsPage() {
     const client = supabase;
     let active = true;
     async function loadProducts() {
-      setListLoading(true);
       setListError('');
       try {
         let request = client.from('products').select(PRODUCT_COLUMNS, { count: 'exact' })
@@ -211,7 +212,7 @@ export default function ProductsPage() {
         }
         setNotice('Item cadastrado com sucesso.');
       }
-      setFormOpen(false); setEditingProduct(null); setPage(0); setListLoading(true);
+      setFormOpen(false); setEditingProduct(null); setPage(0); 
       setRefreshIndex((current) => current + 1);
     } catch {
       if (uploadedPath) await supabase.storage.from('product-images').remove([uploadedPath]);
@@ -243,14 +244,14 @@ export default function ProductsPage() {
     } finally { setDeletingProductId(null); setProductToDelete(null); }
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim()); setListLoading(true); setNotice('');
+    event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim());  setNotice('');
     setRefreshIndex((current) => current + 1);
   }
   function changeFilter(type: 'type' | 'status', value: string) {
     setPage(0);
     if (type === 'type') setTypeFilter(value as 'all' | ProductType);
     else setStatusFilter(value as 'all' | 'active' | 'inactive');
-    setListLoading(true);
+    
   }
   function clearFilters() {
     setSearchDraft(''); setSearchTerm(''); setTypeFilter('all'); setStatusFilter('all'); setPage(0);
@@ -330,7 +331,7 @@ export default function ProductsPage() {
           </div>
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
-        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next); setListLoading(true); }} onEdit={openEditProduct} onView={setViewingProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
+        <ProductList products={products} loading={listLoading} totalCount={totalCount} page={page} pageSize={pageSize} onPageChange={(next) => { setPage(next);  }} onEdit={openEditProduct} onView={setViewingProduct} onDelete={(product) => setProductToDelete(product)} onManageUnits={(product) => { setManagingUnitsProduct(product); setFormOpen(false); setEditingProduct(null); }} />
       </section>
     </AppShell>
   );

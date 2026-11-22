@@ -1,4 +1,5 @@
 'use client';
+import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,17 +34,19 @@ const iso = (d: Date) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'
 
 export default function ReportsPage() {
   const router = useRouter();
+  const cachedWorkspace = getWorkspaceSessionCache();
+  const workspaceScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const [companyId, setCompanyId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasModuleData('reports', workspaceScope));
   const [error, setError] = useState('');
   const [month, setMonth] = useState(() => iso(new Date()).slice(0,7));
-  const [transactions, setTransactions] = useState<Tx[]>([]);
-  const [payments, setPayments] = useState<{ transaction_id: string | null; amount: number | string; paid_at: string }[]>([]);
-  const [rentals, setRentals] = useState<Rental[]>([]);
-  const [items, setItems] = useState<RentalItem[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [transactions, setTransactions] = useModuleData<Tx[]>('reports','transactions',workspaceScope,[]);
+  const [payments, setPayments] = useModuleData<{ transaction_id: string | null; amount: number | string; paid_at: string }[]>('reports','payments',workspaceScope,[]);
+  const [rentals, setRentals] = useModuleData<Rental[]>('reports','rentals',workspaceScope,[]);
+  const [items, setItems] = useModuleData<RentalItem[]>('reports','items',workspaceScope,[]);
+  const [products, setProducts] = useModuleData<Product[]>('reports','products',workspaceScope,[]);
   const [refresh, setRefresh] = useState(0);
   const [topPage, setTopPage] = useState(0);
   const pageSize = useResponsivePageSize();

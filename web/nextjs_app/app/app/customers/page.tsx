@@ -1,4 +1,5 @@
 'use client';
+import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -33,17 +34,18 @@ function toPayload(companyId: string, values: CustomerFormValues): CustomerPaylo
 export default function CustomersPage() {
   const router = useRouter();
   const cachedWorkspace = getWorkspaceSessionCache();
+  const workspaceScope = cachedWorkspace ? `${cachedWorkspace.userId}:${cachedWorkspace.companyId}` : '';
   const [email, setEmail] = useState(cachedWorkspace?.email ?? '');
   const [companyName, setCompanyName] = useState(cachedWorkspace?.companyName ?? '');
   const [role, setRole] = useState<CompanyRole | undefined>(cachedWorkspace?.role === 'admin' || cachedWorkspace?.role === 'staff' ? cachedWorkspace.role : undefined);
   const [companyId, setCompanyId] = useState<string | null>(cachedWorkspace?.companyId ?? null);
   const [accessLoading, setAccessLoading] = useState(!cachedWorkspace);
   const [accessError, setAccessError] = useState('');
-  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
-  const [listLoading, setListLoading] = useState(true);
+  const [customers, setCustomers] = useModuleData<CustomerRecord[]>('customers','records',workspaceScope,[]);
+  const [listLoading, setListLoading] = useState(!hasModuleData('customers', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useModuleData<number>('customers','totalCount',workspaceScope,0);
   const pageSize = useResponsivePageSize();
   const [pagination, setPagination] = useState({ page: 0, pageSize: 6 });
   const page = pagination.pageSize === pageSize ? pagination.page : 0;
@@ -105,7 +107,6 @@ export default function CustomersPage() {
     async function loadCustomers() {
       await Promise.resolve();
       if (!active) return;
-      setListLoading(true);
       setListError('');
       try {
         let request = supabaseClient.from('customers').select(CUSTOMER_COLUMNS, { count: 'exact' })
@@ -153,7 +154,7 @@ export default function CustomersPage() {
         if (error) { setFormError('Não foi possível cadastrar o cliente. Confira os dados e tente novamente.'); return; }
         setNotice('Cliente cadastrado com sucesso.');
       }
-      setFormOpen(false); setEditingCustomer(null); setPage(0); setListLoading(true);
+      setFormOpen(false); setEditingCustomer(null); setPage(0); 
       setRefreshIndex((current) => current + 1);
     } catch {
       setFormError('Ocorreu um erro ao salvar o cliente. Confira sua conexão e tente novamente.');
@@ -161,14 +162,14 @@ export default function CustomersPage() {
   }
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim()); setListLoading(true); setNotice('');
+    event.preventDefault(); setPage(0); setSearchTerm(searchDraft.trim());  setNotice('');
     setRefreshIndex((current) => current + 1);
   }
   function clearSearch() {
-    setSearchDraft(''); setSearchTerm(''); setPage(0); setListLoading(true);
+    setSearchDraft(''); setSearchTerm(''); setPage(0); 
     setRefreshIndex((current) => current + 1);
   }
-  function changePage(nextPage: number) { setPage(nextPage); setListLoading(true); }
+  function changePage(nextPage: number) { setPage(nextPage);  }
   async function signOut() {
     if (!supabase || signingOut) return;
     setSigningOut(true);
