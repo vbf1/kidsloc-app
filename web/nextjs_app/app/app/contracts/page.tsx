@@ -182,6 +182,7 @@ export default function ContractsPage(){
      {contracts.length>0&&!contracts.some(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||contractStatus(c)===statusFilter);})&&<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center text-sm text-slate-500 lg:col-span-2">Nenhum contrato corresponde à busca ou ao filtro.</div>}
     </div>
    </section>
+     <Pagination totalCount={filteredContracts.length} page={page} pageSize={pageSize} onPageChange={setPage}/>
    <p className="rounded-xl bg-slate-100/80 p-3 text-[11px] leading-5 text-slate-500">A assinatura eletrônica registra identidade declarada, desenho da assinatura, consentimento e data/hora. Ela não é uma assinatura ICP-Brasil ou certificado digital qualificado.</p>
 
    {previewHtml&&<div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-5"><section className="flex h-[96dvh] w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:h-[94dvh]">
