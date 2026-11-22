@@ -111,7 +111,6 @@ export default function RentalsPage() {
     const client = supabase;
     let active = true;
     async function loadRentals() {
-      if (!hasModuleData('rentals', workspaceScope)) 
       setListError('');
       try {
         const [rentalResult, customerResult, productResult, memberResult] = await Promise.all([
