@@ -67,7 +67,7 @@ export default function QuotesPage() {
     else {const { data:m, error:mError } = await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
       if (mError || !m?.company_id) { setError('Não foi possível identificar a empresa da sua conta.'); setLoading(false); return; }
       const c = Array.isArray(m.companies) ? m.companies[0] : m.companies;
-      workspaceCompanyId=m.company_id;workspaceCompanyName=c?.name ?? 'Minha empresa';workspaceRole=m.role as Role;
+      workspaceCompanyId=workspaceCompanyId;workspaceCompanyName=c?.name ?? 'Minha empresa';workspaceRole=m.role as Role;
       setWorkspaceSessionCache({userId:user.id,email:user.email??'',companyName:workspaceCompanyName,companyId:workspaceCompanyId,role:workspaceRole});}
     setCompanyId(workspaceCompanyId); setCompanyName(workspaceCompanyName); setRole(workspaceRole);
     const [cr,pr,qr] = await Promise.all([
@@ -80,7 +80,7 @@ export default function QuotesPage() {
       setCustomers(cr.data ?? []); setProducts(pr.data ?? []); setQuotes((qr.data ?? []) as Quote[]);
       const quoteIds = (qr.data ?? []).map(q => q.id);
       if (quoteIds.length) {
-        const { data: lines, error: linesError } = await supabase.from('rental_quote_items').select('quote_id,description,quantity,unit_price,subtotal').eq('company_id', m.company_id).in('quote_id', quoteIds);
+        const { data: lines, error: linesError } = await supabase.from('rental_quote_items').select('quote_id,description,quantity,unit_price,subtotal').eq('company_id', workspaceCompanyId).in('quote_id', quoteIds);
         if (!linesError) {
           const grouped: Record<string,QuoteLine[]> = {};
           for (const line of lines ?? []) (grouped[line.quote_id] ??= []).push(line as QuoteLine);
