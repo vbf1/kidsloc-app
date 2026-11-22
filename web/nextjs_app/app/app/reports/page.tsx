@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
+import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
+import { Pagination } from '../../../components/pagination';
 
 type Tx = { id: string; transaction_type: 'income' | 'expense'; amount: number | string; status: string; due_date: string | null; paid_at: string | null; category: string | null };
 type Rental = { id: string; rental_number: number; start_date: string; end_date: string; status: string; total_amount: number | string };
@@ -42,6 +44,8 @@ export default function ReportsPage() {
   const [items, setItems] = useState<RentalItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [refresh, setRefresh] = useState(0);
+  const [topPage, setTopPage] = useState(0);
+  const pageSize = useResponsivePageSize();
 
   useEffect(() => {
     let active = true;
@@ -155,11 +159,11 @@ export default function ReportsPage() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-purple-100 bg-white p-5">
           <h2 className="font-bold">Desempenho financeiro por brinquedo</h2><p className="mt-1 text-xs text-gray-500">Faturamento bruto, despesas rateadas e lucro líquido estimado no período</p>
-          {summary.top.length ? <div className="mt-5 space-y-4">{summary.top.map(item=><div key={item.name} className="border-b border-gray-100 pb-3 last:border-0">
+          {summary.top.length ? <div className="mt-5 space-y-4">{summary.top.slice(topPage*pageSize,(topPage+1)*pageSize).map(item=><div key={item.name} className="border-b border-gray-100 pb-3 last:border-0">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm"><strong className="truncate">{item.name}</strong><span className="text-xs text-gray-500">{item.rentals} locações · {item.quantity} unidades</span></div>
             <div className="h-2 overflow-hidden rounded-full bg-purple-50"><div className="h-full rounded-full bg-[#8054d8]" style={{width:(item.gross/maxTop*100)+'%'}}/></div>
             <div className="mt-2 grid grid-cols-3 gap-2 text-xs"><span><span className="block text-gray-400">Bruto</span><strong>{brl(item.gross)}</strong></span><span><span className="block text-gray-400">Despesas</span><strong>{brl(item.allocatedExpense)}</strong></span><span><span className="block text-gray-400">Líquido*</span><strong className={item.net<0?'text-red-600':'text-green-700'}>{brl(item.net)}</strong></span></div>
-          </div>)}</div> : <p className="mt-5 text-sm text-gray-500">Ainda não há itens de locação para exibir.</p>}
+          </div>)}</div><Pagination totalCount={summary.top.length} page={topPage} pageSize={pageSize} onPageChange={setTopPage}/> : <p className="mt-5 text-sm text-gray-500">Ainda não há itens de locação para exibir.</p>}
         </article>
         <article className="rounded-2xl border border-purple-100 bg-white p-5">
           <h2 className="font-bold">Situação das locações</h2><p className="mt-1 text-xs text-gray-500">Locações que cruzam o período selecionado</p>
