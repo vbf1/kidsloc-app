@@ -91,28 +91,33 @@ class _ReportsPageState extends State<ReportsPage> {
             .from('financial_transactions')
             .select('id,transaction_type,amount,status,due_date,paid_at')
             .eq('company_id', widget.companyId)
+            .order('id', ascending: true)
             .neq('status', 'cancelled')
             .range(start, end)),
         _fetchAllRows((start, end) => db
             .from('payments')
             .select('transaction_id,amount,paid_at')
             .eq('company_id', widget.companyId)
+            .order('id', ascending: true)
             .range(start, end)),
         _fetchAllRows((start, end) => db
             .from('rentals')
             .select('id,rental_number,start_date,end_date,status,total_amount')
             .eq('company_id', widget.companyId)
+            .order('id', ascending: true)
             .neq('status', 'cancelled')
             .range(start, end)),
         _fetchAllRows((start, end) => db
             .from('rental_items')
             .select('rental_id,product_id,quantity')
             .eq('company_id', widget.companyId)
+            .order('id', ascending: true)
             .range(start, end)),
         _fetchAllRows((start, end) => db
             .from('products')
             .select('id,name')
             .eq('company_id', widget.companyId)
+            .order('id', ascending: true)
             .range(start, end)),
       ]);
       if (!mounted) return;
