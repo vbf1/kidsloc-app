@@ -265,7 +265,6 @@ class _FinancePageState extends State<FinancePage> {
   Widget build(BuildContext context) {
     final fmt = _format;
     final pageSize = MediaQuery.sizeOf(context).width >= 1024 ? 21 : 6;
-    final currentPage = _page.clamp(0, ((filteredTransactions.length) / pageSize).ceil().clamp(1, 999999) - 1).toInt();
     final filteredTransactions = _transactions.where((row) {
       final id = row['id'].toString();
       final amount = _money(row['amount']);
@@ -293,6 +292,7 @@ class _FinancePageState extends State<FinancePage> {
       final text = normalize('${row['description'] ?? ''} ${row['category'] ?? ''} ${rental?['customer_name'] ?? ''} ${rental?['rental_number'] ?? ''}');
       return matchesFilter && (query.isEmpty || text.contains(query));
     }).toList();
+    final currentPage = _page.clamp(0, (filteredTransactions.length / pageSize).ceil().clamp(1, 999999) - 1).toInt();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Financeiro'),
