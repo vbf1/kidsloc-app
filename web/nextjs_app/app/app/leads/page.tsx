@@ -28,10 +28,10 @@ function toLocalDateTimeInput(value: string | null): string {
 export default function LeadFestaPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [userId, setUserId] = useState('');
-  const workspaceScope = userId && companyId ? `${userId}:${companyId}` : '';
   const [platformOwner, setPlatformOwner] = useState(false);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [companyId, setCompanyId] = useState('');
+  const workspaceScope = userId && companyId ? `${userId}:${companyId}` : '';
   const [stages, setStages] = useModuleData<LeadStage[]>('leads', 'stages', workspaceScope, []);
   const [leads, setLeads] = useModuleData<LeadRecord[]>('leads', 'records', workspaceScope, []);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
