@@ -137,7 +137,7 @@ export default function ReportsPage() {
   }, [transactions,payments,rentals,items,products,month,from,until]);
 
   async function signOut() { if (supabase) { await supabase.auth.signOut(); router.push('/login/'); } }
-  if (loading) return <main className="grid min-h-screen place-items-center">Carregando relatórios...</main>;
+  if (loading && !hasModuleData('reports', workspaceScope)) return <main className="grid min-h-screen place-items-center">Carregando relatórios...</main>;
 
   const cards = [
     ['Receitas lançadas', brl(summary.revenue), 'Valores de receitas no período'],

@@ -141,7 +141,7 @@ export default function QuotesPage() {
   }
   async function signOut(){if(!supabase)return;await supabase.auth.signOut();router.push('/login/');}
 
-  if(loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p>Carregando orçamentos...</p></main>;
+  if(loading && !hasModuleData('quotes', workspaceScope)) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p>Carregando orçamentos...</p></main>;
   return <AppShell companyName={companyName} email={email} role={role} companyId={companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH??''} signingOut={false} onSignOut={signOut}>
     <section>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-[#8054d8]">Gestão comercial</p><h1 className="mt-2 text-3xl font-bold">Orçamentos</h1><p className="mt-2 text-sm text-gray-500">Monte propostas com itens, valores, validade e dados do evento.</p></div>
