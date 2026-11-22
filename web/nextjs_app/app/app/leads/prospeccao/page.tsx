@@ -8,6 +8,7 @@ import { AppShell } from '../../../../components/app-shell';
 import { supabase } from '../../../../lib/supabase';
 import { useResponsivePageSize } from '../../../../lib/use-responsive-page-size';
 import { Pagination } from '../../../../components/pagination';
+import { useModuleData } from '../../../../lib/module-data-cache';
 
 type CompanyOption = { id: string; name: string };
 type Workspace = { email: string; companyName: string; companyId: string; role: 'admin' | 'platform_owner' };
@@ -27,14 +28,16 @@ const OVERPASS_ENDPOINTS = [
 
 export default function LeadProspectingPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [userId, setUserId] = useState('');
+  const workspaceScope = userId && workspace?.companyId ? `${userId}:${workspace.companyId}` : '';
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState('');
   const [city, setCity] = useState('Contagem, MG');
   const [radius, setRadius] = useState('10000');
-  const [stages, setStages] = useState<Stage[]>([]);
+  const [stages, setStages] = useModuleData<Stage[]>('leads', 'stages', workspaceScope, []);
   const [results, setResults] = useState<ProspectResult[]>([]);
-  const [existingLeads, setExistingLeads] = useState<ExistingLead[]>([]);
+  const [existingLeads, setExistingLeads] = useModuleData<ExistingLead[]>('leads', 'records', workspaceScope, []);
   const [selected, setSelected] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,6 +69,7 @@ export default function LeadProspectingPage() {
           window.location.replace((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/login/');
           return;
         }
+        setUserId(user.id);
         const { data: isOwner, error: ownerError } = await supabase.rpc('is_platform_owner_for_company');
         if (ownerError) throw ownerError;
         let companyId = '';
