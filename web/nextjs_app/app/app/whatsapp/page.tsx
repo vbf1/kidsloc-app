@@ -262,6 +262,7 @@ export default function WhatsAppPage() {
             <p>• Você continuará usando o mesmo número no WhatsApp Business do celular.</p>
             <p>• O KidsLoc usará a API oficial da Meta para automações autorizadas.</p>
             <p>• A conexão não solicita o registro tradicional que substituiria o aplicativo móvel.</p>
+            <p>• Preferência definida: não importar conversas antigas; somente a sincronização de contatos será solicitada.</p>
           </div>
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
             <strong>Importante antes de conectar:</strong> a Meta exige que a integração inicie a sincronização de contatos e histórico dentro de 24 horas após o onboarding. Se você autorizar o compartilhamento, conversas individuais dos últimos seis meses podem ser sincronizadas. Grupos não são sincronizados e os dispositivos complementares serão desconectados para que você os vincule novamente depois. Estamos preparando essa sincronização antes de liberar a conexão, para não colocar seu número em risco.
