@@ -16,6 +16,8 @@ class _AgendaPageState extends State<AgendaPage> {
   String? _error;
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selected = DateUtils.dateOnly(DateTime.now());
+  int _page = 0;
+  int _productPage = 0;
   List<Map<String, dynamic>> _rentals = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _rentalItems = [];
@@ -93,6 +95,8 @@ class _AgendaPageState extends State<AgendaPage> {
     setState(() {
       _month = DateTime(_month.year, _month.month + amount);
       _selected = DateTime(_month.year, _month.month, 1);
+      _page = 0;
+      _productPage = 0;
     });
   }
 
@@ -174,7 +178,7 @@ class _AgendaPageState extends State<AgendaPage> {
                                 final active = DateUtils.isSameDay(date, _selected);
                                 return InkWell(
                                   borderRadius: BorderRadius.circular(10),
-                                  onTap: () => setState(() { _selected = date; _page = 0; }),
+                                  onTap: () => setState(() { _selected = date; _page = 0; _productPage = 0; }),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: active ? Theme.of(context).colorScheme.primaryContainer : count > 0 ? Theme.of(context).colorScheme.surfaceContainerHighest : null,
