@@ -202,6 +202,61 @@ if (role === 'admin') {
   }
 }
 
+
+async function preloadTeam(client: NonNullable<typeof supabase>, userId: string, companyId: string, scope: string): Promise<void> {
+  const { data: memberships, error: membershipError } = await client
+    .from('company_members').select('company_id,role').eq('user_id', userId);
+  if (membershipError) return;
+  const companyIds = (memberships ?? []).map((item: any) => item.company_id);
+  if (!companyIds.length) {
+    setModuleData('team', 'companies', scope, []);
+    setModuleData('team', 'members', scope, []);
+    return;
+  }
+  const [companies, members] = await Promise.all([
+    client.from('companies').select('id,name').in('id', companyIds).order('name'),
+    client.from('company_members').select('id,user_id,role,created_at').eq('company_id', companyId).order('created_at'),
+  ]);
+  if (companies.error || members.error) return;
+  const companyRows = (companies.data ?? []).map((company: any) => ({
+    id: company.id,
+    name: company.name,
+    role: (memberships ?? []).find((item: any) => item.company_id === company.id)?.role as Role,
+  }));
+  const memberIds = (members.data ?? []).map((item: any) => item.user_id);
+  const { data: profiles, error: profilesError } = memberIds.length
+    ? await client.from('profiles').select('id,full_name,phone').in('id', memberIds)
+    : { data: [], error: null };
+  if (profilesError) return;
+  const profileById = new Map((profiles ?? []).map((profile: any) => [profile.id, profile]));
+  const memberRows = (members.data ?? []).map((member: any) => {
+    const profile = profileById.get(member.user_id);
+    return {
+      ...member,
+      role: member.role as Role,
+      name: profile?.full_name || 'Usuário sem nome',
+      phone: profile?.phone ?? null,
+    };
+  });
+  setModuleData('team', 'companies', scope, companyRows);
+  setModuleData('team', 'members', scope, memberRows);
+}
+
+async function preloadLeadFesta(client: NonNullable<typeof supabase>, companyId: string, scope: string, role: Role): Promise<void> {
+  if (role !== 'admin') return;
+  const { data: available, error: accessError } = await client.rpc('leadfesta_is_available', { p_company_id: companyId });
+  if (accessError || available !== true) return;
+  const [stages, leads] = await Promise.all([
+    client.from('lead_pipeline_stages').select('id,company_id,name,color,position,is_won,is_lost')
+      .eq('company_id', companyId).order('position'),
+    client.from('leads').select('id,company_id,stage_id,name,phone,email,contact_company,source,estimated_value,expected_close_date,next_contact_at,notes,converted_customer_id,created_at,updated_at')
+      .eq('company_id', companyId).order('updated_at', { ascending: false }).limit(500),
+  ]);
+  if (stages.error || leads.error) return;
+  setModuleData('leads', 'stages', scope, stages.data ?? []);
+  setModuleData('leads', 'records', scope, leads.data ?? []);
+}
+
 export async function preloadCompanyModules(userId: string, companyId: string, role: Role): Promise<void> {
   if (!supabase || !userId || !companyId) return;
   const client = supabase;
@@ -217,6 +272,8 @@ export async function preloadCompanyModules(userId: string, companyId: string, r
       preloadReports(client, companyId, scope, role),
     ] : []),
     preloadContracts(client, companyId, scope),
+    preloadTeam(client, userId, companyId, scope),
+    ...(role === 'admin' ? [preloadLeadFesta(client, companyId, scope, role)] : []),
   ];
 
   // allSettled lets successful modules become usable even when another module
