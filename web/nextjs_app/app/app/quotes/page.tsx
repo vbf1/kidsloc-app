@@ -67,7 +67,7 @@ export default function QuotesPage() {
     else {const { data:m, error:mError } = await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
       if (mError || !m?.company_id) { setError('Não foi possível identificar a empresa da sua conta.'); setLoading(false); return; }
       const c = Array.isArray(m.companies) ? m.companies[0] : m.companies;
-      workspaceCompanyId=workspaceCompanyId;workspaceCompanyName=c?.name ?? 'Minha empresa';workspaceRole=m.role as Role;
+      workspaceCompanyId=m.company_id;workspaceCompanyName=c?.name ?? 'Minha empresa';workspaceRole=m.role as Role;
       setWorkspaceSessionCache({userId:user.id,email:user.email??'',companyName:workspaceCompanyName,companyId:workspaceCompanyId,role:workspaceRole});}
     setCompanyId(workspaceCompanyId); setCompanyName(workspaceCompanyName); setRole(workspaceRole);
     const [cr,pr,qr] = await Promise.all([
