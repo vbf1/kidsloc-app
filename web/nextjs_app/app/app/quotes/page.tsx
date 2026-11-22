@@ -8,6 +8,7 @@ import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { Pagination } from '../../../components/pagination';
+import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type Role = 'admin' | 'staff';
 type Customer = { id: string; name: string; phone: string | null };
@@ -59,16 +60,20 @@ export default function QuotesPage() {
     await Promise.resolve();
     if (!supabase) { setError('A conexão com o banco não está configurada.'); setLoading(false); return; }
     const { data:{user}, error:authError } = await supabase.auth.getUser();
-    if (authError || !user) { router.replace('/login/'); return; }
+    if (authError || !user) { clearWorkspaceSessionCache(); router.replace('/login/'); return; }
     setEmail(user.email ?? '');
-    const { data:m, error:mError } = await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
-    if (mError || !m?.company_id) { setError('Não foi possível identificar a empresa da sua conta.'); setLoading(false); return; }
-    const c = Array.isArray(m.companies) ? m.companies[0] : m.companies;
-    setCompanyId(m.company_id); setCompanyName(c?.name ?? 'Minha empresa'); setRole(m.role as Role);
+    const cached=getWorkspaceSessionCache();let workspaceCompanyId:string;let workspaceCompanyName:string;let workspaceRole:Role;
+    if(cached?.userId===user.id){workspaceCompanyId=cached.companyId;workspaceCompanyName=cached.companyName;workspaceRole=cached.role as Role;}
+    else {const { data:m, error:mError } = await supabase.from('company_members').select('company_id,role,companies(name)').eq('user_id',user.id).limit(1).maybeSingle();
+      if (mError || !m?.company_id) { setError('Não foi possível identificar a empresa da sua conta.'); setLoading(false); return; }
+      const c = Array.isArray(m.companies) ? m.companies[0] : m.companies;
+      workspaceCompanyId=m.company_id;workspaceCompanyName=c?.name ?? 'Minha empresa';workspaceRole=m.role as Role;
+      setWorkspaceSessionCache({userId:user.id,email:user.email??'',companyName:workspaceCompanyName,companyId:workspaceCompanyId,role:workspaceRole});}
+    setCompanyId(workspaceCompanyId); setCompanyName(workspaceCompanyName); setRole(workspaceRole);
     const [cr,pr,qr] = await Promise.all([
-      supabase.from('customers').select('id,name,phone').eq('company_id',m.company_id).order('name'),
-      supabase.from('products').select('id,name,daily_price,event_price,item_type').eq('company_id',m.company_id).eq('active',true).order('name'),
-      supabase.from('rental_quotes').select('id,quote_number,customer_id,status,issue_date,valid_until,event_date,start_time,end_time,delivery_method,delivery_address,delivery_fee,discount,subtotal,total_amount,notes').eq('company_id',m.company_id).order('created_at',{ascending:false}).limit(200)
+      supabase.from('customers').select('id,name,phone').eq('company_id',workspaceCompanyId).order('name'),
+      supabase.from('products').select('id,name,daily_price,event_price,item_type').eq('company_id',workspaceCompanyId).eq('active',true).order('name'),
+      supabase.from('rental_quotes').select('id,quote_number,customer_id,status,issue_date,valid_until,event_date,start_time,end_time,delivery_method,delivery_address,delivery_fee,discount,subtotal,total_amount,notes').eq('company_id',workspaceCompanyId).order('created_at',{ascending:false}).limit(200)
     ]);
     if (cr.error || pr.error || qr.error) setError('Não foi possível carregar os dados de orçamento.');
     else {
