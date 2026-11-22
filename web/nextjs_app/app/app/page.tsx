@@ -9,6 +9,7 @@ import { AppShell } from '../../components/app-shell';
 import { getWorkspaceCompanyName } from '../../lib/workspace';
 import { supabase } from '../../lib/supabase';
 import { getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../lib/workspace-session-cache';
+import { preloadCompanyModules } from '../../lib/preload-company-modules';
 
 type CompanyRole = 'admin' | 'staff';
 type Workspace = { email: string; companyName: string; companyId: string; role: CompanyRole };
@@ -93,6 +94,17 @@ export default function AppHomePage() {
   }, [loadWorkspace]);
 
   const companyId = workspace?.companyId;
+
+  // Warm the module cache as soon as the authenticated workspace is ready.
+  // This runs in the background: the dashboard remains interactive while data loads.
+  useEffect(() => {
+    if (!companyId || !workspace) return;
+    const cached = getWorkspaceSessionCache();
+    if (!cached || cached.companyId !== companyId) return;
+    void preloadCompanyModules(cached.userId, companyId, workspace.role).catch(() => {
+      // Individual modules keep their normal on-demand fallback if preload fails.
+    });
+  }, [companyId, workspace?.role]);
   useCompanyRealtimeRefresh(companyId, ['customers', 'products', 'rentals'], () => setRealtimeRefresh((value) => value + 1));
 
   useEffect(() => {
