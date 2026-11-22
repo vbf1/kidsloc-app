@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/company_realtime.dart';
+import 'widgets/pagination_controls.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key, required this.companyId});
@@ -13,6 +14,7 @@ class _ReportsPageState extends State<ReportsPage> {
   bool _loading = true;
   String? _error;
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  int _topPage = 0;
   List<Map<String, dynamic>> _transactions = [];
   List<Map<String, dynamic>> _payments = [];
   List<Map<String, dynamic>> _rentals = [];
@@ -239,7 +241,7 @@ class _ReportsPageState extends State<ReportsPage> {
       lastDate: DateTime(2100),
       initialDatePickerMode: DatePickerMode.year,
     );
-    if (picked != null) setState(() => _month = DateTime(picked.year, picked.month));
+    if (picked != null) setState(() { _month = DateTime(picked.year, picked.month); _topPage = 0; });
   }
 
   Widget _card(String title, String value, IconData icon) => Card(
@@ -350,7 +352,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                     if ((s['top'] as List).isEmpty)
                                       const Text('Sem itens para o período selecionado.')
                                     else
-                                      for (final item in s['top'] as List<Map<String, dynamic>>)
+                                      for (final item in (s['top'] as List<Map<String, dynamic>>).skip(_topPage * 6).take(6))
                                         Padding(
                                           padding: const EdgeInsets.symmetric(vertical: 8),
                                           child: Column(
@@ -390,6 +392,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                             ],
                                           ),
                                         ),
+                                      PaginationControls(totalCount: (s['top'] as List).length, page: _topPage, pageSize: 6, onPageChanged: (value) => setState(() => _topPage = value)),
                                   ]))),
                       const SizedBox(height: 12),
                       const Text(
