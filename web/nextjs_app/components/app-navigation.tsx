@@ -131,7 +131,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
               <p className="mt-0.5 text-xs text-gray-500">Acesse os outros módulos do KidsLoc</p>
             </div>
             <div className="grid grid-cols-2 gap-1">
-              {moreItems.map((item) => <a key={item.href} href={item.href} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
+              {moreItems.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
                 className={item.active
                   ? 'flex min-h-14 items-center gap-3 rounded-xl bg-purple-50 px-3 py-3 text-sm font-semibold text-[#6840bd]'
                   : 'flex min-h-14 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:bg-purple-50'}>
@@ -147,7 +147,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200/80 bg-white/95 px-3 pt-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur-xl"
           style={{ paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom))' }}>
           <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
-            {primaryItems.map((item) => <a key={item.href} href={item.href} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
+            {primaryItems.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
               className={item.active
                 ? 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
                 : 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
