@@ -211,7 +211,7 @@ class _AgendaPageState extends State<AgendaPage> {
                             if (_products.isEmpty)
                               const Text('Nenhum brinquedo ativo cadastrado.')
                             else
-                              ..._products.map((product) {
+                              ..._products.skip(_productPage * 6).take(6).map((product) {
                                 final used = occupiedByProduct[product['id'].toString()] ?? 0;
                                 final total = product['inventory_mode'] == 'individual' ? (_availableUnits[product['id'].toString()] ?? 0) : (product['total_quantity'] as num? ?? 0).toInt();
                                 final available = (total - used).clamp(0, total);
