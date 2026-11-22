@@ -202,13 +202,16 @@ Deno.serve(async (req) => {
     if (!contactsSyncResponse.ok) {
       console.error("WhatsApp contacts sync request failed:", contactsSyncBody.error?.code || contactsSyncResponse.status);
     }
+    const { data: syncState, error: syncStateError } = await admin.from("whatsapp_connections")
+      .select("contacts_sync_status").eq("company_id", companyId).maybeSingle();
+    if (syncStateError) throw syncStateError;
     return reply({
       status: "connected",
       display_phone_number: phoneBody.display_phone_number || null,
       verified_name: phoneBody.verified_name || null,
       is_on_biz_app: true,
       platform_type: "CLOUD_API",
-      contacts_sync_status: contactsSyncStatus,
+      contacts_sync_status: syncState?.contacts_sync_status || (contactsSyncResponse.ok ? "requested" : "failed"),
       history_sync_status: "not_requested",
       message: contactsSyncResponse.ok
         ? "WhatsApp conectado. Apenas os contatos serão sincronizados; o histórico antigo não será importado."
