@@ -31,9 +31,11 @@ export function useModuleData<T>(
     ? stored.value
     : key && moduleData.has(key) ? moduleData.get(key) as T : initialValue;
   const currentValue = useRef(value);
+  const currentKey = useRef(key);
 
   useEffect(() => {
     currentValue.current = value;
+    currentKey.current = key;
   }, [key, value]);
 
   const updateValue = useCallback<Dispatch<SetStateAction<T>>>((nextValue) => {
@@ -41,9 +43,10 @@ export function useModuleData<T>(
       ? (nextValue as (previous: T) => T)(currentValue.current)
       : nextValue;
     currentValue.current = resolved;
-    if (key) moduleData.set(key, resolved);
-    setStored({ key, value: resolved });
-  }, [key]);
+    const activeKey = currentKey.current;
+    if (activeKey) moduleData.set(activeKey, resolved);
+    setStored({ key: activeKey, value: resolved });
+  }, []);
 
   return [value, updateValue];
 }
