@@ -10,6 +10,17 @@ type Tx = { id: string; transaction_type: 'income' | 'expense'; amount: number |
 type Rental = { id: string; rental_number: number; start_date: string; end_date: string; status: string; total_amount: number | string };
 type Product = { id: string; name: string };
 type RentalItem = { rental_id: string; product_id: string; quantity: number; subtotal: number | string };
+async function fetchAllRows<T>(query: any): Promise<T[]> {
+  const rows: T[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = (data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
+  }
+}
 const brl = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
 const iso = (d: Date) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
 
@@ -40,26 +51,30 @@ export default function ReportsPage() {
       if (member.role !== 'admin') { setError('Os relatórios estão disponíveis apenas para administradores.'); setLoading(false); return; }
       const company = Array.isArray(member.companies) ? member.companies[0] : member.companies;
       const cid = member.company_id as string;
-      const [tx, pay, rent, prod] = await Promise.all([
-        supabase.from('financial_transactions').select('id,transaction_type,amount,status,due_date,paid_at,category').eq('company_id', cid).neq('status','cancelled').limit(5000),
-        supabase.from('payments').select('amount,paid_at').eq('company_id', cid).limit(5000),
-        supabase.from('rentals').select('id,rental_number,start_date,end_date,status,total_amount').eq('company_id', cid).neq('status','cancelled').limit(5000),
-        supabase.from('products').select('id,name').eq('company_id', cid),
-      ]);
-      if (!active) return;
-      if (tx.error || pay.error || rent.error || prod.error) { setError('Não foi possível carregar os dados para os relatórios.'); setLoading(false); return; }
-      const rentalRows = (rent.data ?? []) as Rental[];
-      const rentalIds = rentalRows.map(r => r.id);
-      let itemRows: RentalItem[] = [];
-      if (rentalIds.length) {
-        const { data, error: itemError } = await supabase.from('rental_items').select('rental_id,product_id,quantity,subtotal').eq('company_id', cid).in('rental_id', rentalIds).limit(10000);
-        if (itemError) { setError('Não foi possível carregar os itens das locações.'); setLoading(false); return; }
-        itemRows = (data ?? []) as RentalItem[];
+      let txRows: Tx[];
+      let paymentRows: { transaction_id: string | null; amount: number | string; paid_at: string }[];
+      let rentalRows: Rental[];
+      let productRows: Product[];
+      let itemRows: RentalItem[];
+      try {
+        [txRows, paymentRows, rentalRows, productRows, itemRows] = await Promise.all([
+          fetchAllRows<Tx>(supabase.from('financial_transactions').select('id,transaction_type,amount,status,due_date,paid_at,category').eq('company_id', cid).neq('status','cancelled')),
+          fetchAllRows<{ transaction_id: string | null; amount: number | string; paid_at: string }>(supabase.from('payments').select('transaction_id,amount,paid_at').eq('company_id', cid)),
+          fetchAllRows<Rental>(supabase.from('rentals').select('id,rental_number,start_date,end_date,status,total_amount').eq('company_id', cid).neq('status','cancelled')),
+          fetchAllRows<Product>(supabase.from('products').select('id,name').eq('company_id', cid)),
+          fetchAllRows<RentalItem>(supabase.from('rental_items').select('rental_id,product_id,quantity,subtotal').eq('company_id', cid)),
+        ]);
+      } catch {
+        if (!active) return;
+        setError('Não foi possível carregar os dados para os relatórios.');
+        setLoading(false);
+        return;
       }
+      if (!active) return;
       setCompanyId(cid); setCompanyName(company?.name ?? 'Empresa'); setEmail(user.email ?? '');
-      setTransactions((tx.data ?? []) as Tx[]);
-      setPayments((pay.data ?? []) as { transaction_id: string | null; amount: number | string; paid_at: string }[]);
-      setRentals(rentalRows); setItems(itemRows); setProducts((prod.data ?? []) as Product[]);
+      setTransactions(txRows);
+      setPayments(paymentRows);
+      setRentals(rentalRows); setItems(itemRows); setProducts(productRows);
       setLoading(false);
     }
     void load();
