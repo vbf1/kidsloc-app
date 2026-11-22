@@ -15,6 +15,7 @@ import {
 } from '../../../lib/rentals';
 import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 import { supabase } from '../../../lib/supabase';
+import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type CompanyRole = 'admin' | 'staff';
 
@@ -39,12 +40,13 @@ function formatSaveError(message: string | undefined): string {
 }
 export default function RentalsPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [role, setRole] = useState<CompanyRole | undefined>(undefined);
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState('');
-  const [accessLoading, setAccessLoading] = useState(true);
+  const cachedWorkspace = getWorkspaceSessionCache();
+  const [email, setEmail] = useState(cachedWorkspace?.email ?? '');
+  const [companyName, setCompanyName] = useState(cachedWorkspace?.companyName ?? '');
+  const [role, setRole] = useState<CompanyRole | undefined>(cachedWorkspace?.role === 'admin' || cachedWorkspace?.role === 'staff' ? cachedWorkspace.role : undefined);
+  const [companyId, setCompanyId] = useState<string | null>(cachedWorkspace?.companyId ?? null);
+  const [currentUserId, setCurrentUserId] = useState(cachedWorkspace?.userId ?? '');
+  const [accessLoading, setAccessLoading] = useState(!cachedWorkspace);
   const [accessError, setAccessError] = useState('');
   const [rentals, setRentals] = useState<RentalRecord[]>([]);
   const [customers, setCustomers] = useState<RentalCustomer[]>([]);
@@ -79,7 +81,7 @@ export default function RentalsPage() {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (!active) return;
         if (authError) { setAccessError('Não foi possível validar sua sessão agora. Confira sua conexão e tente novamente.'); return; }
-        if (!user) { router.replace('/login/'); return; }
+        if (!user) { clearWorkspaceSessionCache(); router.replace('/login/'); return; }
         setCurrentUserId(user.id);
         setEmail(user.email ?? 'E-mail não informado');
         const { data: membership, error: membershipError } = await supabase
@@ -93,6 +95,7 @@ export default function RentalsPage() {
         setCompanyName(name.trim());
         setRole(membership.role as CompanyRole);
         setCompanyId(membership.company_id);
+        setWorkspaceSessionCache({ userId: user.id, email: user.email ?? 'E-mail não informado', companyName: name.trim(), companyId: membership.company_id, role: membership.role as CompanyRole });
       } catch {
         if (active) setAccessError('Ocorreu um erro ao verificar seu acesso. Confira sua conexão.');
       } finally { if (active) setAccessLoading(false); }
@@ -281,6 +284,7 @@ export default function RentalsPage() {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) { setListError('Não foi possível encerrar sua sessão. Tente novamente.'); return; }
+      clearWorkspaceSessionCache();
       router.push('/login/');
     } catch { setListError('Não foi possível encerrar sua sessão. Tente novamente.'); }
     finally { setSigningOut(false); }
