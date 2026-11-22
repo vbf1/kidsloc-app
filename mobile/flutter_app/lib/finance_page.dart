@@ -501,6 +501,7 @@ class _FinancePageState extends State<FinancePage> {
                             ]),
                           );
                         }),
+                       PaginationControls(totalCount: filteredTransactions.length, page: currentPage, pageSize: pageSize, onPageChanged: (value) => setState(() => _page = value)),
                       if (!_canManage) const Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: Text('Somente administradores podem criar lançamentos ou registrar recebimentos.', textAlign: TextAlign.center),
