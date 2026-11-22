@@ -14,6 +14,9 @@ type Connection = {
   platform_type: string | null;
   connected_at: string | null;
   last_error_message: string | null;
+  contacts_sync_status: 'not_requested' | 'requested' | 'received' | 'failed';
+  history_sync_preference: 'do_not_import' | 'import';
+  history_sync_status: 'not_requested' | 'declined' | 'unexpected_data_ignored';
 };
 type SignupSession = {
   type: 'WA_EMBEDDED_SIGNUP';
@@ -64,7 +67,7 @@ export default function WhatsAppPage() {
   const loadConnection = useCallback(async (cid: string) => {
     if (!supabase) return;
     const { data, error: queryError } = await supabase.from('whatsapp_connections')
-      .select('status,display_phone_number,verified_name,is_on_biz_app,platform_type,connected_at,last_error_message')
+      .select('status,display_phone_number,verified_name,is_on_biz_app,platform_type,connected_at,last_error_message,contacts_sync_status,history_sync_preference,history_sync_status')
       .eq('company_id', cid).maybeSingle();
     if (queryError) throw queryError;
     setConnection(data as Connection | null);
@@ -262,10 +265,12 @@ export default function WhatsAppPage() {
             <p>• Você continuará usando o mesmo número no WhatsApp Business do celular.</p>
             <p>• O KidsLoc usará a API oficial da Meta para automações autorizadas.</p>
             <p>• A conexão não solicita o registro tradicional que substituiria o aplicativo móvel.</p>
-            <p>• Preferência definida: não importar conversas antigas; somente a sincronização de contatos será solicitada.</p>
+            <p>• Preferência definida: não importar conversas antigas; somente contatos serão sincronizados.</p>
+            {connection && <p>• Sincronização de contatos: <strong>{connection.contacts_sync_status === 'received' ? 'recebidos e armazenados com acesso restrito ao administrador' : connection.contacts_sync_status === 'requested' ? 'solicitada, aguardando retorno da Meta' : connection.contacts_sync_status === 'failed' ? 'falhou e precisa ser verificada' : 'ainda não solicitada'}</strong>.</p>}
+            {connection && <p>• Histórico de conversas: <strong>não solicitado</strong>.</p>}
           </div>
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-            <strong>Importante antes de conectar:</strong> a Meta exige que a integração inicie a sincronização de contatos e histórico dentro de 24 horas após o onboarding. Se você autorizar o compartilhamento, conversas individuais dos últimos seis meses podem ser sincronizadas. Grupos não são sincronizados e os dispositivos complementares serão desconectados para que você os vincule novamente depois. Estamos preparando essa sincronização antes de liberar a conexão, para não colocar seu número em risco.
+            <strong>Importante antes de conectar:</strong> sua escolha será respeitada: o KidsLoc solicitará somente a sincronização de contatos e não fará solicitação de histórico antigo. Os contatos recebidos ficarão em uma lista separada, visível apenas ao administrador; não serão convertidos automaticamente em clientes/leads nem considerados autorização para mensagens. Os dispositivos complementares podem ser desconectados durante o processo e precisarão ser vinculados novamente. A elegibilidade final depende da Meta.
           </div>
 
           {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
