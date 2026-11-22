@@ -139,7 +139,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
                   <NavIcon name={item.icon} />
                 </span>
                 <span className="leading-tight">{item.label}</span>
-              </a>)}
+              </Link>)}
             </div>
           </section>
         </>}
@@ -154,7 +154,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
               <NavIcon name={item.icon} />
               <span className="max-w-full truncate px-1">{item.shortLabel}</span>
               {item.active && <span className="absolute bottom-0 h-0.5 w-7 rounded-full bg-[#8054d8]" />}
-            </a>)}
+            </Link>)}
             <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen}
               aria-controls="mobile-more-menu" aria-label={moreOpen ? 'Fechar mais opções' : 'Abrir mais opções'}
               className={moreOpen || moreIsActive
