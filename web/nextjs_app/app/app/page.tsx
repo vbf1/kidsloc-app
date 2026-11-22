@@ -3,6 +3,7 @@ import { useCompanyRealtimeRefresh } from '../../lib/use-company-realtime';
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { AppShell } from '../../components/app-shell';
 import { getWorkspaceCompanyName } from '../../lib/workspace';
 import { supabase } from '../../lib/supabase';
@@ -132,9 +133,9 @@ export default function AppHomePage() {
   );
 
   const indicators = [
-    { label: 'Clientes cadastrados', value: stats?.customers, href: (process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/customers/' },
-    { label: 'Itens no catálogo', value: stats?.products, href: (process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/products/' },
-    { label: 'Locações registradas', value: stats?.rentals, href: (process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/rentals/' },
+    { label: 'Clientes cadastrados', value: stats?.customers, href: '/app/customers/' },
+    { label: 'Itens no catálogo', value: stats?.products, href: '/app/products/' },
+    { label: 'Locações registradas', value: stats?.rentals, href: '/app/rentals/' },
   ];
 
   return (
@@ -162,21 +163,21 @@ export default function AppHomePage() {
           </div>
           {statsError && <p role="alert" className="mb-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{statsError}</p>}
           <div className="grid grid-cols-2 gap-3">
-            {indicators.map((item) => <a key={item.label} href={item.href}
+            {indicators.map((item) => <Link key={item.label} href={item.href}
               className="min-w-0 rounded-xl border border-purple-100 bg-white p-3 shadow-sm transition hover:border-purple-200 hover:shadow-md sm:p-4">
               <p className="text-xs font-medium leading-5 text-gray-500 sm:text-sm">{item.label}</p>
               <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
                 {statsLoading || item.value === undefined ? <span className="text-lg text-gray-300">...</span> : item.value}
               </p>
               <span className="mt-2 inline-block text-[11px] font-semibold text-[#8054d8] sm:text-xs">Ver detalhes →</span>
-            </a>)}
+            </Link>)}
           </div>
         </div>
 
         <div className="mt-6 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Locações recentes</h2>
-            <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/rentals/'} className="text-sm font-semibold text-[#8054d8]">Ver todas</a>
+            <Link href="/app/rentals/" className="text-sm font-semibold text-[#8054d8]">Ver todas</Link>
           </div>
           {statsLoading ? <p role="status" className="mt-4 text-sm text-gray-500">Carregando movimentações...</p>
             : recentRentals.length ? <ul className="mt-3 divide-y divide-gray-100">

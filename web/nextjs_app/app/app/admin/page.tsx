@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 // This workspace is reserved for the KidsLoc platform owner and is read-only for conversations.
 
@@ -350,7 +351,7 @@ export default function PlatformAdminPage() {
         </div>
       </header>
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/admin/leadfesta/'} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-white p-5 shadow-sm transition hover:border-purple-300 hover:shadow-md"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Módulo adicional</p><h2 className="mt-1 text-lg font-bold text-gray-900">LeadFesta</h2><p className="mt-1 text-sm text-gray-600">Ative ou suspenda o acesso comercial por empresa.</p></div><span className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white">Gerenciar acesso →</span></a>
+        <Link href="/app/admin/leadfesta/" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-white p-5 shadow-sm transition hover:border-purple-300 hover:shadow-md"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Módulo adicional</p><h2 className="mt-1 text-lg font-bold text-gray-900">LeadFesta</h2><p className="mt-1 text-sm text-gray-600">Ative ou suspenda o acesso comercial por empresa.</p></div><span className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white">Gerenciar acesso →</span></Link>
         <section className="flex flex-wrap items-end justify-between gap-4">
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Administração global</p><h1 className="mt-2 text-3xl font-bold">Painel do proprietário</h1><p className="mt-2 text-sm text-gray-500">Acompanhamento das empresas e das conversas internas. {email}</p></div>
           <button type="button" onClick={() => void refreshAll()} disabled={refreshing || companySaving || customerSaving} className={buttonClass}>{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>

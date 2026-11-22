@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
@@ -35,6 +36,12 @@ function MoreIcon({ open }: { open: boolean }) {
       {open ? <path d="m6 6 12 12M18 6 6 18" /> : <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>}
     </svg>
   );
+}
+
+function toNextHref(href: string, basePath: string): string {
+  return basePath && href.startsWith(basePath)
+    ? href.slice(basePath.length) || '/'
+    : href;
 }
 
 export function AppNavigation({ basePath, role, companyId }: AppNavigationProps) {
@@ -104,13 +111,13 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
       <div className="hidden md:block">
         <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">Menu principal</p>
         <div className="space-y-1.5">
-          {items.map((item) => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined}
+          {items.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} aria-current={item.active ? 'page' : undefined}
             className={item.active
               ? 'relative flex items-center gap-3 rounded-2xl bg-[#8054d8] px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-purple-200/60'
               : 'flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-600 transition hover:bg-white hover:text-[#6840bd]'}>
             <NavIcon name={item.icon} />{item.label}
             {item.active && <span className="ml-auto size-2 rounded-full bg-[#ffd34e]" />}
-          </a>)}
+          </Link>)}
         </div>
       </div>
 
@@ -124,7 +131,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
               <p className="mt-0.5 text-xs text-gray-500">Acesse os outros módulos do KidsLoc</p>
             </div>
             <div className="grid grid-cols-2 gap-1">
-              {moreItems.map((item) => <a key={item.href} href={item.href} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
+              {moreItems.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
                 className={item.active
                   ? 'flex min-h-14 items-center gap-3 rounded-xl bg-purple-50 px-3 py-3 text-sm font-semibold text-[#6840bd]'
                   : 'flex min-h-14 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:bg-purple-50'}>
@@ -132,7 +139,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
                   <NavIcon name={item.icon} />
                 </span>
                 <span className="leading-tight">{item.label}</span>
-              </a>)}
+              </Link>)}
             </div>
           </section>
         </>}
@@ -140,14 +147,14 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200/80 bg-white/95 px-3 pt-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur-xl"
           style={{ paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom))' }}>
           <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
-            {primaryItems.map((item) => <a key={item.href} href={item.href} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
+            {primaryItems.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
               className={item.active
                 ? 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
                 : 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
               <NavIcon name={item.icon} />
               <span className="max-w-full truncate px-1">{item.shortLabel}</span>
               {item.active && <span className="absolute bottom-0 h-0.5 w-7 rounded-full bg-[#8054d8]" />}
-            </a>)}
+            </Link>)}
             <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen}
               aria-controls="mobile-more-menu" aria-label={moreOpen ? 'Fechar mais opções' : 'Abrir mais opções'}
               className={moreOpen || moreIsActive

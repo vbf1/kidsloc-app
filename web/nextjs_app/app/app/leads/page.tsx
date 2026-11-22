@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -330,7 +331,7 @@ export default function LeadFestaPage() {
         <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">KidsLoc • módulo comercial</p>
         <h1 className="mt-2 text-2xl font-bold">LeadFesta</h1>
         <p role="alert" className="mt-3 text-sm leading-6 text-gray-600">{accessMessage || 'Não foi possível abrir o módulo.'}</p>
-        <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/'} className="mt-5 inline-flex rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-semibold text-white">Voltar ao KidsLoc</a>
+        <Link href="/app/" className="mt-5 inline-flex rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-semibold text-white">Voltar ao KidsLoc</Link>
       </section>
     </main>;
   }
@@ -344,7 +345,7 @@ export default function LeadFestaPage() {
           <p className="mt-2 text-sm text-gray-500">Organize oportunidades, acompanhe negociações e mantenha todo o histórico de contatos.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/leads/prospeccao/'} className={secondary}>⌕ Prospectar empresas</a>
+          <Link href="/app/leads/prospeccao/" className={secondary}>⌕ Prospectar empresas</Link>
           <button type="button" className={primary} onClick={() => { if (showForm) { setShowForm(false); setEditingLeadId(''); } else openLeadForm(); }}>
             {showForm ? 'Fechar cadastro' : '+ Novo lead'}
           </button>
@@ -481,7 +482,7 @@ export default function LeadFestaPage() {
 
   if (platformOwner) return <main className="min-h-screen bg-[#f8f7fc] px-4 py-6 text-gray-900 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-7xl">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><a href={(process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/app/admin/'} className="text-sm font-semibold text-[#6840bd]">← Painel do proprietário</a><span className="text-xs text-gray-500">Acesso global da plataforma</span></div>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><Link href="/app/admin/" className="text-sm font-semibold text-[#6840bd]">← Painel do proprietário</Link><span className="text-xs text-gray-500">Acesso global da plataforma</span></div>
       {content}
     </div>
   </main>;

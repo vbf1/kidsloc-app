@@ -474,6 +474,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() { super.initState(); _load(); }
 
+  int _countsRefreshToken = 0;
+
   Future<void> _load({bool showLoading = true}) async {
     if (showLoading) setState(() { _loading = true; _error = null; });
     try {
@@ -498,32 +500,73 @@ class _HomePageState extends State<HomePage> {
       final role = membership['role']?.toString() ?? 'staff';
       final isNewCompany = _realtimeCompanyId != companyId;
       _subscribeToCompany(companyId);
-      if (isNewCompany) unawaited(PushNotifications.registerDevice(companyId: companyId));
-      final counts = <String, int>{};
-      for (final module in _modules) {
-        if (module[1] == 'financial_transactions' && role != 'admin') continue;
-        final response = await client.from(module[1])
-            .select('id')
-            .eq('company_id', companyId);
-        counts[module[0]] = response.length;
+      if (isNewCompany) {
+        unawaited(PushNotifications.registerDevice(companyId: companyId));
       }
       if (!mounted) return;
       setState(() {
         _companyId = companyId;
         _companyName = name ?? 'Minha empresa';
         _role = role;
-        _counts
-          ..clear()
-          ..addAll(counts);
         _loading = false;
+        _error = null;
       });
+      // Não bloqueia a abertura do painel aguardando contagens secundárias.
+      unawaited(_refreshCounts(companyId, role));
     } on PostgrestException catch (_) {
       if (mounted) setState(() {
         _error = 'Não foi possível carregar os módulos. Verifique sua conexão e as permissões.';
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() { _error = 'Ocorreu um erro ao carregar o aplicativo.'; _loading = false; });
+      if (mounted) setState(() {
+        _error = 'Ocorreu um erro ao carregar o aplicativo.';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshCounts(String companyId, String role) async {
+    final requestToken = ++_countsRefreshToken;
+    final tables = _modules
+        .where((module) =>
+            module[1] != 'financial_transactions' || role == 'admin')
+        .map((module) => module[1])
+        .toSet()
+        .toList();
+    try {
+      final responses = await Future.wait(
+        tables.map((table) => Supabase.instance.client
+            .from(table)
+            .select('id')
+            .eq('company_id', companyId)),
+      );
+      if (!mounted ||
+          requestToken != _countsRefreshToken ||
+          _companyId != companyId) {
+        return;
+      }
+      final counts = <String, int>{};
+      for (final module in _modules) {
+        if (module[1] == 'financial_transactions' && role != 'admin') {
+          continue;
+        }
+        final index = tables.indexOf(module[1]);
+        counts[module[0]] = responses[index].length;
+      }
+      setState(() {
+        _counts
+          ..clear()
+          ..addAll(counts);
+      });
+    } catch (_) {
+      if (mounted &&
+          requestToken == _countsRefreshToken &&
+          _companyId == companyId) {
+        setState(() {
+          _error = 'Não foi possível atualizar os indicadores. Tente novamente.';
+        });
+      }
     }
   }
 
@@ -541,7 +584,7 @@ class _HomePageState extends State<HomePage> {
         'rental_quotes', 'rental_quote_items', 'rental_contracts',
         'financial_transactions', 'payments', 'leads', 'lead_activities',
       ],
-      onChange: () { if (mounted) _load(showLoading: false); },
+      onChange: () { if (mounted) unawaited(_refreshCounts(companyId, _role)); },
     );
   }
 
@@ -575,7 +618,8 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!),
       ));
     }
-    if (mounted) _load();
+    // A tela inicial permanece montada durante a navegação; não recarregue
+    // associação e contadores ao retornar de um módulo.
   }
 
   @override
