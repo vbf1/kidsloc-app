@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     const { data: membership, error: membershipError } = await admin.from("company_members")
       .select("role").eq("company_id", companyId).eq("user_id", authData.user.id).maybeSingle();
     if (membershipError) throw membershipError;
-    if (membership?.role !== "admin") return reply({ error: "Somente o administrador da empresa pode conectar o WhatsApp." }, 403);
+    if (!membership || !["owner", "admin"].includes(membership.role)) return reply({ error: "Somente o administrador da empresa pode conectar o WhatsApp." }, 403);
 
     // Embedded Signup exchange codes expire quickly; exchange immediately on the server.
     const exchangeUrl = new URL("https://graph.facebook.com/v27.0/oauth/access_token");
