@@ -90,6 +90,25 @@ Deno.serve(async (req) => {
     }
 
     const businessToken = String(exchangeBody.access_token);
+
+    // Do not trust identifiers posted by the browser: prove the selected phone
+    // number belongs to the WABA that this exchanged token can access.
+    const wabaPhonesResponse = await fetch(
+      `https://graph.facebook.com/v27.0/${encodeURIComponent(wabaId)}/phone_numbers?fields=id`,
+      { headers: { Authorization: `Bearer ${businessToken}` } },
+    );
+    const wabaPhonesBody = await wabaPhonesResponse.json();
+    if (!wabaPhonesResponse.ok || !Array.isArray(wabaPhonesBody.data)) {
+      console.error("WhatsApp WABA verification failed:", wabaPhonesBody.error?.code || wabaPhonesResponse.status);
+      return reply({ error: "A Meta não confirmou o acesso à conta do WhatsApp selecionada." }, 403);
+    }
+    const phoneBelongsToWaba = wabaPhonesBody.data.some(
+      (phone: Record<string, unknown>) => String(phone.id || "") === phoneNumberId,
+    );
+    if (!phoneBelongsToWaba) {
+      return reply({ error: "O número selecionado não pertence à conta do WhatsApp autorizada. Nenhuma conexão foi registrada." }, 403);
+    }
+
     const subscribeResponse = await fetch(`https://graph.facebook.com/v27.0/${encodeURIComponent(wabaId)}/subscribed_apps`, {
       method: "POST",
       headers: { Authorization: `Bearer ${businessToken}` },
