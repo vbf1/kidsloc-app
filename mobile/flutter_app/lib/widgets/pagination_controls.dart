@@ -17,7 +17,7 @@ class PaginationControls extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(children: [
-        Text('Mostrando $first–$last de $totalCount registros · Página ${currentPage + 1} de $pageCount', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
+        Text('Mostrando $first–$last de $totalCount registros · $pageSize por página · Página ${currentPage + 1} de $pageCount', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           OutlinedButton.icon(onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null, icon: const Icon(Icons.chevron_left), label: const Text('Anterior')),
