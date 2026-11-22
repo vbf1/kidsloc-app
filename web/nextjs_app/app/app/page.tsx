@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { AppShell } from '../../components/app-shell';
 import { getWorkspaceCompanyName } from '../../lib/workspace';
 import { supabase } from '../../lib/supabase';
-import { setWorkspaceSessionCache } from '../../lib/workspace-session-cache';
+import { getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../lib/workspace-session-cache';
 
 type CompanyRole = 'admin' | 'staff';
 type Workspace = { email: string; companyName: string; companyId: string; role: CompanyRole };
@@ -31,9 +31,14 @@ function rentalStatus(value: string) {
 
 export default function AppHomePage() {
   const router = useRouter();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const cachedWorkspace = getWorkspaceSessionCache();
+  const usableCachedWorkspace = cachedWorkspace && (cachedWorkspace.role === 'admin' || cachedWorkspace.role === 'staff') ? cachedWorkspace : null;
+  const [workspace, setWorkspace] = useState<Workspace | null>(() => usableCachedWorkspace ? {
+    email: usableCachedWorkspace.email, companyName: usableCachedWorkspace.companyName,
+    companyId: usableCachedWorkspace.companyId, role: usableCachedWorkspace.role,
+  } : null);
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!usableCachedWorkspace);
   const [signingOut, setSigningOut] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentRentals, setRecentRentals] = useState<RecentRental[]>([]);
@@ -53,6 +58,18 @@ export default function AppHomePage() {
       const { data: isPlatformOwner, error: ownerError } = await supabase.rpc('is_platform_owner_for_company');
       if (ownerError) { setMessage('Não foi possível confirmar as permissões da conta. Tente novamente.'); return; }
       if (isPlatformOwner === true) { router.replace('/app/admin/'); return; }
+      const cached = getWorkspaceSessionCache();
+      if (cached && cached.userId === user.id && (cached.role === 'admin' || cached.role === 'staff')) {
+        const nextWorkspace = {
+          email: user.email ?? cached.email, companyName: cached.companyName,
+          companyId: cached.companyId, role: cached.role,
+        };
+        setWorkspace(nextWorkspace);
+        setWorkspaceSessionCache({ ...cached, email: nextWorkspace.email });
+        return;
+      }
+      setLoading(true);
+      setWorkspace(null);
       const { data, error } = await supabase.from('company_members')
         .select('company_id, role, companies(name)').eq('user_id', user.id).limit(1).maybeSingle();
       if (error) { setMessage('Não foi possível carregar os dados da empresa. Tente novamente.'); return; }
