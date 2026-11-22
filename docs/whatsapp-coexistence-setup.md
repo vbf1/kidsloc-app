@@ -41,8 +41,9 @@ No Supabase, abra **Project Settings → Edge Functions → Secrets** e cadastre
 | `WHATSAPP_META_APP_SECRET` | App Secret do aplicativo Meta |
 | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Segredo aleatório criado para validar a inscrição do webhook |
 | `WHATSAPP_TOKEN_ENCRYPTION_KEY` | Chave aleatória de 32 bytes codificada em Base64 |
+| `WHATSAPP_CONTACT_HASH_KEY` | Chave aleatória forte e exclusiva para HMAC dos contatos removidos |
 
-Gere a chave de criptografia localmente com `openssl rand -base64 32`. Não envie App Secret, tokens ou chave de criptografia por mensagens ou commits.
+Gere as chaves localmente; para `WHATSAPP_TOKEN_ENCRYPTION_KEY`, use `openssl rand -base64 32`. `WHATSAPP_CONTACT_HASH_KEY` deve ser uma chave aleatória exclusiva, não reutilizada em outros serviços. Não envie App Secret, tokens ou chaves por mensagens ou commits.
 
 ## 4. Webhook na Meta
 
@@ -53,9 +54,9 @@ Quando as Edge Functions forem implantadas, configure no produto WhatsApp:
 - Assinatura do webhook: a função valida `X-Hub-Signature-256` com o App Secret.
 - Campos de Coexistence exigidos pela Meta: `account_update`, `history`, `smb_app_state_sync` e `smb_message_echoes`; também acompanhe `messages` para os estados de entrega.
 
-**Preferência definida nesta implementação: não importar conversas antigas.** Após a confirmação da Coexistence, o backend solicita somente `smb_app_state_sync` para os contatos. Ele não chama `smb_app_data` com `sync_type: history`. Se a Meta enviar um evento `history` indicando recusa (código 2593109), o webhook registra apenas o código e o estado; não grava o conteúdo das conversas. Os contatos recebidos por `smb_app_state_sync` são processados a partir de `value.state_sync[]`: o KidsLoc usa o telefone, o nome e a ação `add`/`remove`. Eles são armazenados separadamente em `whatsapp_synced_contacts`, com leitura restrita ao proprietário/administrador da empresa. Contatos removidos têm o nome apagado e mantêm somente um registro mínimo de remoção para evitar que eventos atrasados os restaurem. Os contatos não viram clientes/leads automaticamente e não representam opt-in para mensagens. O histórico antigo continua fora do escopo e não é persistido, mesmo se a Meta enviar inesperadamente um evento `history`. O botão de conexão permanece bloqueado até a validação do fluxo e dos testes.
+**Preferência definida nesta implementação: não importar conversas antigas.** Após a confirmação da Coexistence, o backend solicita somente `smb_app_state_sync` para os contatos. Ele não chama `smb_app_data` com `sync_type: history`. Se a Meta enviar um evento `history` indicando recusa (código 2593109), o webhook registra apenas o código e o estado; não grava o conteúdo das conversas. Os contatos recebidos por `smb_app_state_sync` são processados a partir de `value.state_sync[]`: o KidsLoc usa o telefone, o nome e a ação `add`/`remove`. Eles são armazenados separadamente em `whatsapp_synced_contacts`, com leitura restrita ao proprietário/administrador da empresa. Contatos removidos têm nome e telefone apagados; permanece somente uma impressão digital HMAC do telefone, protegida por uma chave secreta separada, para evitar que eventos atrasados os restaurem. Os contatos não viram clientes/leads automaticamente e não representam opt-in para mensagens. O histórico antigo continua fora do escopo e não é persistido, mesmo se a Meta enviar inesperadamente um evento `history`. O botão de conexão permanece bloqueado até a validação do fluxo e dos testes.
 
-O endpoint registra metadados resumidos dos eventos, atualiza estados de entrega e persiste somente telefone/nome dos contatos explicitamente sincronizados, respeitando eventos de inclusão e remoção e a ordem temporal das alterações. Ele não grava conteúdo de mensagens, conversas antigas ou histórico.
+O endpoint registra metadados resumidos dos eventos, atualiza estados de entrega e persiste somente telefone/nome dos contatos explicitamente sincronizados, respeitando eventos de inclusão e remoção e a ordem temporal das alterações. Ele não grava conteúdo de mensagens, conversas antigas ou histórico. Para remoções, o telefone em texto claro e o nome são apagados.
 
 ## 5. Conectar no KidsLoc
 
@@ -66,7 +67,7 @@ Depois de:
 - implantar a migração e as Edge Functions;
 - configurar o webhook;
 
-acesse **KidsLoc → WhatsApp Business** e conclua o fluxo da Meta somente depois que a etapa de sincronização estiver liberada no aplicativo. Durante o fluxo, a Meta pode solicitar autorização para compartilhar o histórico. A função de conexão verifica se a Meta confirma `is_on_biz_app = true` e `platform_type = CLOUD_API`. Se a confirmação não ocorrer, a conexão fica em atenção e o KidsLoc não registra nem migra o número.
+acesse **KidsLoc → WhatsApp Business** e conclua o fluxo da Meta somente depois que a etapa de sincronização estiver liberada no aplicativo. Durante o fluxo, se a Meta exibir a opção de compartilhar o histórico, mantenha o compartilhamento desativado, conforme sua escolha. O KidsLoc não solicitará a sincronização de histórico. A função de conexão verifica se a Meta confirma `is_on_biz_app = true` e `platform_type = CLOUD_API`. Se a confirmação não ocorrer, a conexão fica em atenção e o KidsLoc não registra nem migra o número.
 
 ## 6. Antes de ativar mensagens automáticas
 
