@@ -78,12 +78,27 @@ export default function TeamManagement() {
       return;
     }
     let mounted = true;
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (data.session && mounted) {
-        try { await loadCompanies(); } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível carregar as empresas.'); }
+    void (async () => {
+      try {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (mounted) setSessionReady(true);
+        if (data.session && mounted) {
+          // Resolve the screen gate as soon as the session is known.
+          // Company queries continue in the background and must not keep
+          // the whole page on the initial loading screen.
+          void loadCompanies().catch((e) => {
+            if (mounted) setError(e instanceof Error ? e.message : 'Não foi possível carregar as empresas.');
+          });
+        }
+      } catch (e) {
+        if (mounted) setError(e instanceof Error ? e.message : 'Não foi possível verificar sua sessão. Tente atualizar a página.');
+      } finally {
+        // Never leave the entire screen stuck on the initial loading state
+        // when session restoration fails.
+        if (mounted) setSessionReady(true);
       }
-      if (mounted) setSessionReady(true);
-    });
+    })();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       if (!session) { setCompanies([]); setMembers([]); setUserEmail(''); }
