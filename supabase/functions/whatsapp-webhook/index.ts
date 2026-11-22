@@ -77,11 +77,18 @@ Deno.serve(async (req) => {
         const companyId = connection?.company_id || null;
         const eventType = field === "account_update" ? String(value.event || field) : field;
         const eventKey = await digest(JSON.stringify({ wabaId, entryTime: entry.time || null, change }));
+        const historyErrors = Array.isArray(value.history)
+          ? value.history.flatMap((item: Record<string, unknown>) =>
+            Array.isArray(item.errors) ? item.errors.map((error: Record<string, unknown>) => Number(error.code)) : [])
+          : [];
         const summary = {
           field,
           event: eventType,
           statuses_count: Array.isArray(value.statuses) ? value.statuses.length : 0,
           messages_count: Array.isArray(value.messages) ? value.messages.length : 0,
+          contacts_count: Array.isArray(value.contacts) ? value.contacts.length : 0,
+          history_batches_count: Array.isArray(value.history) ? value.history.length : 0,
+          history_error_codes: historyErrors,
         };
         await admin.from("whatsapp_webhook_events").upsert({
           company_id: companyId,
@@ -97,6 +104,13 @@ Deno.serve(async (req) => {
             last_webhook_at: new Date().toISOString(),
             ...(field === "account_update" && ["PARTNER_REMOVED", "ACCOUNT_OFFBOARDED"].includes(eventType)
               ? { status: "disconnected", is_on_biz_app: false }
+              : {}),
+            ...(field === "smb_app_state_sync" ? { contacts_sync_status: "received" } : {}),
+            ...(field === "history" && historyErrors.includes(2593109)
+              ? { history_sync_status: "declined" }
+              : {}),
+            ...(field === "history" && historyErrors.length === 0
+              ? { history_sync_status: "unexpected_data_ignored" }
               : {}),
           }).eq("company_id", companyId);
 
