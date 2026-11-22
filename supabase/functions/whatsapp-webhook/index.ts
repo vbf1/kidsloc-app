@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
           event: eventType,
           statuses_count: Array.isArray(value.statuses) ? value.statuses.length : 0,
           messages_count: Array.isArray(value.messages) ? value.messages.length : 0,
-          contacts_count: Array.isArray(value.contacts) ? value.contacts.length : 0,
+          contacts_count: Array.isArray(value.state_sync) ? value.state_sync.filter((item: Record<string, unknown>) => item.type === "contact").length : 0,
           history_batches_count: Array.isArray(value.history) ? value.history.length : 0,
           history_error_codes: historyErrors,
         };
@@ -102,36 +102,63 @@ Deno.serve(async (req) => {
         if (companyId) {
           let contactsSyncStatus: "received" | "failed" | undefined;
           if (field === "smb_app_state_sync") {
-            const contacts = Array.isArray(value.contacts) ? value.contacts : [];
-            const rows = contacts.flatMap((contact: Record<string, unknown>) => {
-              const waId = String(contact.wa_id || "").replace(/[^0-9]/g, "");
-              if (!/^[0-9]{8,20}$/.test(waId)) return [];
-              const profile = contact.profile && typeof contact.profile === "object"
-                ? contact.profile as Record<string, unknown>
-                : {};
-              const displayName = typeof profile.name === "string"
-                ? profile.name.trim().slice(0, 160)
-                : null;
-              return [{
-                company_id: companyId,
-                wa_id: waId,
-                display_name: displayName || null,
-                synced_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              }];
-            });
-            if (rows.length > 0) {
-              const { error: contactsError } = await admin.from("whatsapp_synced_contacts")
-                .upsert(rows, { onConflict: "company_id,wa_id" });
-              if (contactsError) {
-                console.error("WhatsApp contacts persistence failed:", contactsError.code || "DB_ERROR");
-                contactsSyncStatus = "failed";
-              } else {
-                contactsSyncStatus = "received";
+            const stateSync = Array.isArray(value.state_sync) ? value.state_sync : null;
+            if (stateSync) {
+              let failed = false;
+              for (const item of stateSync as Record<string, unknown>[]) {
+                if (item.type !== "contact") continue;
+                const contact = item.contact && typeof item.contact === "object"
+                  ? item.contact as Record<string, unknown>
+                  : {};
+                const phoneNumber = String(contact.phone_number || "").replace(/[^0-9]/g, "");
+                if (!/^[0-9]{8,20}$/.test(phoneNumber)) continue;
+                const action = String(item.action || "").toLowerCase();
+                if (action !== "add" && action !== "remove") continue;
+                const rawTimestamp = item.metadata && typeof item.metadata === "object"
+                  ? (item.metadata as Record<string, unknown>).timestamp
+                  : null;
+                const timestampSeconds = Number(rawTimestamp);
+                const changedAt = Number.isFinite(timestampSeconds) && timestampSeconds > 0
+                  ? new Date(timestampSeconds * 1000).toISOString()
+                  : new Date().toISOString();
+
+                const { data: existing, error: lookupError } = await admin
+                  .from("whatsapp_synced_contacts")
+                  .select("last_change_at")
+                  .eq("company_id", companyId)
+                  .eq("phone_number", phoneNumber)
+                  .maybeSingle();
+                if (lookupError) {
+                  failed = true;
+                  console.error("WhatsApp contact lookup failed:", lookupError.code || "DB_ERROR");
+                  continue;
+                }
+                if (existing?.last_change_at && new Date(existing.last_change_at).getTime() > new Date(changedAt).getTime()) {
+                  continue;
+                }
+
+                const fullName = typeof contact.full_name === "string"
+                  ? contact.full_name.trim().slice(0, 160)
+                  : typeof contact.first_name === "string"
+                    ? contact.first_name.trim().slice(0, 160)
+                    : null;
+                const { error: saveError } = await admin.from("whatsapp_synced_contacts").upsert({
+                  company_id: companyId,
+                  phone_number: phoneNumber,
+                  display_name: action === "remove" ? null : (fullName || null),
+                  is_deleted: action === "remove",
+                  last_change_at: changedAt,
+                  synced_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: "company_id,phone_number" });
+                if (saveError) {
+                  failed = true;
+                  console.error("WhatsApp contact persistence failed:", saveError.code || "DB_ERROR");
+                }
               }
+              contactsSyncStatus = failed ? "failed" : "received";
             } else {
-              // A valid empty contacts array is a completed sync; missing data is not.
-              contactsSyncStatus = Array.isArray(value.contacts) ? "received" : "failed";
+              contactsSyncStatus = "failed";
             }
           }
 
