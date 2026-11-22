@@ -55,14 +55,16 @@ export function useModuleData<T>(
   }, [key, value]);
 
   const updateValue = useCallback<Dispatch<SetStateAction<T>>>((nextValue) => {
+    const activeKey = key;
+    const previousValue = currentKey.current === activeKey ? currentValue.current : value;
     const resolved = typeof nextValue === 'function'
-      ? (nextValue as (previous: T) => T)(currentValue.current)
+      ? (nextValue as (previous: T) => T)(previousValue)
       : nextValue;
     currentValue.current = resolved;
-    const activeKey = currentKey.current;
+    currentKey.current = activeKey;
     if (activeKey) moduleData.set(activeKey, resolved);
     setStored({ key: activeKey, value: resolved });
-  }, []);
+  }, [key, value]);
 
   return [value, updateValue];
 }
