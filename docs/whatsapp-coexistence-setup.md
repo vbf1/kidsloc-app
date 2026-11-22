@@ -53,9 +53,9 @@ Quando as Edge Functions forem implantadas, configure no produto WhatsApp:
 - Assinatura do webhook: a função valida `X-Hub-Signature-256` com o App Secret.
 - Campos de Coexistence exigidos pela Meta: `account_update`, `history`, `smb_app_state_sync` e `smb_message_echoes`; também acompanhe `messages` para os estados de entrega.
 
-**Preferência definida nesta implementação: não importar conversas antigas.** Após a confirmação da Coexistence, o backend solicita somente `smb_app_state_sync` para os contatos. Ele não chama `smb_app_data` com `sync_type: history`. Se a Meta enviar um evento `history` indicando recusa (código 2593109), o webhook registra apenas o código e o estado; não grava o conteúdo das conversas. A sincronização de contatos ainda precisa de processamento e persistência apropriados antes de liberar o fluxo em produção.
+**Preferência definida nesta implementação: não importar conversas antigas.** Após a confirmação da Coexistence, o backend solicita somente `smb_app_state_sync` para os contatos. Ele não chama `smb_app_data` com `sync_type: history`. Se a Meta enviar um evento `history` indicando recusa (código 2593109), o webhook registra apenas o código e o estado; não grava o conteúdo das conversas. Os contatos recebidos por `smb_app_state_sync` são armazenados separadamente em `whatsapp_synced_contacts`, com acesso de leitura restrito ao administrador da empresa. Somente `wa_id` e nome de perfil são mantidos; os contatos não viram clientes/leads automaticamente e não representam opt-in para mensagens. O histórico antigo continua fora do escopo e não é persistido, mesmo se a Meta enviar inesperadamente um evento `history`. O botão de conexão permanece bloqueado até a validação do fluxo e dos testes.
 
-O endpoint registra somente metadados resumidos dos eventos e atualiza estados de entrega; ele não grava o conteúdo das conversas recebido nos webhooks.
+O endpoint registra metadados resumidos dos eventos, atualiza estados de entrega e persiste somente os campos mínimos dos contatos explicitamente sincronizados. Ele não grava conteúdo de mensagens, conversas antigas ou histórico.
 
 ## 5. Conectar no KidsLoc
 
