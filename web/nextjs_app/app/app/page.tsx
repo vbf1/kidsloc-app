@@ -144,7 +144,7 @@ export default function AppHomePage() {
         };
         const nextRecentRentals = (recentResult.data ?? []) as RecentRental[];
         const cachedWorkspaceNow = getWorkspaceSessionCache();
-        const scope = cachedWorkspaceNow?.companyId === companyId ? `${cachedWorkspaceNow.userId}:${cachedWorkspaceNow.companyId}` : '';
+        const scope = cachedWorkspaceNow && cachedWorkspaceNow.companyId === companyId ? `${cachedWorkspaceNow.userId}:${cachedWorkspaceNow.companyId}` : '';
         setModuleData('dashboard','stats',scope,nextStats);
         setModuleData('dashboard','recentRentals',scope,nextRecentRentals);
         setStats(nextStats);
