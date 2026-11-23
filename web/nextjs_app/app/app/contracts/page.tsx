@@ -1,6 +1,6 @@
 'use client';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
-import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
+import { hasModuleData, setModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -46,7 +46,16 @@ export default function ContractsPage(){
   if(ir.error||pr.error){setError('Não foi possível carregar os itens das locações.');setLoading(false);return;}
   const pnames=Object.fromEntries((pr.data??[]).map(p=>[p.id,p.name]));
   const by:Record<string,Item[]>={};for(const i of ir.data??[]){(by[i.rental_id]??=[]).push({...i,name:pnames[i.product_id]??'Item'});}
-  setRentals(rlist);setCustomers(Object.fromEntries((cr.data??[]).map(c=>[c.id,c])));setContracts((co.data??[]) as Contract[]);setItemsByRental(by);setLoading(false);
+  // The page can be opened directly after a full reload, before the in-memory
+  // workspace cache exists. Seed the verified user/company scope explicitly.
+  const scope=`${user.id}:${m.company_id}`;
+  const customerRows=Object.fromEntries((cr.data??[]).map(c=>[c.id,c]));
+  const contractRows=(co.data??[]) as Contract[];
+  setModuleData('contracts','rentals',scope,rlist);
+  setModuleData('contracts','customers',scope,customerRows);
+  setModuleData('contracts','contracts',scope,contractRows);
+  setModuleData('contracts','itemsByRental',scope,by);
+  setRentals(rlist);setCustomers(customerRows);setContracts(contractRows);setItemsByRental(by);setLoading(false);
  },[router]);
  useCompanyRealtimeRefresh(companyId, ['rental_contracts', 'rentals', 'rental_items', 'customers', 'products'], () => { void load(); });
  const filteredContracts=contracts.filter(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||(statusFilter==='active'?['draft','sent','viewed'].includes(contractStatus(c)):contractStatus(c)===statusFilter));});
