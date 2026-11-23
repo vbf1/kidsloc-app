@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CustomerForm } from '../../../../components/customer-form';
 import { SearchablePicker } from '../../../../components/searchable-picker';
@@ -37,6 +37,7 @@ export default function PlatformCompanyCustomersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const pageSize = useResponsivePageSize();
   const [pagination, setPagination] = useState({ page: 0, pageSize: 6 });
+  const customerRequest = useRef(0);
   const currentPage = pagination.pageSize === pageSize ? pagination.page : 0;
 
   const loadCompanies = useCallback(async () => {
@@ -63,15 +64,18 @@ export default function PlatformCompanyCustomersPage() {
   }, [loadCompanies]);
 
   const loadCustomers = useCallback(async () => {
+    const requestId = ++customerRequest.current;
     if (!supabase || !selectedCompanyId) {
       setCustomers([]);
       setCustomersLoading(false);
       return;
     }
     setCustomersLoading(true);
+    setError('');
     const { data, error: queryError } = await supabase.from('customers')
       .select('id,company_id,name,phone,email,city_state,created_at,address,notes,cpf,rg,zip,neighborhood')
       .eq('company_id', selectedCompanyId).order('created_at', { ascending: false }).limit(500);
+    if (requestId !== customerRequest.current) return;
     if (queryError) {
       setCustomers([]);
       setError('Não foi possível carregar os clientes desta empresa.');
