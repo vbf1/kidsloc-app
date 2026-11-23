@@ -25,6 +25,7 @@ type ContractHistoryRow = {
   rental_id: string;
   status: string;
   signed_at: string | null;
+  token_expires_at: string | null;
 };
 type TransactionHistoryRow = {
   id: string;
@@ -75,7 +76,7 @@ export function CustomerHistory({ companyId, customerId, canViewFinance }: { com
         if (!rentalIds.length) { setContracts([]); setReceived(0); setOpenBalance(0); return; }
 
         const [contractResult, transactionResult] = await Promise.all([
-          supabase.from('rental_contracts').select('id,contract_number,rental_id,status,signed_at')
+          supabase.from('rental_contracts').select('id,contract_number,rental_id,status,signed_at,token_expires_at')
             .eq('company_id', companyId).in('rental_id', rentalIds).order('created_at', { ascending: false }).limit(20),
           canViewFinance
             ? supabase.from('financial_transactions').select('id,rental_id,description,amount,status,transaction_type,due_date')
@@ -100,9 +101,12 @@ export function CustomerHistory({ companyId, customerId, canViewFinance }: { com
             if (!payment.transaction_id) continue;
             paidByTransaction.set(payment.transaction_id, (paidByTransaction.get(payment.transaction_id) ?? 0) + Number(payment.amount || 0));
           }
-          setReceived(payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
+          setReceived(incomeTransactions.reduce((sum, transaction) => {
+            const paymentsTotal = paidByTransaction.get(transaction.id);
+            return sum + (paymentsTotal ?? (transaction.status === 'paid' ? Number(transaction.amount || 0) : 0));
+          }, 0));
           setOpenBalance(incomeTransactions.reduce((sum, transaction) =>
-            sum + Math.max(0, Number(transaction.amount || 0) - (paidByTransaction.get(transaction.id) ?? 0)), 0));
+            sum + (transaction.status === 'paid' ? 0 : Math.max(0, Number(transaction.amount || 0) - (paidByTransaction.get(transaction.id) ?? 0))), 0));
         }
       } catch {
         if (active) setError('Não foi possível carregar o histórico deste cliente.');
@@ -118,7 +122,7 @@ export function CustomerHistory({ companyId, customerId, canViewFinance }: { com
 
   return (
     <section aria-label="Histórico do cliente" className="space-y-4 border-t border-gray-100 pt-5">
-      <div><h3 className="text-base font-bold text-gray-900">Histórico do cliente</h3><p className="mt-1 text-xs text-gray-500">Registros vinculados a este cadastro, atualizados diretamente do sistema.</p></div>
+      <div><h3 className="text-base font-bold text-gray-900">Histórico do cliente</h3><p className="mt-1 text-xs text-gray-500">Registros vinculados a este cadastro, conforme as permissões do seu perfil.</p></div>
       {error && <p role="status" className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">{error}</p>}
       {canViewFinance && <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-emerald-50 p-3"><p className="text-xs font-semibold text-emerald-700">Recebido</p><p className="mt-1 break-words text-lg font-bold text-emerald-900">{currency(received)}</p></div>
@@ -144,7 +148,7 @@ export function CustomerHistory({ companyId, customerId, canViewFinance }: { com
         <div className="rounded-xl border border-gray-100 p-3 sm:col-span-2">
           <h4 className="text-sm font-bold text-gray-800">Contratos ({contracts.length})</h4>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">{contracts.slice(0, 8).map((contract) => <div key={contract.id} className="rounded-lg bg-gray-50 p-2 text-xs">
-            <div className="flex items-center justify-between gap-2"><strong>Contrato #{contract.contract_number}</strong><span>{contractStatus[contract.status] ?? contract.status}</span></div>
+            <div className="flex items-center justify-between gap-2"><strong>Contrato #{contract.contract_number}</strong><span>{contract.status === 'signed' ? 'Assinado' : ['sent', 'viewed'].includes(contract.status) && contract.token_expires_at && new Date(contract.token_expires_at).getTime() < Date.now() ? 'Expirado' : contractStatus[contract.status] ?? contract.status}</span></div>
             {contract.signed_at && <p className="mt-1 text-gray-500">Assinado em {new Date(contract.signed_at).toLocaleDateString('pt-BR')}</p>}
           </div>)}{!contracts.length && <p className="text-xs text-gray-500">Nenhum contrato vinculado às locações deste cliente.</p>}</div>
         </div>
