@@ -260,9 +260,10 @@ body { overflow-x: clip; }
 }
 
 
-/* Impressão de propostas comerciais: oculta navegação e mantém apenas o orçamento. */
+/* Impressão de propostas comerciais: preserva a identidade visual do modelo de referência. */
 @media print {
-  @page { size: A4; margin: 14mm; }
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body { background: #fff !important; }
   body * { visibility: hidden !important; }
   .quote-print-overlay, .quote-print-overlay * { visibility: visible !important; }
   .quote-print-overlay {
@@ -270,15 +271,34 @@ body { overflow-x: clip; }
     inset: 0 !important;
     display: block !important;
     overflow: visible !important;
-    background: white !important;
+    background: #fff !important;
     padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .quote-print-document {
+    box-sizing: border-box !important;
     width: 100% !important;
     max-width: none !important;
-    border-radius: 0 !important;
+    margin: 0 auto !important;
+    border: 2px solid #159fda !important;
+    border-radius: 18px !important;
     box-shadow: none !important;
-    padding: 0 !important;
+    padding: 7mm !important;
+    background: #f3faff !important;
+    color: #123b68 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .quote-print-document header,
+  .quote-print-document section,
+  .quote-print-document footer,
+  .quote-print-document li,
+  .quote-print-document div {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .quote-print-actions { display: none !important; }
 }
