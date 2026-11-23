@@ -1,5 +1,5 @@
 'use client';
-import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
+import { hasModuleData, setModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 
 import { useCallback,useEffect,useMemo,useState } from 'react';
@@ -37,11 +37,11 @@ export default function FinancePage(){
   setCompanyId(workspaceCompanyId);setCompanyName(workspaceCompanyName);setRole(companyRole);if(companyRole!=='admin'){setError('O módulo Financeiro está disponível apenas para administradores.');setLoading(false);return;}
   const [tr,pr]=await Promise.all([supabase.from('financial_transactions').select('id,transaction_type,category,description,amount,due_date,paid_at,status,rental_id').eq('company_id',workspaceCompanyId).order('due_date',{ascending:false}).limit(500),supabase.from('payments').select('id,transaction_id,rental_id,amount,paid_at,payment_method,notes').eq('company_id',workspaceCompanyId).order('paid_at',{ascending:false}).limit(500)]);
   if(tr.error||pr.error)setError('Não foi possível carregar o financeiro.');else{
-   const txRows=(tr.data??[]) as Tx[];const paymentRows=(pr.data??[]) as Payment[];setTransactions(txRows);setPayments(paymentRows);
+   const txRows=(tr.data??[]) as Tx[];const paymentRows=(pr.data??[]) as Payment[];setModuleData('finance','transactions',`${user.id}:${workspaceCompanyId}`,txRows);setModuleData('finance','payments',`${user.id}:${workspaceCompanyId}`,paymentRows);
    const rentalIds=[...new Set([...txRows.map(x=>x.rental_id),...paymentRows.map(x=>x.rental_id)].filter((x):x is string=>Boolean(x)))];
    let nextRentalInfo:Record<string,{rentalNumber:number;customerName:string}>={};
    if(rentalIds.length){const {data:rentals}=await supabase.from('rentals').select('id,rental_number,customer_id').eq('company_id',workspaceCompanyId).in('id',rentalIds);const customerIds=[...new Set((rentals??[]).map(x=>x.customer_id).filter((x):x is string=>Boolean(x)))];const {data:customers}=customerIds.length?await supabase.from('customers').select('id,name').eq('company_id',workspaceCompanyId).in('id',customerIds):{data:[]};const names=Object.fromEntries((customers??[]).map(x=>[x.id,x.name]));nextRentalInfo=Object.fromEntries((rentals??[]).map(x=>[x.id,{rentalNumber:x.rental_number,customerName:names[x.customer_id]??'Cliente não identificado'}]));}
-   setRentalInfo(nextRentalInfo);
+   setModuleData('finance','rentalInfo',`${user.id}:${workspaceCompanyId}`,nextRentalInfo);
   }
   setLoading(false);
  }
