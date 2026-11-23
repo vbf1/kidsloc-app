@@ -13,13 +13,14 @@ import { preloadCompanyModules } from '../../lib/preload-company-modules';
 
 type CompanyRole = 'admin' | 'staff';
 type Workspace = { email: string; companyName: string; companyId: string; role: CompanyRole };
-type DashboardStats = { customers: number; products: number; rentals: number };
+type DashboardStats = { rentalsToday: number; rentalsNext7Days: number; pendingQuotes: number; receivables: number; pendingReceivables: number };
 type RecentRental = { id: string; rental_number: number; start_date: string; status: string; total_amount: number };
 
 function formatDate(value: string) {
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('pt-BR');
 }
+function localDateOffset(days: number) { const d = new Date(); d.setDate(d.getDate() + days); return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-'); }
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
@@ -105,7 +106,7 @@ export default function AppHomePage() {
       // Individual modules keep their normal on-demand fallback if preload fails.
     });
   }, [companyId, workspace]);
-  useCompanyRealtimeRefresh(companyId, ['customers', 'products', 'rentals'], () => setRealtimeRefresh((value) => value + 1));
+  useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_quotes', 'financial_transactions'], () => setRealtimeRefresh((value) => value + 1));
 
   useEffect(() => {
     if (!companyId || !supabase) return;
@@ -114,22 +115,32 @@ export default function AppHomePage() {
       if (!hasModuleData('dashboard', workspaceScope)) setStatsLoading(true);
       setStatsError('');
       try {
-        const [customersResult, productsResult, rentalsResult, recentResult] = await Promise.all([
-          supabase!.from('customers').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
-          supabase!.from('products').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
-          supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+        const today = localDateOffset(0);
+        const nextWeek = localDateOffset(7);
+        const [todayResult, upcomingResult, recentResult, quotesResult, financeResult] = await Promise.all([
+          supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('start_date', today).neq('status', 'cancelled'),
+          supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId).gte('start_date', today).lte('start_date', nextWeek).neq('status', 'cancelled'),
           supabase!.from('rentals').select('id,rental_number,start_date,status,total_amount')
-            .eq('company_id', companyId).order('created_at', { ascending: false }).limit(4),
+            .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled').order('start_date', { ascending: true }).limit(5),
+          supabase!.from('rental_quotes').select('id', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'sent']),
+          workspace?.role === 'admin'
+            ? supabase!.from('financial_transactions').select('amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            : Promise.resolve({ data: [], error: null }),
         ]);
         if (!active) return;
-        if (customersResult.error || productsResult.error || rentalsResult.error || recentResult.error) {
-          setStatsError('Não foi possível atualizar os indicadores agora. Tente novamente.');
+        if (todayResult.error || upcomingResult.error || recentResult.error || quotesResult.error || financeResult.error) {
+          setStatsError('Não foi possível atualizar o painel agora. Tente novamente.');
           return;
         }
+        const financeRows = financeResult.data ?? [];
+        const receivables = financeRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const pendingReceivables = financeRows.filter(row => row.status === 'pending').reduce((sum, row) => sum + Number(row.amount || 0), 0);
         setStats({
-          customers: customersResult.count ?? 0,
-          products: productsResult.count ?? 0,
-          rentals: rentalsResult.count ?? 0,
+          rentalsToday: todayResult.count ?? 0,
+          rentalsNext7Days: upcomingResult.count ?? 0,
+          pendingQuotes: quotesResult.count ?? 0,
+          receivables,
+          pendingReceivables,
         });
         setRecentRentals((recentResult.data ?? []) as RecentRental[]);
       } catch {
@@ -140,7 +151,7 @@ export default function AppHomePage() {
     }
     void loadDashboard();
     return () => { active = false; };
-  }, [companyId, realtimeRefresh]);
+  }, [companyId, realtimeRefresh, workspace?.role]);
 
   async function signOut() {
     if (!supabase || signingOut) return;
@@ -166,11 +177,6 @@ export default function AppHomePage() {
     </main>
   );
 
-  const indicators = [
-    { label: 'Clientes cadastrados', value: stats?.customers, href: '/app/customers/' },
-    { label: 'Itens no catálogo', value: stats?.products, href: '/app/products/' },
-    { label: 'Locações registradas', value: stats?.rentals, href: '/app/rentals/' },
-  ];
 
   return (
     <AppShell companyName={workspace.companyName} email={workspace.email} role={workspace.role}
@@ -178,49 +184,26 @@ export default function AppHomePage() {
       signingOut={signingOut} onSignOut={signOut}>
       <section aria-labelledby="workspace-title">
         <div className="mb-6">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Área da empresa</p>
-          <h1 id="workspace-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Visão geral</h1>
-          <p className="mt-2 text-sm text-gray-500">Resumo atualizado da {workspace.companyName}.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Painel de operação</p>
+          <h1 id="workspace-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Olá! Vamos organizar o dia?</h1>
+          <p className="mt-2 text-sm text-gray-500">{workspace.companyName} · {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
-        <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Sua empresa</p>
-              <h2 className="mt-1 text-xl font-bold">{workspace.companyName}</h2>
-              <p className="mt-2 break-all text-sm text-gray-500">{workspace.email}</p></div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700"><span aria-hidden="true" className="size-2 rounded-full bg-green-500" />Acesso ativo</span>
-          </div>
+        {statsError && <p role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{statsError}</p>}
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[{label:'Locações hoje',value:stats?.rentalsToday,href:'/app/calendar/',tone:'text-emerald-700',hint:'Ver agenda'},{label:'Próximos 7 dias',value:stats?.rentalsNext7Days,href:'/app/calendar/',tone:'text-blue-700',hint:'Planejar eventos'},{label:'Orçamentos em aberto',value:stats?.pendingQuotes,href:'/app/quotes/',tone:'text-amber-700',hint:'Acompanhar propostas'},...(workspace.role==='admin'?[{label:'A receber',value:stats?formatCurrency(stats.pendingReceivables):undefined,href:'/app/finance/',tone:'text-purple-700',hint:'Abrir financeiro'}]:[])].map(item=><Link key={item.label} href={item.href} className="rounded-2xl border border-purple-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><p className="text-xs font-semibold text-gray-500">{item.label}</p><p className={`mt-2 text-2xl font-extrabold tracking-tight ${item.tone}`}>{statsLoading||item.value===undefined?'...':item.value}</p><p className="mt-2 text-xs font-semibold text-[#8054d8]">{item.hint} →</p></Link>)}
         </div>
-
-        <div className="mt-6">
-          <div className="mb-3">
-            <h2 className="text-lg font-bold">Resumo da empresa</h2>
+        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
+          <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Próximos eventos</h2><p className="mt-1 text-xs text-gray-500">Locações programadas a partir de hoje.</p></div><Link href="/app/calendar/" className="text-sm font-semibold text-[#8054d8]">Ver agenda</Link></div>
+            {statsLoading?<p className="mt-4 text-sm text-gray-500">Carregando agenda...</p>:recentRentals.length?<ul className="mt-3 divide-y divide-gray-100">{recentRentals.map(rental=><li key={rental.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">Locação #{rental.rental_number}</p><p className="mt-1 text-xs text-gray-500">{formatDate(rental.start_date)} · {rentalStatus(rental.status)}</p></div><p className="text-sm font-semibold text-gray-800">{formatCurrency(Number(rental.total_amount)||0)}</p></li>)}</ul>:<p className="mt-4 rounded-xl bg-purple-50/70 px-4 py-5 text-sm text-gray-600">Nenhum evento futuro programado. Aproveite para organizar a agenda.</p>}
           </div>
-          {statsError && <p role="alert" className="mb-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{statsError}</p>}
-          <div className="grid grid-cols-2 gap-3">
-            {indicators.map((item) => <Link key={item.label} href={item.href}
-              className="min-w-0 rounded-xl border border-purple-100 bg-white p-3 shadow-sm transition hover:border-purple-200 hover:shadow-md sm:p-4">
-              <p className="text-xs font-medium leading-5 text-gray-500 sm:text-sm">{item.label}</p>
-              <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-                {statsLoading || item.value === undefined ? <span className="text-lg text-gray-300">...</span> : item.value}
-              </p>
-              <span className="mt-2 inline-block text-[11px] font-semibold text-[#8054d8] sm:text-xs">Ver detalhes →</span>
-            </Link>)}
+          <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-lg font-bold">Acesso rápido</h2><p className="mt-1 text-xs text-gray-500">Atalhos para as tarefas mais comuns.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {[{label:'Nova locação',href:'/app/rentals/',symbol:'＋'},{label:'Novo orçamento',href:'/app/quotes/',symbol:'▤'},{label:'Novo cliente',href:'/app/customers/',symbol:'♙'},{label:'Abrir agenda',href:'/app/calendar/',symbol:'▦'}].map(item=><Link key={item.label} href={item.href} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-4 text-sm font-semibold text-gray-700 transition hover:border-purple-200 hover:bg-purple-50"><span className="mb-2 block text-xl text-[#8054d8]">{item.symbol}</span>{item.label}<span className="mt-1 block text-xs text-[#8054d8]">Acessar →</span></Link>)}
+            </div>
+            {workspace.role==='admin'&&<div className="mt-4 rounded-xl bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-800">Atenção financeira</p><p className="mt-1 text-sm text-amber-900">Você tem {statsLoading?'...':formatCurrency(stats?.pendingReceivables??0)} em receitas pendentes.</p><Link href="/app/finance/" className="mt-2 inline-block text-xs font-bold text-amber-800">Conferir recebimentos →</Link></div>}
           </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Locações recentes</h2>
-            <Link href="/app/rentals/" className="text-sm font-semibold text-[#8054d8]">Ver todas</Link>
-          </div>
-          {statsLoading ? <p role="status" className="mt-4 text-sm text-gray-500">Carregando movimentações...</p>
-            : recentRentals.length ? <ul className="mt-3 divide-y divide-gray-100">
-              {recentRentals.map((rental) => <li key={rental.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div><p className="font-semibold text-gray-900">Locação #{rental.rental_number}</p>
-                  <p className="mt-1 text-xs text-gray-500">{formatDate(rental.start_date)} · {rentalStatus(rental.status)}</p></div>
-                <p className="text-sm font-semibold text-gray-800">{formatCurrency(Number(rental.total_amount) || 0)}</p>
-              </li>)}
-            </ul> : <p className="mt-4 rounded-xl bg-purple-50/70 px-4 py-5 text-sm leading-6 text-gray-600">Ainda não há locações registradas. Quando uma locação for cadastrada, ela aparecerá aqui.</p>}
         </div>
       </section>
     </AppShell>
