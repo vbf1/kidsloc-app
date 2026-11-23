@@ -1014,7 +1014,7 @@ class _RecordsPageState extends State<_RecordsPage> {
           final id = transaction['id'].toString();
           final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
           final paid = paidByTransaction[id];
-          received += paid ?? (transaction['status'] == 'paid' ? amount : 0);
+          received += (paid ?? (transaction['status'] == 'paid' ? amount : 0)).toDouble();
           if (transaction['status'] != 'paid') openBalance += (amount - (paid ?? 0)).clamp(0, double.infinity).toDouble();
         }
       }
