@@ -441,3 +441,28 @@ body { overflow-x: clip; }
   .kl-admin-module-link { flex-wrap: wrap; }
   .kl-admin-module-action { margin-left: 56px; }
 }
+
+
+/* Painel do proprietário: reforça contraste real dos textos dentro do hero roxo.
+   Os seletores específicos evitam que a regra geral de títulos do workspace
+   sobrescreva as classes claras aplicadas no JSX. */
+.kl-platform-admin .kl-admin-hero h1 {
+  color: #fff;
+}
+.kl-platform-admin .kl-admin-hero p {
+  color: rgb(255 255 255 / 82%);
+}
+.kl-platform-admin .kl-admin-hero .kl-admin-eyebrow {
+  color: #f3eaff;
+}
+
+/* No celular, a lista global de usuários usa cartões empilhados no lugar
+   da tabela larga; os dados continuam completos e sem rolagem horizontal. */
+.kl-platform-admin .kl-admin-hero :is(h1, p) {
+  text-shadow: none;
+}
+@media (max-width: 767px) {
+  .kl-platform-admin article {
+    overflow-wrap: anywhere;
+  }
+}
