@@ -1,5 +1,5 @@
 'use client';
-import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
+import { hasModuleData, setModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -120,17 +120,34 @@ export default function QuotesPage() {
     ]);
     if (cr.error || pr.error || qr.error || companyResult.error) setError('Não foi possível carregar os dados de orçamento.');
     else {
-      setCustomers(cr.data ?? []); setProducts(pr.data ?? []); setQuotes((qr.data ?? []) as Quote[]);setCompanyLogoUrl(companyResult.data?.contract_logo_url??'');setCompanySettings((companyResult.data?.contract_settings??{}) as Record<string, string>);
-      const quoteIds = (qr.data ?? []).map(q => q.id);
+      const scope = `${user.id}:${workspaceCompanyId}`;
+      const customerData = cr.data ?? [];
+      const productData = pr.data ?? [];
+      const quoteData = (qr.data ?? []) as Quote[];
+      const customerNames = Object.fromEntries(customerData.map(x=>[x.id,x.name]));
+      const quoteIds = quoteData.map(q => q.id);
+      const grouped: Record<string,QuoteLine[]> = {};
       if (quoteIds.length) {
         const { data: lines, error: linesError } = await supabase.from('rental_quote_items').select('quote_id,product_id,description,quantity,unit_price,subtotal').eq('company_id', workspaceCompanyId).in('quote_id', quoteIds);
         if (!linesError) {
-          const grouped: Record<string,QuoteLine[]> = {};
           for (const line of lines ?? []) (grouped[line.quote_id] ??= []).push(line as QuoteLine);
-          setQuoteLines(grouped);
         }
       }
-      setNames(Object.fromEntries((cr.data ?? []).map(x=>[x.id,x.name])));
+      // The first full-page load may start with an empty workspace scope. Seed
+      // the verified user/company cache explicitly so the scope change caused
+      // by setWorkspaceSessionCache cannot reset these freshly fetched values.
+      setModuleData('quotes', 'customers', scope, customerData);
+      setModuleData('quotes', 'products', scope, productData);
+      setModuleData('quotes', 'quotes', scope, quoteData);
+      setModuleData('quotes', 'quoteLines', scope, grouped);
+      setModuleData('quotes', 'names', scope, customerNames);
+      setCustomers(customerData);
+      setProducts(productData);
+      setQuotes(quoteData);
+      setQuoteLines(grouped);
+      setNames(customerNames);
+      setCompanyLogoUrl(companyResult.data?.contract_logo_url??'');
+      setCompanySettings((companyResult.data?.contract_settings??{}) as Record<string, string>);
     }
     setLoading(false);
   }, [router]);
