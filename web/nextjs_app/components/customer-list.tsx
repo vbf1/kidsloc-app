@@ -25,7 +25,7 @@ export function CustomerList({ customers, loading, totalCount, page, pageSize, o
   );
   return (
     <div className="space-y-3">
-      <div className="hidden overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm md:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm lg:block">
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div><h2 className="font-bold text-gray-900">Lista de clientes</h2><p className="mt-1 text-xs text-gray-500">Nome, contato e cadastro em uma visualização.</p></div>
           <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-[#6840bd]">{totalCount} {totalCount === 1 ? 'cliente' : 'clientes'}</span>
@@ -44,7 +44,7 @@ export function CustomerList({ customers, loading, totalCount, page, pageSize, o
           </table>
         </div>
       </div>
-      <ul className="space-y-3 md:hidden">
+      <ul className="space-y-3 lg:hidden">
         {customers.map((customer) => <li key={customer.id} role="button" tabIndex={0} onClick={() => onView(customer)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onView(customer); } }} className="cursor-pointer rounded-2xl border border-purple-100 bg-white p-4 shadow-sm transition hover:shadow-md">
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-bold text-gray-900">{customer.name}</h2><p className="mt-1 break-all text-sm text-gray-600">{displayValue(customer.phone)}</p><p className="mt-1 break-all text-xs text-gray-500">{customer.email || 'Sem e-mail'}</p></div><EditButton onClick={() => onEdit(customer)} /></div>
           <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-400">Cadastro: {formatDate(customer.created_at)} · Toque para ver detalhes</div>
