@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
@@ -32,6 +32,7 @@ export default function PlatformCustomersPage() {
   const [error, setError] = useState('');
   const [formError, setFormError] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<CompanyCustomer | null>(null);
+  const customersRequest = useRef(0);
 
   const selectedCompany = companies.find((company) => company.id === companyId) ?? null;
 
@@ -44,7 +45,7 @@ export default function PlatformCustomersPage() {
     if (ownerError || isOwner !== true) { router.replace('/app/'); return; }
     const { data, error: queryError } = await supabase.from('companies')
       .select('id,name').order('created_at', { ascending: false });
-    if (queryError) { setError('Não foi possível carregar as empresas cadastradas.'); return; }
+    if (queryError) { setError('Não foi possível carregar as empresas cadastradas.'); setLoading(false); return; }
     const rows = (data ?? []) as Company[];
     setCompanies(rows);
     const requestedCompany = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('company') : null;
@@ -55,11 +56,17 @@ export default function PlatformCustomersPage() {
   }, [router]);
 
   const loadCustomers = useCallback(async () => {
-    if (!supabase || !companyId) { setCustomers([]); setCustomersLoading(false); return; }
+    const requestId = ++customersRequest.current;
+    if (!supabase || !companyId) {
+      setCustomers([]);
+      setCustomersLoading(false);
+      return;
+    }
     setCustomersLoading(true);
     const { data, error: queryError } = await supabase.from('customers')
       .select('id,company_id,name,phone,email,city_state,created_at,address,notes,cpf,rg,zip,neighborhood')
       .eq('company_id', companyId).order('created_at', { ascending: false }).limit(500);
+    if (requestId !== customersRequest.current) return;
     if (queryError) {
       setCustomers([]);
       setError('Não foi possível carregar os clientes desta empresa.');
@@ -75,9 +82,9 @@ export default function PlatformCustomersPage() {
   }, [loadCompanies]);
 
   useEffect(() => {
-    setPage(0);
-    setSearch('');
-    setEditingCustomer(null);
+    // Reset local filters when switching the selected company.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage(0); setSearch(''); setEditingCustomer(null);
     void loadCustomers();
   }, [loadCustomers]);
 
@@ -95,7 +102,8 @@ export default function PlatformCustomersPage() {
   }, [customers, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / pageSize));
-  const visibleCustomers = filteredCustomers.slice(page * pageSize, (page + 1) * pageSize);
+  const currentPage = Math.min(page, totalPages - 1);
+  const visibleCustomers = filteredCustomers.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   async function saveCustomer(values: CustomerFormValues) {
     if (!supabase || !companyId || !editingCustomer) return;
@@ -176,7 +184,7 @@ export default function PlatformCustomersPage() {
               ))}
             </div>
           ) : <p className="mt-5 rounded-xl bg-[#faf8fd] px-4 py-8 text-center text-sm text-gray-500">{customers.length ? 'Nenhum cliente corresponde à busca.' : 'Nenhum cliente cadastrado para esta empresa.'}</p>}
-          {!customersLoading && filteredCustomers.length > 0 && <div className="mt-5 flex flex-col gap-3 border-t border-[#f0edf5] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-gray-500">Exibindo {visibleCustomers.length} de {filteredCustomers.length} cliente(s), entre até 500 cadastros carregados.</p><div className="flex items-center justify-between gap-2 sm:justify-end"><button type="button" disabled={page === 0} onClick={() => setPage((current) => Math.max(0, current - 1))} className="rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold text-[#6840bd] disabled:opacity-40">Anterior</button><span className="text-xs font-semibold text-gray-500">Página {page + 1} de {totalPages}</span><button type="button" disabled={page + 1 >= totalPages} onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))} className="rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold text-[#6840bd] disabled:opacity-40">Próxima</button></div></div>}
+          {!customersLoading && filteredCustomers.length > 0 && <div className="mt-5 flex flex-col gap-3 border-t border-[#f0edf5] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-gray-500">Exibindo {visibleCustomers.length} de {filteredCustomers.length} cliente(s), entre até 500 cadastros carregados.</p><div className="flex items-center justify-between gap-2 sm:justify-end"><button type="button" disabled={currentPage === 0} onClick={() => setPage((current) => Math.max(0, current - 1))} className="rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold text-[#6840bd] disabled:opacity-40">Anterior</button><span className="text-xs font-semibold text-gray-500">Página {currentPage + 1} de {totalPages}</span><button type="button" disabled={currentPage + 1 >= totalPages} onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))} className="rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold text-[#6840bd] disabled:opacity-40">Próxima</button></div></div>}
         </section>
 
         {editingCustomer && <section className="rounded-[22px] border border-purple-100 bg-purple-50/40 p-4 sm:p-6">
