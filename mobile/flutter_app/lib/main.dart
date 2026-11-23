@@ -702,7 +702,7 @@ class _HomePageState extends State<HomePage> {
       ));
     } else {
       await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!),
+        builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!, canViewFinance: _role == 'admin'),
       ));
     }
     // A tela inicial permanece montada; atualize apenas os dados operacionais.
@@ -859,10 +859,11 @@ String _statusLabel(String? value) => switch (value) {
 };
 
 class _RecordsPage extends StatefulWidget {
-  const _RecordsPage({required this.title, required this.table, required this.companyId});
+  const _RecordsPage({required this.title, required this.table, required this.companyId, required this.canViewFinance});
   final String title;
   final String table;
   final String companyId;
+  final bool canViewFinance;
   @override
   State<_RecordsPage> createState() => _RecordsPageState();
 }
@@ -970,6 +971,135 @@ class _RecordsPageState extends State<_RecordsPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<Map<String, dynamic>> _loadCustomerHistory(String customerId) async {
+    final client = Supabase.instance.client;
+    final results = await Future.wait([
+      client.from('rentals').select('id,rental_number,start_date,status,total_amount')
+          .eq('company_id', widget.companyId).eq('customer_id', customerId)
+          .order('start_date', ascending: false).limit(20),
+      client.from('rental_quotes').select('id,quote_number,issue_date,event_date,status,total_amount')
+          .eq('company_id', widget.companyId).eq('customer_id', customerId)
+          .order('created_at', ascending: false).limit(20),
+    ]);
+    final rentals = results[0].map((row) => Map<String, dynamic>.from(row)).toList();
+    final quotes = results[1].map((row) => Map<String, dynamic>.from(row)).toList();
+    final rentalIds = rentals.map((row) => row['id'].toString()).toList();
+    var contracts = <Map<String, dynamic>>[];
+    var received = 0.0;
+    var openBalance = 0.0;
+    if (rentalIds.isNotEmpty) {
+      final contractResult = await client.from('rental_contracts')
+          .select('contract_number,rental_id,status,signed_at,token_expires_at')
+          .eq('company_id', widget.companyId).inFilter('rental_id', rentalIds)
+          .order('created_at', ascending: false).limit(20);
+      contracts = contractResult.map((row) => Map<String, dynamic>.from(row)).toList();
+      if (widget.canViewFinance) {
+        final transactionResult = await client.from('financial_transactions')
+            .select('id,amount,status,transaction_type')
+            .eq('company_id', widget.companyId).inFilter('rental_id', rentalIds)
+            .eq('transaction_type', 'income').neq('status', 'cancelled');
+        final transactions = transactionResult.map((row) => Map<String, dynamic>.from(row)).toList();
+        final transactionIds = transactions.map((row) => row['id'].toString()).toList();
+        final paymentRows = transactionIds.isEmpty ? <dynamic>[] :
+          await client.from('payments').select('transaction_id,amount')
+            .eq('company_id', widget.companyId).inFilter('transaction_id', transactionIds);
+        final paidByTransaction = <String, double>{};
+        for (final payment in paymentRows) {
+          final id = payment['transaction_id']?.toString();
+          if (id != null) paidByTransaction[id] = (paidByTransaction[id] ?? 0) + ((payment['amount'] as num?)?.toDouble() ?? 0);
+        }
+        for (final transaction in transactions) {
+          final id = transaction['id'].toString();
+          final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
+          final paid = paidByTransaction[id];
+          received += paid ?? (transaction['status'] == 'paid' ? amount : 0);
+          if (transaction['status'] != 'paid') openBalance += (amount - (paid ?? 0)).clamp(0, double.infinity).toDouble();
+        }
+      }
+    }
+    return {'rentals': rentals, 'quotes': quotes, 'contracts': contracts, 'received': received, 'openBalance': openBalance};
+  }
+
+  Future<void> _showCustomerHistory(Map<String, dynamic> customer) async {
+    final customerId = customer['id']?.toString();
+    if (customerId == null) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(customer['name']?.toString() ?? 'Histórico do cliente'),
+        content: SizedBox(
+          width: 480,
+          height: 500,
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: _loadCustomerHistory(customerId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              if (snapshot.hasError) return const Center(child: Text('Não foi possível carregar o histórico deste cliente.'));
+              final data = snapshot.data ?? {};
+              final rentals = (data['rentals'] as List<Map<String, dynamic>>?) ?? [];
+              final quotes = (data['quotes'] as List<Map<String, dynamic>>?) ?? [];
+              final contracts = (data['contracts'] as List<Map<String, dynamic>>?) ?? [];
+              String dateLabel(dynamic value) {
+                if (value == null) return 'Data não informada';
+                final parts = value.toString().split('-');
+                return parts.length == 3 ? '${parts[2]}/${parts[1]}/${parts[0]}' : value.toString();
+              }
+              String money(dynamic value) => 'R\$ ${((value as num?)?.toDouble() ?? 0).toStringAsFixed(2).replaceAll('.', ',')}';
+              return ListView(children: [
+                if (customer['phone'] != null || customer['email'] != null)
+                  Card(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      if (customer['phone'] != null) Text('Telefone: ${customer['phone']}'),
+                      if (customer['email'] != null) Text('E-mail: ${customer['email']}'),
+                    ]),
+                  )),
+                if (widget.canViewFinance) Row(children: [
+                  Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Recebido', style: TextStyle(fontSize: 12)), Text(money(data['received']), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ])))),
+                  Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Em aberto', style: TextStyle(fontSize: 12)), Text(money(data['openBalance']), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ])))),
+                ]),
+                Text('Locações (${rentals.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (rentals.isEmpty) const Text('Nenhuma locação vinculada.'),
+                ...rentals.map((r) => ListTile(
+                  dense: true, contentPadding: EdgeInsets.zero,
+                  title: Text('Locação #${r['rental_number']} · ${r['status']}'),
+                  subtitle: Text('${dateLabel(r['start_date'])} · ${money(r['total_amount'])}'),
+                )),
+                const Divider(),
+                Text('Orçamentos (${quotes.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (quotes.isEmpty) const Text('Nenhum orçamento vinculado.'),
+                ...quotes.map((q) => ListTile(
+                  dense: true, contentPadding: EdgeInsets.zero,
+                  title: Text('Orçamento #${q['quote_number']} · ${q['status']}'),
+                  subtitle: Text('Evento: ${dateLabel(q['event_date'])} · ${money(q['total_amount'])}'),
+                )),
+                const Divider(),
+                Text('Contratos (${contracts.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (contracts.isEmpty) const Text('Nenhum contrato vinculado às locações.'),
+                ...contracts.map((contract) {
+                  final expired = ['sent', 'viewed'].contains(contract['status']) &&
+                    contract['token_expires_at'] != null &&
+                    DateTime.tryParse(contract['token_expires_at'].toString())?.isBefore(DateTime.now()) == true;
+                  final status = expired ? 'Expirado' : contract['status']?.toString() ?? 'Indefinido';
+                  return ListTile(
+                    dense: true, contentPadding: EdgeInsets.zero,
+                    title: Text('Contrato #${contract['contract_number']} · $status'),
+                    subtitle: contract['signed_at'] == null ? null : Text('Assinado em ${dateLabel(contract['signed_at'].toString().split('T').first)}'),
+                  );
+                }),
+              ]);
+            },
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fechar'))],
+      ),
+    );
   }
 
   Future<void> _openRentalEditor(Map<String, dynamic> row) async {
@@ -1200,6 +1330,7 @@ class _RecordsPageState extends State<_RecordsPage> {
                   return Padding(
                     padding: EdgeInsets.only(bottom: index == visibleRows.length - 1 ? 0 : 6),
                     child: Card(child: ListTile(
+                      onTap: widget.table == 'customers' ? () => _showCustomerHistory(row) : null,
                       title: Text(_title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
                       subtitle: details.isEmpty ? null : Text(details.join(' · '), maxLines: 3, overflow: TextOverflow.ellipsis),
                       trailing: widget.table == 'rental_quotes' && ['draft', 'sent', 'accepted'].contains(status)
