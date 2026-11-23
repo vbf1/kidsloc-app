@@ -1,5 +1,5 @@
 'use client';
-import { hasModuleData, useModuleData } from '../../lib/module-data-cache';
+import { hasModuleData, setModuleData, useModuleData } from '../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../lib/use-company-realtime';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -135,14 +135,20 @@ export default function AppHomePage() {
         const financeRows = financeResult.data ?? [];
         const receivables = financeRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
         const pendingReceivables = financeRows.filter(row => row.status === 'pending').reduce((sum, row) => sum + Number(row.amount || 0), 0);
-        setStats({
+        const nextStats = {
           rentalsToday: todayResult.count ?? 0,
           rentalsNext7Days: upcomingResult.count ?? 0,
           pendingQuotes: quotesResult.count ?? 0,
           receivables,
           pendingReceivables,
-        });
-        setRecentRentals((recentResult.data ?? []) as RecentRental[]);
+        };
+        const nextRecentRentals = (recentResult.data ?? []) as RecentRental[];
+        const cachedWorkspaceNow = getWorkspaceSessionCache();
+        const scope = cachedWorkspaceNow?.companyId === companyId ? `${cachedWorkspaceNow.userId}:${cachedWorkspaceNow.companyId}` : '';
+        setModuleData('dashboard','stats',scope,nextStats);
+        setModuleData('dashboard','recentRentals',scope,nextRecentRentals);
+        setStats(nextStats);
+        setRecentRentals(nextRecentRentals);
       } catch {
         if (active) setStatsError('Ocorreu um erro ao consultar os dados da empresa.');
       } finally {
