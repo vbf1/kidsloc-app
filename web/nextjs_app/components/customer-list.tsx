@@ -38,7 +38,7 @@ export function CustomerList({ customers, loading, totalCount, page, pageSize, o
                 <td className="px-5 py-4"><p className="font-semibold text-gray-900">{customer.name}</p><p className="mt-2 text-xs font-semibold text-[#6840bd]">Toque para ver os dados completos</p></td>
                 <td className="px-5 py-4"><p className="text-gray-800">{displayValue(customer.phone)}</p><p className="mt-1 break-all text-xs text-gray-500">{customer.email || 'Sem e-mail'}</p></td>
                 <td className="px-5 py-4 text-gray-500">{formatDate(customer.created_at)}</td>
-                <td className="px-5 py-4 text-right"><div className="flex gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onView(customer); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600">Ver</button><span onClick={(event) => event.stopPropagation()}><div className="flex gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onView(customer); }} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600">Ver</button><span onClick={(event) => event.stopPropagation()}><EditButton onClick={() => onEdit(customer)} /></span></div></span></div></td>
+                <td className="px-5 py-4 text-right"><div className="flex justify-end gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onView(customer); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600">Ver</button><span onClick={(event) => event.stopPropagation()}><EditButton onClick={() => onEdit(customer)} /></span></div></td>
               </tr>)}
             </tbody>
           </table>

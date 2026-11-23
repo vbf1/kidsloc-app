@@ -8,6 +8,7 @@ import 'finance_page.dart';
 import 'reports_page.dart';
 import 'contracts_page.dart';
 import 'agenda_page.dart';
+import 'widgets/pagination_controls.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/push_notifications.dart';
@@ -455,6 +456,14 @@ class _HomePageState extends State<HomePage> {
   bool _loading = true;
   String? _error;
   final Map<String, int> _counts = {};
+  int _rentalsToday = 0;
+  int _rentalsNext7Days = 0;
+  int _pendingQuotes = 0;
+  double _pendingReceivables = 0;
+  List<Map<String, dynamic>> _upcomingRentals = [];
+  bool _dashboardLoading = true;
+  String? _dashboardError;
+  int _dashboardRefreshToken = 0;
   CompanyRealtimeSubscription? _realtime;
   String? _realtimeCompanyId;
   static const _modules = [
@@ -513,6 +522,7 @@ class _HomePageState extends State<HomePage> {
       });
       // Não bloqueia a abertura do painel aguardando contagens secundárias.
       unawaited(_refreshCounts(companyId, role));
+      unawaited(_refreshDashboard(companyId, role));
     } on PostgrestException catch (_) {
       if (mounted) setState(() {
         _error = 'Não foi possível carregar os módulos. Verifique sua conexão e as permissões.';
@@ -570,6 +580,81 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  String _dateKey(DateTime value) =>
+      '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+
+  Future<void> _refreshDashboard(String companyId, String role) async {
+    final requestToken = ++_dashboardRefreshToken;
+    final now = DateTime.now();
+    final today = _dateKey(now);
+    final nextWeek = _dateKey(now.add(const Duration(days: 7)));
+    try {
+      final client = Supabase.instance.client;
+      final results = await Future.wait<dynamic>([
+        client.from('rentals').select('id')
+            .eq('company_id', companyId).eq('start_date', today).neq('status', 'cancelled'),
+        client.from('rentals').select('id')
+            .eq('company_id', companyId).gte('start_date', today).lte('start_date', nextWeek).neq('status', 'cancelled'),
+        client.from('rentals').select('id,rental_number,start_date,status,total_amount')
+            .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled')
+            .order('start_date').limit(5),
+        client.from('rental_quotes').select('id')
+            .eq('company_id', companyId).inFilter('status', ['draft', 'sent']),
+        role == 'admin'
+            ? client.from('financial_transactions').select('amount,status,transaction_type')
+                .eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            : Future.value(<dynamic>[]),
+      ]);
+      if (!mounted || requestToken != _dashboardRefreshToken || _companyId != companyId) return;
+      final financeRows = results[4] as List<dynamic>;
+      final pending = role == 'admin'
+          ? financeRows.where((row) => row['status'] == 'pending')
+              .fold<double>(0, (sum, row) => sum + ((row['amount'] as num?)?.toDouble() ?? 0))
+          : 0.0;
+      setState(() {
+        _rentalsToday = (results[0] as List<dynamic>).length;
+        _rentalsNext7Days = (results[1] as List<dynamic>).length;
+        _upcomingRentals = (results[2] as List<dynamic>)
+            .map((row) => Map<String, dynamic>.from(row)).toList();
+        _pendingQuotes = (results[3] as List<dynamic>).length;
+        _pendingReceivables = pending;
+        _dashboardError = null;
+        _dashboardLoading = false;
+      });
+    } catch (_) {
+      if (mounted && requestToken == _dashboardRefreshToken && _companyId == companyId) {
+        setState(() {
+          _dashboardError = 'Não foi possível atualizar os indicadores do painel.';
+          _dashboardLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openQuickAction(String action) async {
+    final companyId = _companyId;
+    if (companyId == null) return;
+    if (action == 'new_rental') {
+      await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (_) => RentalCreatePage(companyId: companyId),
+      ));
+    } else if (action == 'new_quote') {
+      await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (_) => QuoteCreatePage(companyId: companyId),
+      ));
+    } else if (action == 'new_customer') {
+      await _openModule('Clientes', 'customers');
+      return;
+    } else if (action == 'calendar') {
+      await _openModule('Agenda', 'rentals');
+      return;
+    }
+    if (mounted && _companyId == companyId) {
+      unawaited(_refreshDashboard(companyId, _role));
+      unawaited(_refreshCounts(companyId, _role));
+    }
+  }
+
   void _subscribeToCompany(String companyId) {
     if (_realtimeCompanyId == companyId && _realtime != null) return;
     _realtime?.dispose();
@@ -584,7 +669,11 @@ class _HomePageState extends State<HomePage> {
         'rental_quotes', 'rental_quote_items', 'rental_contracts',
         'financial_transactions', 'payments', 'leads', 'lead_activities',
       ],
-      onChange: () { if (mounted) unawaited(_refreshCounts(companyId, _role)); },
+      onChange: () {
+        if (!mounted) return;
+        unawaited(_refreshCounts(companyId, _role));
+        unawaited(_refreshDashboard(companyId, _role));
+      },
     );
   }
 
@@ -615,11 +704,14 @@ class _HomePageState extends State<HomePage> {
       ));
     } else {
       await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!),
+        builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!, canViewFinance: _role == 'admin'),
       ));
     }
-    // A tela inicial permanece montada durante a navegação; não recarregue
-    // associação e contadores ao retornar de um módulo.
+    // A tela inicial permanece montada; atualize apenas os dados operacionais.
+    if (mounted && _companyId != null) {
+      unawaited(_refreshDashboard(_companyId!, _role));
+      unawaited(_refreshCounts(_companyId!, _role));
+    }
   }
 
   @override
@@ -644,30 +736,81 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 16),
         if (_error != null) Card(color: Theme.of(context).colorScheme.errorContainer,
           child: Padding(padding: const EdgeInsets.all(16), child: Text(_error!))),
+        Text('O que precisa de atenção?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        GridView.count(
+          shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.65,
+          children: [
+            _DashboardMetric(title: 'Locações hoje', value: _dashboardLoading ? '...' : '$_rentalsToday', hint: 'Ver agenda', icon: Icons.today_outlined, onTap: () => _openQuickAction('calendar')),
+            _DashboardMetric(title: 'Próximos 7 dias', value: _dashboardLoading ? '...' : '$_rentalsNext7Days', hint: 'Planejar eventos', icon: Icons.event_available_outlined, onTap: () => _openQuickAction('calendar')),
+            _DashboardMetric(title: 'Orçamentos em aberto', value: _dashboardLoading ? '...' : '$_pendingQuotes', hint: 'Acompanhar propostas', icon: Icons.request_quote_outlined, onTap: () => _openModule('Orçamentos', 'rental_quotes')),
+            if (_role == 'admin') _DashboardMetric(title: 'A receber', value: _dashboardLoading ? '...' : _currency(_pendingReceivables), hint: 'Abrir financeiro', icon: Icons.account_balance_wallet_outlined, onTap: () => _openModule('Financeiro', 'financial_transactions')),
+          ],
+        ),
+        if (_dashboardError != null) Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(_dashboardError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ),
+        const SizedBox(height: 18),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Próximos eventos', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Locações programadas a partir de hoje.', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 8),
+            if (_dashboardLoading) const LinearProgressIndicator(),
+            if (!_dashboardLoading && _upcomingRentals.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Nenhum evento futuro programado.')),
+            ..._upcomingRentals.map((rental) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Locação #${rental['rental_number']}'),
+              subtitle: Text('${_dateLabel(rental['start_date']?.toString())} · ${_statusLabel(rental['status']?.toString())}'),
+              trailing: Text(_currency((rental['total_amount'] as num?)?.toDouble() ?? 0), style: const TextStyle(fontWeight: FontWeight.w600)),
+            )),
+            Align(alignment: Alignment.centerRight, child: TextButton(
+              onPressed: () => _openQuickAction('calendar'), child: const Text('Ver agenda'),
+            )),
+          ],
+        ))),
+        const SizedBox(height: 16),
+        Text('Acesso rápido', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonalIcon(onPressed: () => _openQuickAction('new_rental'), icon: const Icon(Icons.add), label: const Text('Nova locação')),
+          FilledButton.tonalIcon(onPressed: () => _openQuickAction('new_quote'), icon: const Icon(Icons.request_quote_outlined), label: const Text('Novo orçamento')),
+          OutlinedButton.icon(onPressed: () => _openQuickAction('new_customer'), icon: const Icon(Icons.person_add_alt_1), label: const Text('Novo cliente')),
+          OutlinedButton.icon(onPressed: () => _openQuickAction('calendar'), icon: const Icon(Icons.calendar_month), label: const Text('Agenda')),
+        ]),
+        const SizedBox(height: 18),
         Text('Módulos de gestão', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
-        GridView.builder(
-          shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-          itemCount: _visibleModules.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.3),
-          itemBuilder: (context, index) {
-            final module = _visibleModules[index];
-            return Card(clipBehavior: Clip.antiAlias, child: InkWell(
-              onTap: () => _openModule(module[0], module[1]),
-              child: Padding(padding: const EdgeInsets.all(14), child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Icon(Icons.dashboard_customize_outlined, size: 27),
-                  Text(module[0], style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text((_counts[module[0]] ?? 0).toString() + ' registros',
-                    style: Theme.of(context).textTheme.bodySmall),
-                ],
-              )),
-            ));
-          },
-        ),
+        LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 900 ? 4 : constraints.maxWidth >= 600 ? 3 : 2;
+          return GridView.builder(
+            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+            itemCount: _visibleModules.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.3),
+            itemBuilder: (context, index) {
+              final module = _visibleModules[index];
+              return Card(clipBehavior: Clip.antiAlias, child: InkWell(
+                onTap: () => _openModule(module[0], module[1]),
+                child: Padding(padding: const EdgeInsets.all(14), child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Icon(Icons.dashboard_customize_outlined, size: 27),
+                    Text(module[0], style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text((_counts[module[0]] ?? 0).toString() + ' registros',
+                      style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                )),
+              ));
+            },
+          );
+        }),
         const SizedBox(height: 16),
         const Text('Os dados são compartilhados com a versão web e respeitam as permissões da sua empresa.', textAlign: TextAlign.center),
       ]),
@@ -675,11 +818,54 @@ class _HomePageState extends State<HomePage> {
   );
 }
 
+class _DashboardMetric extends StatelessWidget {
+  const _DashboardMetric({required this.title, required this.value, required this.hint, required this.icon, required this.onTap});
+  final String title;
+  final String value;
+  final String hint;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+            Text(hint, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+          ]),
+        ]),
+      ),
+    ),
+  );
+}
+
+String _currency(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+String _dateLabel(String? value) {
+  if (value == null || value.isEmpty) return 'Data não informada';
+  final parts = value.split('-');
+  return parts.length == 3 ? '${parts[2]}/${parts[1]}/${parts[0]}' : value;
+}
+String _statusLabel(String? value) => switch (value) {
+  'pending' => 'Pendente',
+  'confirmed' => 'Confirmada',
+  'ongoing' || 'in_progress' => 'Em andamento',
+  'completed' => 'Concluída',
+  _ => value ?? 'Situação não informada',
+};
+
 class _RecordsPage extends StatefulWidget {
-  const _RecordsPage({required this.title, required this.table, required this.companyId});
+  const _RecordsPage({required this.title, required this.table, required this.companyId, required this.canViewFinance});
   final String title;
   final String table;
   final String companyId;
+  final bool canViewFinance;
   @override
   State<_RecordsPage> createState() => _RecordsPageState();
 }
@@ -691,6 +877,9 @@ class _RecordsPageState extends State<_RecordsPage> {
   String? _error;
   List<Map<String, dynamic>> _rows = [];
   bool get _editable => widget.table == 'customers' || widget.table == 'products';
+  final TextEditingController _searchController = TextEditingController();
+  String _search = '';
+  int _page = 0;
 
   @override
   void initState() {
@@ -715,6 +904,7 @@ class _RecordsPageState extends State<_RecordsPage> {
   @override
   void dispose() {
     _realtime?.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -722,7 +912,7 @@ class _RecordsPageState extends State<_RecordsPage> {
     if (showLoading) setState(() { _loading = true; _error = null; });
     try {
       final result = await Supabase.instance.client.from(widget.table).select('*')
-          .eq('company_id', widget.companyId).limit(100);
+          .eq('company_id', widget.companyId).limit(1000);
       if (!mounted) return;
       setState(() {
         _rows = result.map((row) => Map<String, dynamic>.from(row)).toList();
@@ -783,6 +973,139 @@ class _RecordsPageState extends State<_RecordsPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<Map<String, dynamic>> _loadCustomerHistory(String customerId) async {
+    final client = Supabase.instance.client;
+    final results = await Future.wait([
+      client.from('rentals').select('id,rental_number,start_date,status,total_amount')
+          .eq('company_id', widget.companyId).eq('customer_id', customerId)
+          .order('start_date', ascending: false).limit(20),
+      client.from('rental_quotes').select('id,quote_number,issue_date,event_date,status,total_amount')
+          .eq('company_id', widget.companyId).eq('customer_id', customerId)
+          .order('created_at', ascending: false).limit(20),
+    ]);
+    final rentals = results[0].map((row) => Map<String, dynamic>.from(row)).toList();
+    final quotes = results[1].map((row) => Map<String, dynamic>.from(row)).toList();
+    final rentalIds = rentals.map((row) => row['id'].toString()).toList();
+    var contracts = <Map<String, dynamic>>[];
+    var received = 0.0;
+    var openBalance = 0.0;
+    if (rentalIds.isNotEmpty) {
+      final contractResult = await client.from('rental_contracts')
+          .select('contract_number,rental_id,status,signed_at,token_expires_at')
+          .eq('company_id', widget.companyId).inFilter('rental_id', rentalIds)
+          .order('created_at', ascending: false).limit(20);
+      contracts = contractResult.map((row) => Map<String, dynamic>.from(row)).toList();
+      for (final contract in contracts) {
+        final expiry = DateTime.tryParse(contract['token_expires_at']?.toString() ?? '');
+        if (['sent', 'viewed'].contains(contract['status']) && expiry != null && expiry.isBefore(DateTime.now())) {
+          contract['status'] = 'expired';
+        }
+      }
+      if (widget.canViewFinance) {
+        final transactionResult = await client.from('financial_transactions')
+            .select('id,amount,status,transaction_type')
+            .eq('company_id', widget.companyId).inFilter('rental_id', rentalIds)
+            .eq('transaction_type', 'income').neq('status', 'cancelled');
+        final transactions = transactionResult.map((row) => Map<String, dynamic>.from(row)).toList();
+        final transactionIds = transactions.map((row) => row['id'].toString()).toList();
+        final paymentRows = transactionIds.isEmpty ? <dynamic>[] :
+          await client.from('payments').select('transaction_id,amount')
+            .eq('company_id', widget.companyId).inFilter('transaction_id', transactionIds);
+        final paidByTransaction = <String, double>{};
+        for (final payment in paymentRows) {
+          final id = payment['transaction_id']?.toString();
+          if (id != null) paidByTransaction[id] = (paidByTransaction[id] ?? 0) + ((payment['amount'] as num?)?.toDouble() ?? 0);
+        }
+        for (final transaction in transactions) {
+          final id = transaction['id'].toString();
+          final amount = (transaction['amount'] as num?)?.toDouble() ?? 0;
+          final paid = paidByTransaction[id];
+          received += (paid ?? (transaction['status'] == 'paid' ? amount : 0)).toDouble();
+          if (transaction['status'] != 'paid') openBalance += (amount - (paid ?? 0)).clamp(0, double.infinity).toDouble();
+        }
+      }
+    }
+    return {'rentals': rentals, 'quotes': quotes, 'contracts': contracts, 'received': received, 'openBalance': openBalance};
+  }
+
+  Future<void> _showCustomerHistory(Map<String, dynamic> customer) async {
+    final customerId = customer['id']?.toString();
+    if (customerId == null) return;
+    final historyFuture = _loadCustomerHistory(customerId);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(customer['name']?.toString() ?? 'Histórico do cliente'),
+        content: SizedBox(
+          width: 480,
+          height: 500,
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: historyFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              if (snapshot.hasError) return const Center(child: Text('Não foi possível carregar o histórico deste cliente.'));
+              final data = snapshot.data ?? {};
+              final rentals = (data['rentals'] as List<Map<String, dynamic>>?) ?? [];
+              final quotes = (data['quotes'] as List<Map<String, dynamic>>?) ?? [];
+              final contracts = (data['contracts'] as List<Map<String, dynamic>>?) ?? [];
+              String dateLabel(dynamic value) {
+                if (value == null) return 'Data não informada';
+                final parts = value.toString().split('-');
+                return parts.length == 3 ? '${parts[2]}/${parts[1]}/${parts[0]}' : value.toString();
+              }
+              String money(dynamic value) => 'R\$ ${((value as num?)?.toDouble() ?? 0).toStringAsFixed(2).replaceAll('.', ',')}';
+              return ListView(children: [
+                if (customer['phone'] != null || customer['email'] != null)
+                  Card(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      if (customer['phone'] != null) Text('Telefone: ${customer['phone']}'),
+                      if (customer['email'] != null) Text('E-mail: ${customer['email']}'),
+                    ]),
+                  )),
+                if (widget.canViewFinance) Row(children: [
+                  Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Recebido', style: TextStyle(fontSize: 12)), Text(money(data['received']), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ])))),
+                  Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Em aberto', style: TextStyle(fontSize: 12)), Text(money(data['openBalance']), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ])))),
+                ]),
+                Text('Locações (${rentals.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (rentals.isEmpty) const Text('Nenhuma locação vinculada.'),
+                ...rentals.map((r) => ListTile(
+                  dense: true, contentPadding: EdgeInsets.zero,
+                  title: Text('Locação #${r['rental_number']} · ${r['status']}'),
+                  subtitle: Text('${dateLabel(r['start_date'])} · ${money(r['total_amount'])}'),
+                )),
+                const Divider(),
+                Text('Orçamentos (${quotes.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (quotes.isEmpty) const Text('Nenhum orçamento vinculado.'),
+                ...quotes.map((q) => ListTile(
+                  dense: true, contentPadding: EdgeInsets.zero,
+                  title: Text('Orçamento #${q['quote_number']} · ${q['status']}'),
+                  subtitle: Text('Evento: ${dateLabel(q['event_date'])} · ${money(q['total_amount'])}'),
+                )),
+                const Divider(),
+                Text('Contratos (${contracts.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (contracts.isEmpty) const Text('Nenhum contrato vinculado às locações.'),
+                ...contracts.map((contract) {
+                  final status = contract['status'] == 'expired' ? 'Expirado' : contract['status']?.toString() ?? 'Indefinido';
+                  return ListTile(
+                    dense: true, contentPadding: EdgeInsets.zero,
+                    title: Text('Contrato #${contract['contract_number']} · $status'),
+                    subtitle: contract['signed_at'] == null ? null : Text('Assinado em ${dateLabel(contract['signed_at'].toString().split('T').first)}'),
+                  );
+                }),
+              ]);
+            },
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fechar'))],
+      ),
+    );
   }
 
   Future<void> _openRentalEditor(Map<String, dynamic> row) async {
@@ -912,89 +1235,146 @@ class _RecordsPageState extends State<_RecordsPage> {
     for (final controller in fields.values) { controller.dispose(); }
   }
 
+  String _normalizeSearch(String value) {
+    var result = value.toLowerCase();
+    const replacements = {
+      'áàâãä': 'a', 'éèêë': 'e', 'íìîï': 'i', 'óòôõö': 'o',
+      'úùûü': 'u', 'ç': 'c',
+    };
+    for (final entry in replacements.entries) {
+      result = result.replaceAll(RegExp('[${entry.key}]'), entry.value);
+    }
+    return result;
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.title), actions: [
-      if (widget.table == 'rental_quotes') IconButton(
-        tooltip: 'Novo orçamento',
-        onPressed: _loading ? null : () async {
-          final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
-            builder: (_) => QuoteCreatePage(companyId: widget.companyId),
-          ));
-          if (created == true && mounted) _load();
-        },
-        icon: const Icon(Icons.add_circle_outline),
-      ),
-      if (widget.table == 'rentals') IconButton(
-        tooltip: 'Nova locação',
-        onPressed: _loading ? null : () async {
-          final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
-            builder: (_) => RentalCreatePage(companyId: widget.companyId),
-          ));
-          if (created == true && mounted) _load();
-        },
-        icon: const Icon(Icons.add_circle_outline),
-      ),
-      if (_editable) IconButton(tooltip: 'Novo cadastro', onPressed: _saving ? null : () => _openEditor(), icon: const Icon(Icons.add)),
-      IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
-    ]),
-    body: _loading ? const Center(child: CircularProgressIndicator()) :
-      _error != null ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(
-        mainAxisSize: MainAxisSize.min, children: [
-          Text(_error!, textAlign: TextAlign.center), const SizedBox(height: 12),
-          FilledButton(onPressed: _load, child: const Text('Tentar novamente')),
-        ]))) :
-      RefreshIndicator(onRefresh: _load, child: _rows.isEmpty
-        ? ListView(children: [
-            const SizedBox(height: 120),
-            Center(child: Text(_editable ? 'Nenhum registro cadastrado.' : 'Nenhum registro encontrado.')),
-            if (_editable) Center(child: TextButton.icon(onPressed: () => _openEditor(), icon: const Icon(Icons.add), label: const Text('Adicionar primeiro registro'))),
-          ])
-        : ListView.separated(
-          padding: const EdgeInsets.all(12), itemCount: _rows.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 6),
-          itemBuilder: (context, index) {
-            final row = _rows[index];
-            final status = row['status']?.toString();
-            final date = row['start_date'] ?? row['event_date'] ?? row['due_date'] ?? row['created_at'];
-            final amount = row['total_amount'] ?? row['amount'] ?? row['daily_price'] ?? row['event_price'];
-            final details = <String>[
-              if (row['phone'] != null) row['phone'].toString(),
-              if (row['email'] != null) row['email'].toString(),
-              if (status != null) 'Situação: ' + status,
-              if (date != null) 'Data: ' + date.toString().split('T').first,
-              if (amount != null) 'Valor: R\$ ' + amount.toString(),
-              if (row['active'] == false) 'Inativo',
-            ];
-            return Card(child: ListTile(
-              title: Text(_title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
-              subtitle: details.isEmpty ? null : Text(details.join(' · '), maxLines: 3, overflow: TextOverflow.ellipsis),
-              trailing: widget.table == 'rental_quotes' && ['draft', 'sent', 'accepted'].contains(status)
-                  ? PopupMenuButton<String>(
-                      enabled: !_saving,
-                      onSelected: (action) {
-                        if (action == 'sent' || action == 'accepted' || action == 'rejected') {
-                          _updateQuoteStatus(row, action);
-                        } else if (action == 'convert') {
-                          _convertQuote(row);
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        if (status == 'draft') const PopupMenuItem(value: 'sent', child: Text('Marcar como enviado')),
-                        if (status == 'draft' || status == 'sent') ...[
-                          const PopupMenuItem(value: 'accepted', child: Text('Aprovar orçamento')),
-                          const PopupMenuItem(value: 'rejected', child: Text('Recusar orçamento')),
-                        ],
-                        if (status == 'accepted') const PopupMenuItem(value: 'convert', child: Text('Converter em locação')),
-                      ],
-                    )
-                  : widget.table == 'rentals'
-                      ? IconButton(tooltip: 'Editar locação', onPressed: _saving ? null : () => _openRentalEditor(row), icon: const Icon(Icons.edit_outlined))
-                      : _editable
-                          ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined))
-                          : null,
+  Widget build(BuildContext context) {
+    final query = _normalizeSearch(_search.trim());
+    final filteredRows = _rows.where((row) =>
+      query.isEmpty || _normalizeSearch('${_title(row)} ${row.values.join(' ')}').contains(query)
+    ).toList();
+    final pageSize = 6;
+    final pageCount = (filteredRows.length / pageSize).ceil();
+    final safePage = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
+    final visibleRows = filteredRows.skip(safePage * pageSize).take(pageSize).toList();
+
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title), actions: [
+        if (widget.table == 'rental_quotes') IconButton(
+          tooltip: 'Novo orçamento',
+          onPressed: _loading ? null : () async {
+            final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
+              builder: (_) => QuoteCreatePage(companyId: widget.companyId),
             ));
+            if (created == true && mounted) _load();
           },
-        )),
-  );
+          icon: const Icon(Icons.add_circle_outline),
+        ),
+        if (widget.table == 'rentals') IconButton(
+          tooltip: 'Nova locação',
+          onPressed: _loading ? null : () async {
+            final created = await Navigator.of(context).push<bool>(MaterialPageRoute(
+              builder: (_) => RentalCreatePage(companyId: widget.companyId),
+            ));
+            if (created == true && mounted) _load();
+          },
+          icon: const Icon(Icons.add_circle_outline),
+        ),
+        if (_editable) IconButton(tooltip: 'Novo cadastro', onPressed: _saving ? null : () => _openEditor(), icon: const Icon(Icons.add)),
+        IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+      ]),
+      body: _loading ? const Center(child: CircularProgressIndicator()) :
+        _error != null ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(
+          mainAxisSize: MainAxisSize.min, children: [
+            Text(_error!, textAlign: TextAlign.center), const SizedBox(height: 12),
+            FilledButton(onPressed: _load, child: const Text('Tentar novamente')),
+          ]))) :
+        RefreshIndicator(onRefresh: _load, child: CustomScrollView(slivers: [
+          SliverToBoxAdapter(child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() { _search = value; _page = 0; }),
+              decoration: InputDecoration(
+                hintText: 'Pesquisar por nome, descrição ou dados...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.isEmpty ? null : IconButton(
+                  tooltip: 'Limpar pesquisa',
+                  onPressed: () => setState(() { _searchController.clear(); _search = ''; _page = 0; }),
+                  icon: const Icon(Icons.close),
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                filled: true, fillColor: Theme.of(context).colorScheme.surface,
+              ),
+            ),
+          )),
+          if (filteredRows.isEmpty)
+            SliverFillRemaining(hasScrollBody: false, child: Center(child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(_rows.isEmpty ? (_editable ? 'Nenhum registro cadastrado.' : 'Nenhum registro encontrado.') : 'Nenhum resultado para esta pesquisa.'),
+                if (_editable && _rows.isEmpty) TextButton.icon(onPressed: () => _openEditor(), icon: const Icon(Icons.add), label: const Text('Adicionar primeiro registro')),
+              ]),
+            )))
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(12),
+              sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final row = visibleRows[index];
+                  final status = row['status']?.toString();
+                  final date = row['start_date'] ?? row['event_date'] ?? row['due_date'] ?? row['created_at'];
+                  final amount = row['total_amount'] ?? row['amount'] ?? row['daily_price'] ?? row['event_price'];
+                  final details = <String>[
+                    if (row['phone'] != null) row['phone'].toString(),
+                    if (row['email'] != null) row['email'].toString(),
+                    if (status != null) 'Situação: ' + status,
+                    if (date != null) 'Data: ' + date.toString().split('T').first,
+                    if (amount != null) 'Valor: R\$ ' + amount.toString(),
+                    if (row['active'] == false) 'Inativo',
+                  ];
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: index == visibleRows.length - 1 ? 0 : 6),
+                    child: Card(child: ListTile(
+                      onTap: widget.table == 'customers' ? () => _showCustomerHistory(row) : null,
+                      title: Text(_title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      subtitle: details.isEmpty ? null : Text(details.join(' · '), maxLines: 3, overflow: TextOverflow.ellipsis),
+                      trailing: widget.table == 'rental_quotes' && ['draft', 'sent', 'accepted'].contains(status)
+                          ? PopupMenuButton<String>(
+                              enabled: !_saving,
+                              onSelected: (action) {
+                                if (action == 'sent' || action == 'accepted' || action == 'rejected') {
+                                  _updateQuoteStatus(row, action);
+                                } else if (action == 'convert') {
+                                  _convertQuote(row);
+                                }
+                              },
+                              itemBuilder: (_) => [
+                                if (status == 'draft') const PopupMenuItem(value: 'sent', child: Text('Marcar como enviado')),
+                                if (status == 'draft' || status == 'sent') ...[
+                                  const PopupMenuItem(value: 'accepted', child: Text('Aprovar orçamento')),
+                                  const PopupMenuItem(value: 'rejected', child: Text('Recusar orçamento')),
+                                ],
+                                if (status == 'accepted') const PopupMenuItem(value: 'convert', child: Text('Converter em locação')),
+                              ],
+                            )
+                          : widget.table == 'rentals'
+                              ? IconButton(tooltip: 'Editar locação', onPressed: _saving ? null : () => _openRentalEditor(row), icon: const Icon(Icons.edit_outlined))
+                              : _editable
+                                  ? IconButton(tooltip: 'Editar', onPressed: _saving ? null : () => _openEditor(row), icon: const Icon(Icons.edit_outlined))
+                                  : null,
+                    )),
+                  );
+                },
+                childCount: visibleRows.length,
+              )),
+            ),
+          if (filteredRows.length > pageSize)
+            SliverToBoxAdapter(child: PaginationControls(
+              totalCount: filteredRows.length, page: safePage, pageSize: pageSize,
+              onPageChanged: (nextPage) => setState(() => _page = nextPage),
+            )),
+        ])),
+    );
+  }
 }
