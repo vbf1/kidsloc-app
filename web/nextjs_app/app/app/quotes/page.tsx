@@ -267,15 +267,26 @@ export default function QuotesPage() {
 <section style={{marginTop:16,border:'3px solid #d3eaf6',borderRadius:20,background:'#fff',padding:'18px 20px'}}>
 <h3 style={{margin:0,textAlign:'center',fontSize:19,fontWeight:900,color:'#073d79',textTransform:'uppercase'}}>{doc.description?'DESCRIÇÃO DO PACOTE':'O COMBO INCLUI:'}</h3>
 {doc.description&&<p style={{margin:'10px 0 12px',fontSize:12,lineHeight:1.55,color:'#34536f',whiteSpace:'pre-wrap'}}>{doc.description}</p>}
-<ul style={{margin:'12px 0 0',padding:'0 0 0 24px',listStyle:'disc',color:'#39a83b'}}>
-{lines.map((line:QuoteDocItem,index:number)=><li key={index} style={{padding:'5px 0',fontSize:14,fontWeight:800,color:'#123b68'}}>{line.description??line.name}{Number(line.quantity)>1?' × '+line.quantity:''}</li>)}
-</ul></section>
-{doc.inclusions&&<div style={{marginTop:12,borderRadius:13,background:'#e7f7df',padding:'12px 16px',textAlign:'center',fontSize:13,fontWeight:800,color:'#397a3d'}}>
+<div style={{marginTop:14,display:'grid',gap:10}}>
+{lines.map((line:QuoteDocItem,index:number)=><div key={index} style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto',gap:12,alignItems:'center',border:'2px solid #b8d9eb',borderLeft:'7px solid #0878b8',borderRadius:13,background:'#f4faff',padding:'12px 14px'}}>
+<div style={{minWidth:0}}>
+<p style={{margin:0,fontSize:15,fontWeight:900,lineHeight:1.3,color:'#082f55'}}>{line.description??line.name??'Material'}</p>
+<p style={{margin:'5px 0 0',fontSize:12,fontWeight:700,color:'#294b68'}}>Material locado · Quantidade: {line.quantity}</p>
+{line.unit_price!==undefined&&<p style={{margin:'4px 0 0',fontSize:11,fontWeight:600,color:'#36556f'}}>Unitário: {money(line.unit_price)}</p>}
+</div>
+<div style={{minWidth:88,borderRadius:10,background:'#e0effa',padding:'9px 10px',textAlign:'right'}}>
+<p style={{margin:0,fontSize:10,fontWeight:800,color:'#244765'}}>SUBTOTAL</p>
+<p style={{margin:'3px 0 0',fontSize:14,fontWeight:900,color:'#082f55'}}>{money(line.subtotal??Number(line.quantity)*Number(line.unit_price??0))}</p>
+</div>
+</div>)}
+</div></section>
+{doc.inclusions&&<div style={{marginTop:12,border:'1px solid #9bc98e',borderRadius:13,background:'#eaf7e5',padding:'12px 16px',textAlign:'center',fontSize:13,fontWeight:800,color:'#174b25'}}>
+<p style={{margin:'0 0 5px',fontSize:11,fontWeight:900,textTransform:'uppercase',letterSpacing:'.04em',color:'#174b25'}}>Incluso no serviço</p>
 {doc.inclusions.split(String.fromCharCode(10)).map((v:string)=>v.trim()).filter(Boolean).join('  •  ')}
 </div>}
 <section style={{marginTop:16,display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:12}}>
-<div style={{borderRadius:15,background:'#ffdc2e',padding:'15px 10px',textAlign:'center',color:'#073d79'}}><p style={{margin:0,fontSize:11,fontWeight:900,textTransform:'uppercase'}}>Valor do combo</p><p style={{margin:'6px 0 0',fontSize:24,fontWeight:900}}>{money(pricing.subtotal??printQuote.subtotal)}</p></div>
-<div style={{borderRadius:15,background:'#159fda',padding:'15px 10px',textAlign:'center',color:'#fff'}}><p style={{margin:0,fontSize:11,fontWeight:900,textTransform:'uppercase'}}>Frete</p><p style={{margin:'6px 0 0',fontSize:24,fontWeight:900}}>{money(pricing.delivery_fee??0)}</p></div>
+<div style={{borderRadius:15,background:'#ffdc2e',border:'2px solid #d2a900',padding:'15px 10px',textAlign:'center',color:'#073d79'}}><p style={{margin:0,fontSize:11,fontWeight:900,textTransform:'uppercase'}}>Valor do combo</p><p style={{margin:'6px 0 0',fontSize:24,fontWeight:900}}>{money(pricing.subtotal??printQuote.subtotal)}</p></div>
+<div style={{borderRadius:15,background:'#d9effb',border:'2px solid #159fda',padding:'15px 10px',textAlign:'center',color:'#073d79'}}><p style={{margin:0,fontSize:11,fontWeight:900,textTransform:'uppercase'}}>Frete</p><p style={{margin:'6px 0 0',fontSize:24,fontWeight:900}}>{money(pricing.delivery_fee??0)}</p></div>
 </section>
 {Number(pricing.discount)>0&&<p style={{margin:'10px 0 0',textAlign:'center',fontSize:12,fontWeight:700,color:'#244b70'}}>Desconto aplicado: − {money(pricing.discount??0)}</p>}
 <div style={{marginTop:12,textAlign:'center',fontSize:23,fontWeight:900,color:'#073d79'}}>TOTAL: {money(pricing.total??printQuote.total_amount)}</div>
@@ -283,7 +294,7 @@ export default function QuotesPage() {
 {doc.closing&&<p style={{margin:'14px 4px 0',fontSize:12,lineHeight:1.5,textAlign:'center',color:'#34536f'}}>{doc.closing}</p>}
 <footer style={{marginTop:14,borderTop:'3px solid #d3eaf6',paddingTop:10,textAlign:'center'}}>
 {company.instagram&&<p style={{margin:0,fontSize:12,fontWeight:900,color:'#073d79'}}>Instagram: {company.instagram}</p>}
-<p style={{margin:'5px 0 0',fontSize:10,color:'#56718a'}}>{company.name??companyName} · {company.tagline??'Locação de brinquedos para festas e eventos'}</p>
+<p style={{margin:'5px 0 0',fontSize:11,fontWeight:600,color:'#294b68'}}>{company.name??companyName} · {company.tagline??'Locação de brinquedos para festas e eventos'}</p>
 {company.phone&&<p style={{margin:'4px 0 0',fontSize:10,color:'#56718a'}}>{company.phone}</p>}
 </footer>
 <div className="quote-print-actions mt-6 flex flex-wrap justify-end gap-2"><button onClick={()=>setPrintQuote(null)} className="rounded-xl border px-4 py-2.5 text-sm font-semibold">Fechar</button><button onClick={()=>window.print()} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white">Imprimir / Salvar PDF</button></div>
