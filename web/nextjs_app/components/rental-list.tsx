@@ -42,7 +42,7 @@ export function RentalList({ rentals, loading, totalCount, page, pageSize, onPag
   if (!rentals.length) return <div className="rounded-2xl border border-dashed border-purple-200 bg-white px-5 py-10 text-center"><p className="font-semibold text-gray-800">Nenhuma locação encontrada</p><p className="mt-1 text-sm text-gray-500">Cadastre uma nova locação ou ajuste os filtros de pesquisa.</p></div>;
   return (
     <section aria-label="Lista de locações" className="space-y-4">
-      <div className="hidden overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm md:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm lg:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px] border-collapse text-left text-sm">
             <thead className="bg-purple-50/70 text-xs uppercase tracking-wide text-gray-500">
@@ -63,7 +63,7 @@ export function RentalList({ rentals, loading, totalCount, page, pageSize, onPag
           </table>
         </div>
       </div>
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-3 lg:hidden">
         {rentals.map((rental) => <article key={rental.id} role="button" tabIndex={0} onClick={() => onView(rental)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onView(rental); } }} aria-label={'Ver locação #' + rental.rental_number} className="cursor-pointer rounded-2xl border border-purple-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-400">
           <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-gray-400">Locação #{rental.rental_number}</p><h3 className="mt-1 font-bold text-gray-900">{rental.customer_name}</h3></div><RentalStatus status={rental.status} /></div>
           <p className="mt-3 text-sm text-gray-600">{formatRentalDate(rental.start_date)} – {formatRentalDate(rental.end_date)}</p>
