@@ -15,6 +15,8 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -25,7 +27,7 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
     const firstFocusable = getFocusable()[0];
     (firstFocusable ?? panelRef.current)?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { onClose(); return; }
+      if (event.key === 'Escape') { onCloseRef.current(); return; }
       if (event.key !== 'Tab') return;
       const focusable = getFocusable();
       if (!focusable.length) { event.preventDefault(); panelRef.current?.focus(); return; }
@@ -40,7 +42,7 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
       window.removeEventListener('keydown', onKeyDown);
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   const width = size === 'xl' ? 'max-w-5xl' : size === 'md' ? 'max-w-xl' : 'max-w-3xl';
