@@ -997,6 +997,12 @@ class _RecordsPageState extends State<_RecordsPage> {
           .eq('company_id', widget.companyId).inFilter('rental_id', rentalIds)
           .order('created_at', ascending: false).limit(20);
       contracts = contractResult.map((row) => Map<String, dynamic>.from(row)).toList();
+      for (final contract in contracts) {
+        final expiry = DateTime.tryParse(contract['token_expires_at']?.toString() ?? '');
+        if (['sent', 'viewed'].contains(contract['status']) && expiry != null && expiry.isBefore(DateTime.now())) {
+          contract['status'] = 'expired';
+        }
+      }
       if (widget.canViewFinance) {
         final transactionResult = await client.from('financial_transactions')
             .select('id,amount,status,transaction_type')
@@ -1027,6 +1033,7 @@ class _RecordsPageState extends State<_RecordsPage> {
   Future<void> _showCustomerHistory(Map<String, dynamic> customer) async {
     final customerId = customer['id']?.toString();
     if (customerId == null) return;
+    final historyFuture = _loadCustomerHistory(customerId);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1035,7 +1042,7 @@ class _RecordsPageState extends State<_RecordsPage> {
           width: 480,
           height: 500,
           child: FutureBuilder<Map<String, dynamic>>(
-            future: _loadCustomerHistory(customerId),
+            future: historyFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
               if (snapshot.hasError) return const Center(child: Text('Não foi possível carregar o histórico deste cliente.'));
@@ -1085,10 +1092,7 @@ class _RecordsPageState extends State<_RecordsPage> {
                 Text('Contratos (${contracts.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
                 if (contracts.isEmpty) const Text('Nenhum contrato vinculado às locações.'),
                 ...contracts.map((contract) {
-                  final expired = ['sent', 'viewed'].contains(contract['status']) &&
-                    contract['token_expires_at'] != null &&
-                    DateTime.tryParse(contract['token_expires_at'].toString())?.isBefore(DateTime.now()) == true;
-                  final status = expired ? 'Expirado' : contract['status']?.toString() ?? 'Indefinido';
+                  final status = contract['status'] == 'expired' ? 'Expirado' : contract['status']?.toString() ?? 'Indefinido';
                   return ListTile(
                     dense: true, contentPadding: EdgeInsets.zero,
                     title: Text('Contrato #${contract['contract_number']} · $status'),
