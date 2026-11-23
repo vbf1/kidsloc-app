@@ -26,7 +26,7 @@ export default function CalendarPage(){
  const year=month.getFullYear(),mon=month.getMonth(),first=new Date(year,mon,1).getDay(),days=new Date(year,mon+1,0).getDate();
  const daysWithEvents=useMemo(()=>{const map:Record<string,Rental[]>={};for(const r of rentals){const start=new Date(r.start_date+'T00:00:00'),end=new Date(r.end_date+'T00:00:00');for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){const k=key(d.getFullYear(),d.getMonth(),d.getDate());(map[k]??=[]).push(r);}}return map;},[rentals]);
  const selectedRentals=daysWithEvents[selected]??[];
- const monthRentals=rentals.filter(r=>r.start_date<=key(year,mon+1,0)&&r.end_date>=key(year,mon,1));
+ const monthRentals=rentals.filter(r=>r.start_date<=key(year,mon,days)&&r.end_date>=key(year,mon,1));
  const confirmedMonth=monthRentals.filter(r=>r.status==='confirmed'||r.status==='ongoing').length;
  const pendingMonth=monthRentals.filter(r=>r.status==='pending').length;
  const occupiedDays=Object.keys(daysWithEvents).filter(k=>k.startsWith(`${year}-${pad(mon+1)}-`)).length;
