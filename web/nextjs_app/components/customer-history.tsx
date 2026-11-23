@@ -85,7 +85,12 @@ export function CustomerHistory({ companyId, customerId, canViewFinance }: { com
         ]);
         if (!active) return;
         if (contractResult.error || transactionResult.error) setError('Parte do histórico não pôde ser carregada. Os dados disponíveis continuam exibidos.');
-        setContracts((contractResult.data ?? []) as ContractHistoryRow[]);
+        const contractRows = ((contractResult.data ?? []) as ContractHistoryRow[]).map((contract) => {
+          const expired = ['sent', 'viewed'].includes(contract.status) && contract.token_expires_at
+            && new Date(contract.token_expires_at).getTime() < Date.now();
+          return expired ? { ...contract, status: 'expired' } : contract;
+        });
+        setContracts(contractRows);
         if (canViewFinance) {
           const transactions = (transactionResult.data ?? []) as TransactionHistoryRow[];
           const incomeTransactions = transactions.filter((item) => item.transaction_type === 'income' && item.status !== 'cancelled');
@@ -148,7 +153,7 @@ export function CustomerHistory({ companyId, customerId, canViewFinance }: { com
         <div className="rounded-xl border border-gray-100 p-3 sm:col-span-2">
           <h4 className="text-sm font-bold text-gray-800">Contratos ({contracts.length})</h4>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">{contracts.slice(0, 8).map((contract) => <div key={contract.id} className="rounded-lg bg-gray-50 p-2 text-xs">
-            <div className="flex items-center justify-between gap-2"><strong>Contrato #{contract.contract_number}</strong><span>{contract.status === 'signed' ? 'Assinado' : ['sent', 'viewed'].includes(contract.status) && contract.token_expires_at && new Date(contract.token_expires_at).getTime() < Date.now() ? 'Expirado' : contractStatus[contract.status] ?? contract.status}</span></div>
+            <div className="flex items-center justify-between gap-2"><strong>Contrato #{contract.contract_number}</strong><span>{contractStatus[contract.status] ?? contract.status}</span></div>
             {contract.signed_at && <p className="mt-1 text-gray-500">Assinado em {new Date(contract.signed_at).toLocaleDateString('pt-BR')}</p>}
           </div>)}{!contracts.length && <p className="text-xs text-gray-500">Nenhum contrato vinculado às locações deste cliente.</p>}</div>
         </div>
