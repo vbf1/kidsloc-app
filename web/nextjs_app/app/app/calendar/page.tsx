@@ -26,10 +26,6 @@ export default function CalendarPage(){
  const year=month.getFullYear(),mon=month.getMonth(),first=new Date(year,mon,1).getDay(),days=new Date(year,mon+1,0).getDate();
  const daysWithEvents=useMemo(()=>{const map:Record<string,Rental[]>={};for(const r of rentals){const start=new Date(r.start_date+'T00:00:00'),end=new Date(r.end_date+'T00:00:00');for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){const k=key(d.getFullYear(),d.getMonth(),d.getDate());(map[k]??=[]).push(r);}}return map;},[rentals]);
  const selectedRentals=daysWithEvents[selected]??[];
- const monthRentals=rentals.filter(r=>r.start_date<=key(year,mon,days)&&r.end_date>=key(year,mon,1));
- const confirmedMonth=monthRentals.filter(r=>r.status==='confirmed'||r.status==='ongoing').length;
- const pendingMonth=monthRentals.filter(r=>r.status==='pending').length;
- const occupiedDays=Object.keys(daysWithEvents).filter(k=>k.startsWith(`${year}-${pad(mon+1)}-`)).length;
  const occupiedByProduct=useMemo(()=>{const used:Record<string,number>={};const activeIds=new Set(rentals.filter(r=>['pending','confirmed','ongoing'].includes(r.status)&&r.start_date<=selected&&r.end_date>=selected).map(r=>r.id));for(const item of rentalItems){if(activeIds.has(item.rental_id))used[item.product_id]=(used[item.product_id]??0)+Number(item.quantity||0);}return used;},[rentals,rentalItems,selected]);
 
  function shift(n:number){const d=new Date(year,mon+n,1);setMonth(d);setRentalPage(0);setProductPage(0);}
