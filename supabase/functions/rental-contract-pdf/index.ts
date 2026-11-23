@@ -105,9 +105,10 @@ async function buildPdf(c: ContractRow) {
   page.drawLine({ start: { x: margin, y: y - 2 }, end: { x: 547, y: y - 2 }, thickness: 2, color: purple });
   y -= 18;
 
-  heading("1. IDENTIFICACAO DAS PARTES - LOCADORA");
-  field("Nome / razao social", company.legal_name ?? company.name);
-  field("CNPJ / CPF", company.document);
+  heading(company.legal_type === "individual" ? "1. IDENTIFICACAO DA LOCADORA - PESSOA FISICA" : "1. IDENTIFICACAO DA LOCADORA - PESSOA JURIDICA");
+  field(company.legal_type === "individual" ? "Nome completo do responsavel" : "Razao social", company.legal_name ?? company.name);
+  field(company.legal_type === "individual" ? "CPF do responsavel" : "CNPJ", company.document);
+  if (company.legal_type === "individual") write("Atua sob o nome comercial: " + clean(company.name, 180), { size: 8.5, indent: 5 });
   field("Telefone", company.phone);
   field("E-mail", company.email);
   field("Endereco", company.address);

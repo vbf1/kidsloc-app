@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 type FinanceChartTransaction = {
   id: string;
@@ -32,6 +32,7 @@ function EmptyChart({ children }: { children: React.ReactNode }) {
 }
 
 export function FinanceCharts({ transactions }: { transactions: FinanceChartTransaction[] }) {
+  const [activeChart, setActiveChart] = useState<'comparison' | 'result' | 'expenses'>('comparison');
   const months = useMemo<MonthPoint[]>(() => {
     const now = new Date();
     const points = Array.from({ length: 6 }, (_, index) => {
@@ -91,8 +92,11 @@ export function FinanceCharts({ transactions }: { transactions: FinanceChartTran
         <h2 id="finance-charts-title" className="text-lg font-bold text-slate-900">Visão gráfica</h2>
         <p className="mt-1 text-xs leading-5 text-slate-500">Resumo visual dos lançamentos dos últimos 6 meses, agrupados pelo vencimento (ou data de recebimento, quando não há vencimento).</p>
       </div>
-      <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-        <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Selecionar gráfico">
+        {([{ id: 'comparison', label: 'Receitas x despesas' }, { id: 'result', label: 'Evolução do resultado' }, { id: 'expenses', label: 'Despesas por categoria' }] as const).map(option => <button key={option.id} type="button" aria-pressed={activeChart === option.id} onClick={() => setActiveChart(option.id)} className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition ${activeChart === option.id ? 'border-purple-300 bg-purple-50 text-purple-800' : 'border-slate-200 bg-white text-slate-600 hover:border-purple-200'}`}>{option.label}</button>)}
+      </div>
+      <div className="min-w-0">
+        <article hidden={activeChart !== "comparison"} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h3 className="font-bold text-slate-900">Receitas x despesas</h3>
           <p className="mt-1 text-xs text-slate-500">Comparação mensal dos valores lançados</p>
           {months.some((month) => month.income || month.expense) ? (
@@ -117,7 +121,7 @@ export function FinanceCharts({ transactions }: { transactions: FinanceChartTran
           ) : <EmptyChart>Não há lançamentos com data nos últimos 6 meses para comparar.</EmptyChart>}
         </article>
 
-        <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <article hidden={activeChart !== "result"} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h3 className="font-bold text-slate-900">Evolução do resultado</h3>
           <p className="mt-1 text-xs text-slate-500">Receitas menos despesas em cada mês</p>
           {months.some((month) => month.result !== 0) ? (
@@ -135,7 +139,7 @@ export function FinanceCharts({ transactions }: { transactions: FinanceChartTran
           ) : <EmptyChart>O resultado será exibido quando houver receitas ou despesas lançadas no período.</EmptyChart>}
         </article>
 
-        <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:col-span-2 sm:p-5">
+        <article hidden={activeChart !== "expenses"} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h3 className="font-bold text-slate-900">Distribuição das despesas</h3>
           <p className="mt-1 text-xs text-slate-500">Despesas por categoria nos últimos 6 meses</p>
           {totalExpenses > 0 ? (

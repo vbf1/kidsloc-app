@@ -135,7 +135,7 @@ class _ContractsPageState extends State<ContractsPage> {
       if (!mounted) return;
       setState(() {
         _companyName = company?['name']?.toString() ?? 'Empresa';
-        _companySettings = Map<String, dynamic>.from(company?['contract_settings'] ?? {});
+        _companySettings = {...Map<String, dynamic>.from(company?['contract_settings'] ?? {}), 'legal_type': (company?['contract_settings']?['legal_type'] ?? 'individual')};
         _rentals = rentals;
         _customers = customers;
         _contracts = contractRows.map((e) => Map<String, dynamic>.from(e)).toList();
@@ -271,10 +271,12 @@ class _ContractsPageState extends State<ContractsPage> {
     final email = TextEditingController(text: _companySettings['email']?.toString() ?? '');
     final address = TextEditingController(text: _companySettings['address']?.toString() ?? '');
     final zip = TextEditingController(text: _companySettings['zip']?.toString() ?? '');
+    var legalType = _companySettings['legal_type']?.toString() ?? 'individual';
     final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
       title: const Text('Dados da empresa no contrato'),
       content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        for (final entry in <(String, TextEditingController)>[('Nome da empresa',name),('Razão social',legal),('CNPJ / CPF',document),('Telefone',phone),('E-mail',email),('Endereço',address),('CEP',zip)])
+        Padding(padding: const EdgeInsets.only(bottom: 10), child: DropdownButtonFormField<String>(value: legalType, decoration: const InputDecoration(labelText: 'Tipo de locadora', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'individual', child: Text('Pessoa física (sem CNPJ)')), DropdownMenuItem(value: 'company', child: Text('Pessoa jurídica (com CNPJ)'))], onChanged: (value) { if (value != null) legalType = value; })),
+        for (final entry in <(String, TextEditingController)>[('Nome comercial da empresa',name),('Nome completo do responsável / razão social',legal),('CPF do responsável / CNPJ',document),('Telefone',phone),('E-mail',email),('Endereço',address),('CEP',zip)])
           Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
       ]))),
       actions: [
@@ -284,7 +286,7 @@ class _ContractsPageState extends State<ContractsPage> {
     ));
     if (saved == true && mounted) {
       try {
-        final settings = {'legal_name':legal.text.trim(),'document':document.text.trim(),'phone':phone.text.trim(),'email':email.text.trim(),'address':address.text.trim(),'zip':zip.text.trim()};
+        final settings = {'legal_type':legalType,'legal_name':legal.text.trim(),'document':document.text.trim(),'phone':phone.text.trim(),'email':email.text.trim(),'address':address.text.trim(),'zip':zip.text.trim()};
         await Supabase.instance.client.from('companies').update({'name':name.text.trim(),'contract_settings':settings}).eq('id',widget.companyId);
         setState(() {_companyName=name.text.trim();_companySettings=settings;_notice='Dados da empresa atualizados.';});
       } on PostgrestException catch (e) {setState(() => _error=e.message);}
@@ -374,7 +376,8 @@ class _ContractsPageState extends State<ContractsPage> {
     final lines = <String>[
       'CONTRATO DE LOCAÇÃO #${contract['contract_number']}',
       company['legal_name']?.toString() ?? company['name']?.toString() ?? _companyName,
-      'CNPJ / CPF: ${company['document'] ?? 'Não informado'}',
+      '${company['legal_type'] == 'individual' ? 'CPF do responsável' : 'CNPJ'}: ${company['document'] ?? 'Não informado'}',
+      if (company['legal_type'] == 'individual') 'Atua sob o nome comercial: ${company['name']?.toString() ?? _companyName}',
       'Telefone: ${company['phone'] ?? 'Não informado'}',
       'E-mail: ${company['email'] ?? 'Não informado'}',
       'Endereço: ${company['address'] ?? 'Não informado'} · CEP ${company['zip'] ?? 'Não informado'}',
@@ -434,7 +437,7 @@ class _ContractsPageState extends State<ContractsPage> {
       if (contract['signed_at'] != null) 'Data da assinatura: ${_date(contract['signed_at'])}',
       if (contract['signature_svg'] != null) 'Assinatura eletrônica do cliente: registrada no sistema.',
       '',
-      'LOCADORA – ${company['name']?.toString() ?? _companyName}',
+      'LOCADORA – ${company['legal_name']?.toString() ?? company['name']?.toString() ?? _companyName} (${company['name']?.toString() ?? _companyName})',
       'Assinatura: __________________________________',
       '',
       'LOCATÁRIO – ${customer['name']?.toString() ?? 'Cliente'}',

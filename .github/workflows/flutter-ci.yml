@@ -11,6 +11,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: mobile/flutter_app
@@ -43,6 +44,7 @@ jobs:
           --dart-define=SUPABASE_URL=${{ vars.SUPABASE_URL || 'https://wfwohnssvftegnhwdzmt.supabase.co' }}
           --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ vars.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
       - name: Smoke test on Android emulator
+        timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
@@ -51,7 +53,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 300
           working-directory: mobile/flutter_app
           script: |
             adb install build/app/outputs/flutter-apk/app-debug.apk
