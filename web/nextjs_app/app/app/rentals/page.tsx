@@ -1,5 +1,5 @@
 'use client';
-import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
+import { hasModuleData, setModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -160,20 +160,29 @@ export default function RentalsPage() {
           next.push(responsible.employee_name_snapshot || (responsible.user_id ? profileById.get(responsible.user_id) : undefined) || 'Funcionário');
           responsibleNamesByRental.set(responsible.rental_id, next);
         }
-        setRentals(baseRentals.map((rental) => ({
+        const rentalRecords = baseRentals.map((rental) => ({
           ...rental,
           rental_number: Number(rental.rental_number),
           customer_name: rental.customer_id ? (customerById.get(rental.customer_id)?.name ?? 'Cliente não disponível') : 'Cliente não disponível',
           items: itemsByRental.get(rental.id) ?? [],
           responsible_names: responsibleNamesByRental.get(rental.id) ?? [],
           responsible_user_ids: (responsibleResult.data ?? []).filter((responsible) => responsible.rental_id === rental.id && responsible.user_id).map((responsible) => responsible.user_id as string),
-        })) as RentalRecord[]);
-        setCustomers((customerResult.data ?? []) as RentalCustomer[]);
-        setProducts((productResult.data ?? []) as RentalProduct[]);
+        })) as RentalRecord[];
+        const customerRows = (customerResult.data ?? []) as RentalCustomer[];
+        const productRows = (productResult.data ?? []) as RentalProduct[];
         const membersData = (memberResult.data ?? []).map((member) => ({
           user_id: member.user_id, role: member.role,
           full_name: profileById.get(member.user_id) || (member.user_id === currentUserId ? email : 'Funcionário'),
         })) as RentalMember[];
+        const cached = getWorkspaceSessionCache();
+        const scope = cached?.companyId === companyId ? `${cached.userId}:${cached.companyId}` : '';
+        setModuleData('rentals','records',scope,rentalRecords);
+        setModuleData('rentals','customers',scope,customerRows);
+        setModuleData('rentals','products',scope,productRows);
+        setModuleData('rentals','members',scope,membersData);
+        setRentals(rentalRecords);
+        setCustomers(customerRows);
+        setProducts(productRows);
         setMembers(membersData);
       } catch {
         if (active) setListError('Ocorreu um erro ao carregar as locações. Confira sua conexão e tente novamente.');

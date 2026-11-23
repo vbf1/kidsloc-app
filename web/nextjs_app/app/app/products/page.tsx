@@ -1,5 +1,5 @@
 'use client';
-import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
+import { hasModuleData, setModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -150,11 +150,18 @@ export default function ProductsPage() {
           return { ...product, image_url: signedImage?.signedUrl ?? null };
         }));
         if (!active) return;
+        const cached = getWorkspaceSessionCache();
+        const scope = cached?.companyId === companyId ? `${cached.userId}:${cached.companyId}` : '';
         if (searchTerm) {
           const matches = records.filter((product) => matchesProductSearch(product, searchTerm));
+          const visible = matches.slice(page * pageSize, (page + 1) * pageSize);
+          setModuleData('products','records',scope,visible);
+          setModuleData('products','totalCount',scope,matches.length);
           setTotalCount(matches.length);
-          setProducts(matches.slice(page * pageSize, (page + 1) * pageSize));
+          setProducts(visible);
         } else {
+          setModuleData('products','records',scope,records);
+          setModuleData('products','totalCount',scope,count ?? 0);
           setProducts(records);
           setTotalCount(count ?? 0);
         }
