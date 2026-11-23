@@ -44,7 +44,10 @@ export default function PlatformUsersPage() {
     setLoading(false);
   }, [router]);
 
-  useEffect(() => { void loadUsers(); }, [loadUsers]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => { void loadUsers(); });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loadUsers]);
 
   const filteredUsers = useMemo(() => users.filter((user) => {
     const text = [user.name, user.email, user.phone, user.company, user.role,
