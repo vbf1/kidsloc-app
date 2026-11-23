@@ -225,8 +225,6 @@ export default function PlatformAdminPage() {
 
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId);
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso administrativo...</p></main>;
-
   return (
     <main className="min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
