@@ -277,7 +277,7 @@ export default function QuotesPage() {
 <div style={{borderRadius:15,background:'#ffdc2e',padding:'15px 10px',textAlign:'center',color:'#073d79'}}><p style={{margin:0,fontSize:11,fontWeight:900,textTransform:'uppercase'}}>Valor do combo</p><p style={{margin:'6px 0 0',fontSize:24,fontWeight:900}}>{money(pricing.subtotal??printQuote.subtotal)}</p></div>
 <div style={{borderRadius:15,background:'#159fda',padding:'15px 10px',textAlign:'center',color:'#fff'}}><p style={{margin:0,fontSize:11,fontWeight:900,textTransform:'uppercase'}}>Frete</p><p style={{margin:'6px 0 0',fontSize:24,fontWeight:900}}>{money(pricing.delivery_fee??0)}</p></div>
 </section>
-{Number(pricing.discount)>0&&<p style={{margin:'10px 0 0',textAlign:'center',fontSize:12,fontWeight:700,color:'#244b70'}}>Desconto aplicado: − {money(pricing.discount)}</p>}
+{Number(pricing.discount)>0&&<p style={{margin:'10px 0 0',textAlign:'center',fontSize:12,fontWeight:700,color:'#244b70'}}>Desconto aplicado: − {money(pricing.discount??0)}</p>}
 <div style={{marginTop:12,textAlign:'center',fontSize:23,fontWeight:900,color:'#073d79'}}>TOTAL: {money(pricing.total??printQuote.total_amount)}</div>
 {s.notes&&<div style={{marginTop:12,borderRadius:10,background:'#fff',padding:12,fontSize:11,color:'#34536f'}}><strong>Observações:</strong><p style={{margin:'5px 0 0',whiteSpace:'pre-wrap'}}>{s.notes}</p></div>}
 {doc.closing&&<p style={{margin:'14px 4px 0',fontSize:12,lineHeight:1.5,textAlign:'center',color:'#34536f'}}>{doc.closing}</p>}
