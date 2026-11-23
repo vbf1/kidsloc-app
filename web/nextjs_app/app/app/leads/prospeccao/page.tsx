@@ -338,7 +338,7 @@ export default function LeadProspectingPage() {
   if (error && !workspace) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc] px-5"><section className="w-full max-w-lg rounded-2xl border border-purple-100 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • Prospecção</p><h1 className="mt-2 text-2xl font-bold">Acesso não disponível</h1><p role="alert" className="mt-3 text-sm leading-6 text-gray-600">{error}</p><Link href="/app/leads/" className="mt-5 inline-flex rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-semibold text-white">Voltar ao LeadFesta</Link></section></main>;
 
   return <AppShell companyName={workspace?.companyName ?? ''} email={workspace?.email ?? ''} role={workspace?.role} companyId={workspace?.companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={false} onSignOut={() => { void supabase?.auth.signOut().then(() => window.location.assign((process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/login/')); }}>
-    <div className="space-y-6">
+    <div className="kl-workspace-refresh space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8054d8]">LeadFesta • captação de oportunidades</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Encontrar clientes interessados</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Pesquise manifestações públicas de pessoas procurando produtos ou serviços e registre oportunidades no funil da empresa ativa.</p></div>
         <Link href="/app/leads/" className={secondary}>← Voltar ao CRM</Link>

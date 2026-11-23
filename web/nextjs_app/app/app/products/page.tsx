@@ -281,7 +281,7 @@ export default function ProductsPage() {
   if (!companyId) return null;
   return (
     <AppShell companyName={companyName} email={email} role={role} companyId={companyId ?? undefined} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
-      <section aria-labelledby="products-title">
+      <section className="kl-workspace-refresh" aria-labelledby="products-title">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Gestão da empresa</p><h1 id="products-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Catálogo</h1><p className="mt-2 text-sm text-gray-500">Organize brinquedos, máquinas, serviços, preços e disponibilidade.</p></div>
           {!formOpen && <button type="button" onClick={openNewProduct} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Novo item</button>}

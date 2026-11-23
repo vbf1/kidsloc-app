@@ -205,7 +205,7 @@ export default function CustomersPage() {
 
   return (
     <AppShell companyName={companyName} email={email} role={role} companyId={companyId ?? undefined} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''} signingOut={signingOut} onSignOut={signOut}>
-      <section aria-labelledby="customers-title">
+      <section className="kl-workspace-refresh" aria-labelledby="customers-title">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Gestão da empresa</p>

@@ -315,3 +315,72 @@ body { overflow-x: clip; }
   }
   .quote-print-actions { display: none !important; }
 }
+
+/* Refinamento visual unificado das páginas operacionais restantes. */
+.kl-workspace-refresh {
+  --kl-workspace-border: #e9e5f0;
+  --kl-workspace-shadow: 0 8px 26px rgb(39 24 70 / 5%);
+  width: 100%;
+  min-width: 0;
+  color: #272238;
+}
+.kl-workspace-refresh > :first-child h1,
+.kl-workspace-refresh h1 {
+  color: #241d35;
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -.045em;
+}
+.kl-workspace-refresh > :first-child p,
+.kl-workspace-refresh > header p {
+  line-height: 1.65;
+}
+.kl-workspace-refresh > :first-child {
+  margin-bottom: 1.35rem;
+}
+.kl-workspace-refresh > form,
+.kl-workspace-refresh > section,
+.kl-workspace-refresh > article,
+.kl-workspace-refresh [class~="bg-white"][class*="border"] {
+  border-color: var(--kl-workspace-border);
+  box-shadow: var(--kl-workspace-shadow);
+}
+.kl-workspace-refresh > form {
+  border-radius: 18px;
+  padding: 14px;
+  background: #fff;
+}
+.kl-workspace-refresh > section {
+  border-radius: 20px;
+}
+.kl-workspace-refresh article {
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.kl-workspace-refresh article:hover {
+  border-color: #d8c9ef;
+  box-shadow: 0 10px 28px rgb(39 24 70 / 8%);
+}
+.kl-workspace-refresh :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: #e5dfed;
+  border-radius: 12px;
+  background-color: #fff;
+}
+.kl-workspace-refresh :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: #8054d8;
+  box-shadow: 0 0 0 3px rgb(128 84 216 / 10%);
+}
+.kl-workspace-refresh button {
+  -webkit-tap-highlight-color: transparent;
+}
+.kl-workspace-refresh :is(button, a):focus-visible {
+  outline: 3px solid rgb(128 84 216 / 22%);
+  outline-offset: 2px;
+}
+.kl-workspace-refresh [class*="rounded-full"][class*="px-"] {
+  letter-spacing: .01em;
+}
+@media (max-width: 640px) {
+  .kl-workspace-refresh > form { padding: 11px; }
+  .kl-workspace-refresh > :first-child { margin-bottom: 1.1rem; }
+}

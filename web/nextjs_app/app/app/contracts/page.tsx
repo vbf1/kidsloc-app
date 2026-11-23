@@ -111,7 +111,7 @@ export default function ContractsPage(){
  async function signOut(){if(supabase){await supabase.auth.signOut();router.push('/login/');}}
  if(loading)return <main className="grid min-h-screen place-items-center text-sm text-slate-500">Carregando contratos...</main>;
  return <AppShell companyName={companyName} email={email} role={role} companyId={companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH??''} signingOut={false} onSignOut={signOut}>
-  <section className="mx-auto w-full min-w-0 max-w-6xl space-y-6 pb-8">
+  <section className="kl-workspace-refresh mx-auto w-full min-w-0 max-w-6xl space-y-6 pb-8">
    <header className="space-y-2">
     <p className="text-xs font-bold uppercase tracking-[.18em] text-[#8054d8]">Documentos da empresa</p>
     <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">

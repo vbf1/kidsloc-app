@@ -341,7 +341,7 @@ export default function LeadFestaPage() {
   }
 
   const content = (
-    <div className="space-y-6">
+    <div className="kl-workspace-refresh space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">KidsLoc • módulo comercial</p>
