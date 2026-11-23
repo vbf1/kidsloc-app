@@ -135,7 +135,7 @@ class _ContractsPageState extends State<ContractsPage> {
       if (!mounted) return;
       setState(() {
         _companyName = company?['name']?.toString() ?? 'Empresa';
-        _companySettings = Map<String, dynamic>.from(company?['contract_settings'] ?? {});
+        _companySettings = {...Map<String, dynamic>.from(company?['contract_settings'] ?? {}), 'legal_type': (company?['contract_settings']?['legal_type'] ?? 'individual')};
         _rentals = rentals;
         _customers = customers;
         _contracts = contractRows.map((e) => Map<String, dynamic>.from(e)).toList();
