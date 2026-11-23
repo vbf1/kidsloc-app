@@ -126,8 +126,8 @@ export function FinanceCharts({ transactions }: { transactions: FinanceChartTran
               <div className="relative h-44 border-b border-slate-200">
                 <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-slate-300" />
                 <svg viewBox="0 0 600 160" preserveAspectRatio="none" className="h-full w-full overflow-visible" role="img" aria-label="Gráfico de linha do resultado mensal">
-                  <polyline fill="none" stroke="#8054d8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" points={months.map((month, index) => `${index * 120 + 60},${80 - (month.result / maxAbsResult) * 65}`).join(' ')} />
-                  {months.map((month, index) => <circle key={month.key} cx={index * 120 + 60} cy={80 - (month.result / maxAbsResult) * 65} r="5" fill="#8054d8"><title>{`${month.label}: ${currency(month.result)}`}</title></circle>)}
+                  <polyline fill="none" stroke="#8054d8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" points={months.map((month, index) => `${index * 100 + 50},${80 - (month.result / maxAbsResult) * 65}`).join(' ')} />
+                  {months.map((month, index) => <circle key={month.key} cx={index * 100 + 50} cy={80 - (month.result / maxAbsResult) * 65} r="5" fill="#8054d8"><title>{`${month.label}: ${currency(month.result)}`}</title></circle>)}
                 </svg>
               </div>
               <div className="mt-2 grid grid-cols-6 gap-1 text-center text-[10px] capitalize text-slate-500">{months.map((month) => <span key={month.key}>{month.label}</span>)}</div>
