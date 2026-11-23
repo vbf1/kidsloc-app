@@ -188,27 +188,104 @@ export default function AppHomePage() {
     <AppShell companyName={workspace.companyName} email={workspace.email} role={workspace.role}
       companyId={workspace.companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ''}
       signingOut={signingOut} onSignOut={signOut}>
-      <section aria-labelledby="workspace-title">
-        <div className="mb-6">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Painel de operação</p>
-          <h1 id="workspace-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Olá! Vamos organizar o dia?</h1>
-          <p className="mt-2 text-sm text-gray-500">{workspace.companyName} · {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-        </div>
-        {statsError && <p role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{statsError}</p>}
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          {[{label:'Locações hoje',value:stats?.rentalsToday,href:'/app/calendar/',tone:'text-emerald-700',hint:'Ver agenda'},{label:'Próximos 7 dias',value:stats?.rentalsNext7Days,href:'/app/calendar/',tone:'text-blue-700',hint:'Planejar eventos'},{label:'Orçamentos em aberto',value:stats?.pendingQuotes,href:'/app/quotes/',tone:'text-amber-700',hint:'Acompanhar propostas'},...(workspace.role==='admin'?[{label:'A receber',value:stats?formatCurrency(stats.pendingReceivables):undefined,href:'/app/finance/',tone:'text-purple-700',hint:'Abrir financeiro'}]:[])].map(item=><Link key={item.label} href={item.href} className="rounded-2xl border border-purple-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><p className="text-xs font-semibold text-gray-500">{item.label}</p><p className={`mt-2 text-2xl font-extrabold tracking-tight ${item.tone}`}>{statsLoading||item.value===undefined?'...':item.value}</p><p className="mt-2 text-xs font-semibold text-[#8054d8]">{item.hint} →</p></Link>)}
-        </div>
-        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
-          <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Próximos eventos</h2><p className="mt-1 text-xs text-gray-500">Locações programadas a partir de hoje.</p></div><Link href="/app/calendar/" className="text-sm font-semibold text-[#8054d8]">Ver agenda</Link></div>
-            {statsLoading?<p className="mt-4 text-sm text-gray-500">Carregando agenda...</p>:recentRentals.length?<ul className="mt-3 divide-y divide-gray-100">{recentRentals.map(rental=><li key={rental.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-semibold text-gray-900">Locação #{rental.rental_number}</p><p className="mt-1 text-xs text-gray-500">{formatDate(rental.start_date)} · {rentalStatus(rental.status)}</p></div><p className="text-sm font-semibold text-gray-800">{formatCurrency(Number(rental.total_amount)||0)}</p></li>)}</ul>:<p className="mt-4 rounded-xl bg-purple-50/70 px-4 py-5 text-sm text-gray-600">Nenhum evento futuro programado. Aproveite para organizar a agenda.</p>}
-          </div>
-          <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-lg font-bold">Acesso rápido</h2><p className="mt-1 text-xs text-gray-500">Atalhos para as tarefas mais comuns.</p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {[{label:'Nova locação',href:'/app/rentals/',symbol:'＋'},{label:'Novo orçamento',href:'/app/quotes/',symbol:'▤'},{label:'Novo cliente',href:'/app/customers/',symbol:'♙'},{label:'Abrir agenda',href:'/app/calendar/',symbol:'▦'}].map(item=><Link key={item.label} href={item.href} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-4 text-sm font-semibold text-gray-700 transition hover:border-purple-200 hover:bg-purple-50"><span className="mb-2 block text-xl text-[#8054d8]">{item.symbol}</span>{item.label}<span className="mt-1 block text-xs text-[#8054d8]">Acessar →</span></Link>)}
+      <section aria-labelledby="workspace-title" className="space-y-5 sm:space-y-6">
+        <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#7043c5] via-[#7043c5] to-[#503092] px-5 py-6 text-white shadow-[0_14px_34px_rgba(91,54,157,0.18)] sm:px-7 sm:py-7">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full border-[28px] border-white/[0.06]" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 right-28 size-44 rounded-full bg-[#ffd45a]/10 blur-2xl" />
+          <div className="relative flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.19em] text-[#ffe18a]">Painel de operação</p>
+              <h1 id="workspace-title" className="mt-2 max-w-2xl text-[26px] font-extrabold leading-tight tracking-tight sm:text-3xl">Olá! Vamos organizar o dia?</h1>
+              <p className="mt-2 text-sm text-white/75">{workspace.companyName}</p>
             </div>
-            {workspace.role==='admin'&&<div className="mt-4 rounded-xl bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-800">Atenção financeira</p><p className="mt-1 text-sm text-amber-900">Você tem {statsLoading?'...':formatCurrency(stats?.pendingReceivables??0)} em receitas pendentes.</p><Link href="/app/finance/" className="mt-2 inline-block text-xs font-bold text-amber-800">Conferir recebimentos →</Link></div>}
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/65">Hoje</p>
+              <p className="mt-1 text-sm font-bold capitalize">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            </div>
+          </div>
+        </div>
+
+        {statsError && <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{statsError}</p>}
+
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-extrabold tracking-tight text-[#262238]">Resumo da operação</h2>
+              <p className="mt-0.5 text-xs text-[#777187]">Acompanhe os números mais importantes.</p>
+            </div>
+            <span className="rounded-full bg-[#f3edff] px-3 py-1 text-[10px] font-bold text-[#7043c5]">Visão geral</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {[
+              {label:'Locações hoje',value:stats?.rentalsToday,href:'/app/calendar/',hint:'Agenda do dia',symbol:'◷',tone:'bg-emerald-50 text-emerald-700',number:'text-emerald-700'},
+              {label:'Próximos 7 dias',value:stats?.rentalsNext7Days,href:'/app/calendar/',hint:'Eventos próximos',symbol:'▦',tone:'bg-blue-50 text-blue-700',number:'text-blue-700'},
+              {label:'Orçamentos abertos',value:stats?.pendingQuotes,href:'/app/quotes/',hint:'Propostas pendentes',symbol:'▤',tone:'bg-amber-50 text-amber-700',number:'text-amber-700'},
+              ...(workspace.role==='admin'?[{label:'A receber',value:stats?formatCurrency(stats.pendingReceivables):undefined,href:'/app/finance/',hint:'Ver financeiro',symbol:'R$',tone:'bg-[#f3edff] text-[#7043c5]',number:'text-[#7043c5]'}]:[]),
+            ].map(item=><Link key={item.label} href={item.href} className="group min-w-0 rounded-2xl border border-[#e9e4f1] bg-white p-3.5 shadow-[0_4px_16px_rgba(39,24,70,0.035)] transition duration-200 hover:-translate-y-0.5 hover:border-[#d6c7ef] hover:shadow-[0_9px_24px_rgba(39,24,70,0.08)] sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="min-w-0 text-[11px] font-bold leading-4 text-[#777187] sm:text-xs">{item.label}</p>
+                <span className={`grid size-8 shrink-0 place-items-center rounded-xl text-xs font-black ${item.tone}`}>{item.symbol}</span>
+              </div>
+              <p className={`mt-3 truncate text-[25px] font-extrabold leading-none tracking-tight ${item.number}`}>{statsLoading||item.value===undefined?'…':item.value}</p>
+              <p className="mt-2 flex items-center gap-1 text-[10px] font-bold text-[#7043c5] sm:text-[11px]"><span>{item.hint}</span><span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span></p>
+            </Link>)}
+          </div>
+        </div>
+
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(270px,0.85fr)]">
+          <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e9e4f1] bg-white shadow-[0_4px_16px_rgba(39,24,70,0.035)]" aria-labelledby="upcoming-title">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f0edf4] px-4 py-4 sm:px-5">
+              <div>
+                <h2 id="upcoming-title" className="text-base font-extrabold tracking-tight text-[#262238]">Próximos eventos</h2>
+                <p className="mt-1 text-xs text-[#777187]">Suas próximas locações em ordem de data.</p>
+              </div>
+              <Link href="/app/calendar/" className="rounded-xl px-3 py-2 text-xs font-extrabold text-[#7043c5] transition hover:bg-[#f3edff]">Ver agenda <span aria-hidden="true">→</span></Link>
+            </div>
+            {statsLoading?<div className="space-y-3 p-5" aria-label="Carregando agenda"><div className="h-14 animate-pulse rounded-xl bg-[#f5f3f8]" /><div className="h-14 animate-pulse rounded-xl bg-[#f5f3f8]" /></div>:recentRentals.length?<ul className="divide-y divide-[#f1eef5] px-4 sm:px-5">
+              {recentRentals.map(rental=><li key={rental.id} className="flex min-w-0 items-center gap-3 py-3.5">
+                <div className="grid size-12 shrink-0 content-center justify-items-center rounded-xl bg-[#f5f0ff] text-[#7043c5]">
+                  <span className="text-lg font-extrabold leading-none">{new Date(`${rental.start_date}T00:00:00`).toLocaleDateString('pt-BR',{day:'2-digit'})}</span>
+                  <span className="mt-1 text-[9px] font-extrabold uppercase tracking-wider">{new Date(`${rental.start_date}T00:00:00`).toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[#262238]">Locação #{rental.rental_number}</p>
+                  <p className="mt-1 text-xs text-[#777187]">{formatDate(rental.start_date)}</p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${rental.status==='confirmed'?'bg-emerald-50 text-emerald-700':rental.status==='in_progress'?'bg-blue-50 text-blue-700':'bg-amber-50 text-amber-700'}`}>{rentalStatus(rental.status)}</span>
+                  <span className="text-xs font-extrabold text-[#393348]">{formatCurrency(Number(rental.total_amount)||0)}</span>
+                </div>
+              </li>)}
+            </ul>:<div className="px-5 py-9 text-center">
+              <span className="mx-auto grid size-11 place-items-center rounded-2xl bg-[#f3edff] text-xl text-[#7043c5]" aria-hidden="true">▦</span>
+              <p className="mt-3 text-sm font-bold text-[#393348]">Agenda livre por enquanto</p>
+              <p className="mt-1 text-xs text-[#777187]">Quando houver novas locações, elas aparecerão aqui.</p>
+              <Link href="/app/rentals/" className="mt-4 inline-flex rounded-xl bg-[#7043c5] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#5931a8]">Cadastrar locação</Link>
+            </div>}
+          </section>
+
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-[#e9e4f1] bg-white p-4 shadow-[0_4px_16px_rgba(39,24,70,0.035)] sm:p-5" aria-labelledby="quick-title">
+              <h2 id="quick-title" className="text-base font-extrabold tracking-tight text-[#262238]">Acesso rápido</h2>
+              <p className="mt-1 text-xs text-[#777187]">Atalhos para tarefas frequentes.</p>
+              <div className="mt-4 grid grid-cols-2 gap-2.5">
+                {[{label:'Nova locação',href:'/app/rentals/',symbol:'＋',desc:'Registrar evento'},{label:'Novo orçamento',href:'/app/quotes/',symbol:'▤',desc:'Enviar proposta'},{label:'Novo cliente',href:'/app/customers/',symbol:'♙',desc:'Adicionar contato'},{label:'Abrir agenda',href:'/app/calendar/',symbol:'▦',desc:'Ver calendário'}].map(item=><Link key={item.label} href={item.href} className="group min-w-0 rounded-xl border border-[#eeeaf4] bg-[#fcfbfe] p-3 transition hover:border-[#d6c7ef] hover:bg-[#f8f5ff]">
+                  <span className="grid size-8 place-items-center rounded-lg bg-[#f0e9ff] text-lg font-bold text-[#7043c5]">{item.symbol}</span>
+                  <span className="mt-2 block text-xs font-extrabold text-[#393348]">{item.label}</span>
+                  <span className="mt-0.5 block text-[10px] text-[#777187]">{item.desc}</span>
+                </Link>)}
+              </div>
+            </section>
+            {workspace.role==='admin'&&<section className="rounded-2xl border border-[#f2df9e] bg-gradient-to-br from-[#fff9e8] to-[#fffdf7] p-4 sm:p-5" aria-labelledby="finance-attention-title">
+              <div className="flex items-start gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#ffedb5] text-sm font-black text-[#8b6410]">R$</span>
+                <div className="min-w-0">
+                  <h2 id="finance-attention-title" className="text-sm font-extrabold text-[#6f5010]">Atenção financeira</h2>
+                  <p className="mt-1 text-xs leading-5 text-[#80672c]">Você tem <strong>{statsLoading?'…':formatCurrency(stats?.pendingReceivables??0)}</strong> em receitas pendentes.</p>
+                  <Link href="/app/finance/" className="mt-2 inline-flex text-xs font-extrabold text-[#79570e] hover:underline">Conferir recebimentos <span aria-hidden="true" className="ml-1">→</span></Link>
+                </div>
+              </div>
+            </section>}
           </div>
         </div>
       </section>
