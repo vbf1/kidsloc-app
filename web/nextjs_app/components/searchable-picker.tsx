@@ -26,9 +26,10 @@ export function SearchablePicker({
   const [search, setSearch] = useState('');
   const selected = options.find((option) => option.value === value);
   const filtered = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('pt-BR');
+    const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+    const term = normalize(search.trim());
     if (!term) return options;
-    return options.filter((option) => `${option.label} ${option.description ?? ''}`.toLocaleLowerCase('pt-BR').includes(term));
+    return options.filter((option) => normalize(`${option.label} ${option.description ?? ''}`).includes(term));
   }, [options, search]);
 
   useEffect(() => {
