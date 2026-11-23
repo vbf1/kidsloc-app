@@ -455,6 +455,14 @@ class _HomePageState extends State<HomePage> {
   bool _loading = true;
   String? _error;
   final Map<String, int> _counts = {};
+  int _rentalsToday = 0;
+  int _rentalsNext7Days = 0;
+  int _pendingQuotes = 0;
+  double _pendingReceivables = 0;
+  List<Map<String, dynamic>> _upcomingRentals = [];
+  bool _dashboardLoading = true;
+  String? _dashboardError;
+  int _dashboardRefreshToken = 0;
   CompanyRealtimeSubscription? _realtime;
   String? _realtimeCompanyId;
   static const _modules = [
@@ -513,6 +521,7 @@ class _HomePageState extends State<HomePage> {
       });
       // Não bloqueia a abertura do painel aguardando contagens secundárias.
       unawaited(_refreshCounts(companyId, role));
+      unawaited(_refreshDashboard(companyId, role));
     } on PostgrestException catch (_) {
       if (mounted) setState(() {
         _error = 'Não foi possível carregar os módulos. Verifique sua conexão e as permissões.';
@@ -570,6 +579,79 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  String _dateKey(DateTime value) =>
+      '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+
+  Future<void> _refreshDashboard(String companyId, String role) async {
+    final requestToken = ++_dashboardRefreshToken;
+    final now = DateTime.now();
+    final today = _dateKey(now);
+    final nextWeek = _dateKey(now.add(const Duration(days: 7)));
+    try {
+      final client = Supabase.instance.client;
+      final results = await Future.wait<dynamic>([
+        client.from('rentals').select('id')
+            .eq('company_id', companyId).eq('start_date', today).neq('status', 'cancelled'),
+        client.from('rentals').select('id')
+            .eq('company_id', companyId).gte('start_date', today).lte('start_date', nextWeek).neq('status', 'cancelled'),
+        client.from('rentals').select('id,rental_number,start_date,status,total_amount')
+            .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled')
+            .order('start_date').limit(5),
+        client.from('rental_quotes').select('id')
+            .eq('company_id', companyId).inFilter('status', ['draft', 'sent']),
+        role == 'admin'
+            ? client.from('financial_transactions').select('amount,status,transaction_type')
+                .eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            : Future.value(<dynamic>[]),
+      ]);
+      if (!mounted || requestToken != _dashboardRefreshToken || _companyId != companyId) return;
+      final financeRows = results[4] as List<dynamic>;
+      final pending = role == 'admin'
+          ? financeRows.where((row) => row['status'] == 'pending')
+              .fold<double>(0, (sum, row) => sum + ((row['amount'] as num?)?.toDouble() ?? 0))
+          : 0.0;
+      setState(() {
+        _rentalsToday = (results[0] as List<dynamic>).length;
+        _rentalsNext7Days = (results[1] as List<dynamic>).length;
+        _upcomingRentals = (results[2] as List<dynamic>)
+            .map((row) => Map<String, dynamic>.from(row)).toList();
+        _pendingQuotes = (results[3] as List<dynamic>).length;
+        _pendingReceivables = pending;
+        _dashboardError = null;
+        _dashboardLoading = false;
+      });
+    } catch (_) {
+      if (mounted && requestToken == _dashboardRefreshToken && _companyId == companyId) {
+        setState(() {
+          _dashboardError = 'Não foi possível atualizar os indicadores do painel.';
+          _dashboardLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openQuickAction(String action) async {
+    final companyId = _companyId;
+    if (companyId == null) return;
+    if (action == 'new_rental') {
+      await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (_) => RentalCreatePage(companyId: companyId),
+      ));
+    } else if (action == 'new_quote') {
+      await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (_) => QuoteCreatePage(companyId: companyId),
+      ));
+    } else if (action == 'new_customer') {
+      await _openModule('Clientes', 'customers');
+    } else if (action == 'calendar') {
+      await _openModule('Agenda', 'rentals');
+    }
+    if (mounted && _companyId == companyId) {
+      unawaited(_refreshDashboard(companyId, _role));
+      unawaited(_refreshCounts(companyId, _role));
+    }
+  }
+
   void _subscribeToCompany(String companyId) {
     if (_realtimeCompanyId == companyId && _realtime != null) return;
     _realtime?.dispose();
@@ -584,7 +666,11 @@ class _HomePageState extends State<HomePage> {
         'rental_quotes', 'rental_quote_items', 'rental_contracts',
         'financial_transactions', 'payments', 'leads', 'lead_activities',
       ],
-      onChange: () { if (mounted) unawaited(_refreshCounts(companyId, _role)); },
+      onChange: () {
+        if (!mounted) return;
+        unawaited(_refreshCounts(companyId, _role));
+        unawaited(_refreshDashboard(companyId, _role));
+      },
     );
   }
 
@@ -618,8 +704,11 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => _RecordsPage(title: title, table: table, companyId: _companyId!),
       ));
     }
-    // A tela inicial permanece montada durante a navegação; não recarregue
-    // associação e contadores ao retornar de um módulo.
+    // A tela inicial permanece montada; atualize apenas os dados operacionais.
+    if (mounted && _companyId != null) {
+      unawaited(_refreshDashboard(_companyId!, _role));
+      unawaited(_refreshCounts(_companyId!, _role));
+    }
   }
 
   @override
@@ -644,36 +733,129 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 16),
         if (_error != null) Card(color: Theme.of(context).colorScheme.errorContainer,
           child: Padding(padding: const EdgeInsets.all(16), child: Text(_error!))),
+        Text('O que precisa de atenção?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        GridView.count(
+          shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.65,
+          children: [
+            _DashboardMetric(title: 'Locações hoje', value: _dashboardLoading ? '...' : '$_rentalsToday', hint: 'Ver agenda', icon: Icons.today_outlined, onTap: () => _openQuickAction('calendar')),
+            _DashboardMetric(title: 'Próximos 7 dias', value: _dashboardLoading ? '...' : '$_rentalsNext7Days', hint: 'Planejar eventos', icon: Icons.event_available_outlined, onTap: () => _openQuickAction('calendar')),
+            _DashboardMetric(title: 'Orçamentos em aberto', value: _dashboardLoading ? '...' : '$_pendingQuotes', hint: 'Acompanhar propostas', icon: Icons.request_quote_outlined, onTap: () => _openModule('Orçamentos', 'rental_quotes')),
+            if (_role == 'admin') _DashboardMetric(title: 'A receber', value: _dashboardLoading ? '...' : _currency(_pendingReceivables), hint: 'Abrir financeiro', icon: Icons.account_balance_wallet_outlined, onTap: () => _openModule('Financeiro', 'financial_transactions')),
+          ],
+        ),
+        if (_dashboardError != null) Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(_dashboardError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ),
+        const SizedBox(height: 18),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Próximos eventos', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Locações programadas a partir de hoje.', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 8),
+            if (_dashboardLoading) const LinearProgressIndicator(),
+            if (!_dashboardLoading && _upcomingRentals.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Nenhum evento futuro programado.')),
+            ..._upcomingRentals.map((rental) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Locação #${rental['rental_number']}'),
+              subtitle: Text('${_dateLabel(rental['start_date']?.toString())} · ${_statusLabel(rental['status']?.toString())}'),
+              trailing: Text(_currency((rental['total_amount'] as num?)?.toDouble() ?? 0), style: const TextStyle(fontWeight: FontWeight.w600)),
+            )),
+            Align(alignment: Alignment.centerRight, child: TextButton(
+              onPressed: () => _openQuickAction('calendar'), child: const Text('Ver agenda'),
+            )),
+          ],
+        ))),
+        const SizedBox(height: 16),
+        Text('Acesso rápido', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonalIcon(onPressed: () => _openQuickAction('new_rental'), icon: const Icon(Icons.add), label: const Text('Nova locação')),
+          FilledButton.tonalIcon(onPressed: () => _openQuickAction('new_quote'), icon: const Icon(Icons.request_quote_outlined), label: const Text('Novo orçamento')),
+          OutlinedButton.icon(onPressed: () => _openQuickAction('new_customer'), icon: const Icon(Icons.person_add_alt_1), label: const Text('Novo cliente')),
+          OutlinedButton.icon(onPressed: () => _openQuickAction('calendar'), icon: const Icon(Icons.calendar_month), label: const Text('Agenda')),
+        ]),
+        const SizedBox(height: 18),
         Text('Módulos de gestão', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
-        GridView.builder(
-          shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-          itemCount: _visibleModules.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.3),
-          itemBuilder: (context, index) {
-            final module = _visibleModules[index];
-            return Card(clipBehavior: Clip.antiAlias, child: InkWell(
-              onTap: () => _openModule(module[0], module[1]),
-              child: Padding(padding: const EdgeInsets.all(14), child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Icon(Icons.dashboard_customize_outlined, size: 27),
-                  Text(module[0], style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text((_counts[module[0]] ?? 0).toString() + ' registros',
-                    style: Theme.of(context).textTheme.bodySmall),
-                ],
-              )),
-            ));
-          },
-        ),
+        LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 900 ? 4 : constraints.maxWidth >= 600 ? 3 : 2;
+          return GridView.builder(
+            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+            itemCount: _visibleModules.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.3),
+            itemBuilder: (context, index) {
+              final module = _visibleModules[index];
+              return Card(clipBehavior: Clip.antiAlias, child: InkWell(
+                onTap: () => _openModule(module[0], module[1]),
+                child: Padding(padding: const EdgeInsets.all(14), child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Icon(Icons.dashboard_customize_outlined, size: 27),
+                    Text(module[0], style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text((_counts[module[0]] ?? 0).toString() + ' registros',
+                      style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                )),
+              ));
+            },
+          );
+        }),
         const SizedBox(height: 16),
         const Text('Os dados são compartilhados com a versão web e respeitam as permissões da sua empresa.', textAlign: TextAlign.center),
       ]),
     ),
   );
 }
+
+class _DashboardMetric extends StatelessWidget {
+  const _DashboardMetric({required this.title, required this.value, required this.hint, required this.icon, required this.onTap});
+  final String title;
+  final String value;
+  final String hint;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+            Text(hint, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+          ]),
+        ]),
+      ),
+    ),
+  );
+}
+
+String _currency(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+String _dateLabel(String? value) {
+  if (value == null || value.isEmpty) return 'Data não informada';
+  final parts = value.split('-');
+  return parts.length == 3 ? '${parts[2]}/${parts[1]}/${parts[0]}' : value;
+}
+String _statusLabel(String? value) => switch (value) {
+  'pending' => 'Pendente',
+  'confirmed' => 'Confirmada',
+  'ongoing' || 'in_progress' => 'Em andamento',
+  'completed' => 'Concluída',
+  _ => value ?? 'Situação não informada',
+};
 
 class _RecordsPage extends StatefulWidget {
   const _RecordsPage({required this.title, required this.table, required this.companyId});
