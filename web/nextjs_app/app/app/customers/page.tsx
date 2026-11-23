@@ -1,5 +1,5 @@
 'use client';
-import { hasModuleData, useModuleData } from '../../../lib/module-data-cache';
+import { hasModuleData, setModuleData, useModuleData } from '../../../lib/module-data-cache';
 import { useCompanyRealtimeRefresh } from '../../../lib/use-company-realtime';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -117,11 +117,18 @@ export default function CustomersPage() {
         if (!active) return;
         if (error) { setListError('Não foi possível carregar os clientes. Tente novamente.'); return; }
         const records = (data ?? []) as CustomerRecord[];
+        const cached = getWorkspaceSessionCache();
+        const scope = cached?.companyId === companyId ? `${cached.userId}:${cached.companyId}` : '';
         if (searchTerm) {
           const matches = records.filter((customer) => matchesCustomerSearch(customer, searchTerm));
+          const visible = matches.slice(page * pageSize, (page + 1) * pageSize);
+          setModuleData('customers','records',scope,visible);
+          setModuleData('customers','totalCount',scope,matches.length);
           setTotalCount(matches.length);
-          setCustomers(matches.slice(page * pageSize, (page + 1) * pageSize));
+          setCustomers(visible);
         } else {
+          setModuleData('customers','records',scope,records);
+          setModuleData('customers','totalCount',scope,count ?? 0);
           setCustomers(records);
           setTotalCount(count ?? 0);
         }
