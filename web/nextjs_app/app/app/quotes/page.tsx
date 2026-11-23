@@ -271,7 +271,7 @@ export default function QuotesPage() {
 {lines.map((line:QuoteDocItem,index:number)=><li key={index} style={{padding:'5px 0',fontSize:14,fontWeight:800,color:'#123b68'}}>{line.description??line.name}{Number(line.quantity)>1?' × '+line.quantity:''}</li>)}
 </ul></section>
 {doc.inclusions&&<div style={{marginTop:12,borderRadius:13,background:'#e7f7df',padding:'12px 16px',textAlign:'center',fontSize:13,fontWeight:800,color:'#397a3d'}}>
-{doc.inclusions.split(String.fromCharCode(10)).map((v:string)=>v.trim()).filter(Boolean).join('  •  ')} inclusos
+{doc.inclusions.split(String.fromCharCode(10)).map((v:string)=>v.trim()).filter(Boolean).join('  •  ')}
 </div>}
 <section style={{marginTop:16,display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:12}}>
 <div style={{borderRadius:15,background:'#ffdc2e',padding:'15px 10px',textAlign:'center',color:'#073d79'}}><p style={{margin:0,fontSize:11,fontWeight:900,textTransform:'uppercase'}}>Valor do combo</p><p style={{margin:'6px 0 0',fontSize:24,fontWeight:900}}>{money(pricing.subtotal??printQuote.subtotal)}</p></div>
