@@ -73,13 +73,12 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isRentals = pathname.endsWith('/app/rentals') || pathname.endsWith('/app/rentals/');
   const isQuotes = pathname.endsWith('/app/quotes') || pathname.endsWith('/app/quotes/');
   const isFinance = pathname.endsWith('/app/finance') || pathname.endsWith('/app/finance/');
-  const isReports = pathname.endsWith('/app/reports') || pathname.endsWith('/app/reports/');
   const isContracts = pathname.endsWith('/app/contracts') || pathname.endsWith('/app/contracts/');
   const isCalendar = pathname.endsWith('/app/calendar') || pathname.endsWith('/app/calendar/');
   const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
   const isLeadFesta = (pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/')) && !pathname.includes('/prospeccao');
   const isProspecting = pathname.includes('/app/leads/prospeccao');
-  const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isFinance && !isReports && !isContracts && !isCalendar && !isTeam && !isLeadFesta && !isProspecting;
+  const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isFinance && !isContracts && !isCalendar && !isTeam && !isLeadFesta && !isProspecting;
 
   const companyItems: NavItem[] = role === 'platform_owner'
     ? [{ label: 'Administração', shortLabel: 'Admin', href: basePath + '/app/admin/', active: pathname.includes('/app/admin'), icon: 'home' }]
@@ -89,7 +88,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
       { label: 'Brinquedos e serviços', shortLabel: 'Brinquedos', href: basePath + '/app/products/', active: isProducts, icon: 'toy' },
       { label: 'Locações', shortLabel: 'Locações', href: basePath + '/app/rentals/', active: isRentals, icon: 'calendar' },
       { label: 'Orçamentos', shortLabel: 'Orçamentos', href: basePath + '/app/quotes/', active: isQuotes, icon: 'toy' },
-      ...(role === 'admin' ? [{ label: 'Financeiro', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance, icon: 'home' as const }, { label: 'Relatórios avançados', shortLabel: 'Relatórios', href: basePath + '/app/reports/', active: isReports, icon: 'chart' as const }] : []),
+      ...(role === 'admin' ? [{ label: 'Financeiro e relatórios', shortLabel: 'Financeiro', href: basePath + '/app/finance/', active: isFinance || pathname.endsWith('/app/reports') || pathname.endsWith('/app/reports/'), icon: 'chart' as const }] : []),
       { label: 'Contratos', shortLabel: 'Contratos', href: basePath + '/app/contracts/', active: isContracts, icon: 'toy' },
       { label: 'Agenda', shortLabel: 'Agenda', href: basePath + '/app/calendar/', active: isCalendar, icon: 'calendar' },
     ];
