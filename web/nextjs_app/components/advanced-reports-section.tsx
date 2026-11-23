@@ -26,6 +26,7 @@ async function fetchAllRows<T>(query: PagedQuery<T>): Promise<T[]> {
 }
 
 export function AdvancedReportsSection({ companyId }: { companyId: string }) {
+  const [expanded, setExpanded] = useState(false);
   const [month, setMonth] = useState(() => iso(new Date()).slice(0, 7));
   const [transactions, setTransactions] = useState<Tx[]>([]);
   const [payments, setPayments] = useState<{ transaction_id: string | null; amount: number | string; paid_at: string }[]>([]);
@@ -60,8 +61,8 @@ export function AdvancedReportsSection({ companyId }: { companyId: string }) {
 
   // Load the selected company's reporting data on entry and after realtime refreshes.
   // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
-  useEffect(() => { void load(); }, [companyId, refresh]);
-  useCompanyRealtimeRefresh(companyId, ['financial_transactions', 'payments', 'rentals', 'rental_items', 'products'], () => setRefresh(v => v + 1));
+  useEffect(() => { if (expanded) void load(); }, [companyId, refresh, expanded]);
+  useCompanyRealtimeRefresh(companyId, ['financial_transactions', 'payments', 'rentals', 'rental_items', 'products'], () => { if (expanded) setRefresh(v => v + 1); });
 
   const from = month + '-01';
   const until = iso(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0));
@@ -98,11 +99,13 @@ export function AdvancedReportsSection({ companyId }: { companyId: string }) {
   const maxTop = Math.max(1, ...summary.top.map(item => item.gross));
 
   return <section className="space-y-4 rounded-2xl border border-purple-100 bg-purple-50/40 p-4 sm:p-5">
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><p className="text-xs font-bold uppercase tracking-widest text-[#8054d8]">Análise do período</p><h2 className="mt-1 text-xl font-extrabold text-slate-900">Relatórios e desempenho</h2><p className="mt-1 text-sm text-slate-500">Indicadores financeiros e operacionais reunidos ao financeiro.</p></div>
-      <label className="text-sm font-semibold text-gray-600">Período<input type="month" value={month} onChange={e => { setMonth(e.target.value); setTopPage(0); }} className="mt-1 block rounded-xl border border-purple-100 bg-white px-3 py-2.5" /></label>
-    </div>
-    {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    <button type="button" aria-expanded={expanded} aria-controls="advanced-finance-report-content" onClick={() => setExpanded(value => !value)} className="flex w-full items-center justify-between gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400">
+      <span><span className="block text-xs font-bold uppercase tracking-widest text-[#8054d8]">Análise do período</span><span className="mt-1 block text-xl font-extrabold text-slate-900">Relatórios e desempenho</span><span className="mt-1 block text-sm text-slate-500">Indicadores financeiros e operacionais reunidos ao financeiro.</span></span>
+      <span className="flex shrink-0 items-center gap-2 rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm font-bold text-[#6840bd]">{expanded ? 'Recolher' : 'Ver relatório'}<span aria-hidden="true" className={expanded ? 'rotate-180 transition-transform' : 'transition-transform'}>⌄</span></span>
+    </button>
+    {expanded && <div id="advanced-finance-report-content" className="mt-4 space-y-4">
+      <label className="block text-sm font-semibold text-gray-600">Período<input type="month" value={month} onChange={e => { setMonth(e.target.value); setTopPage(0); }} className="mt-1 block rounded-xl border border-purple-100 bg-white px-3 py-2.5" /></label>
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {loading ? <p className="rounded-xl bg-white p-4 text-sm text-slate-500">Carregando indicadores do período...</p> : <>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -122,5 +125,6 @@ export function AdvancedReportsSection({ companyId }: { companyId: string }) {
       </div>
       <p className="text-xs leading-5 text-gray-400">*Lucro líquido estimado: as despesas financeiras registradas no mês são distribuídas proporcionalmente ao faturamento bruto de cada brinquedo. Custos não lançados no financeiro não entram no cálculo. O resultado é gerencial e não substitui demonstrativos contábeis.</p>
     </>}
+    </div>}
   </section>;
 }
