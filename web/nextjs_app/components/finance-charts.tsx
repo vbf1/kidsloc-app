@@ -84,7 +84,6 @@ export function FinanceCharts({ transactions }: { transactions: FinanceChartTran
   const totalExpenses = expenses.reduce((sum, item) => sum + item[1], 0);
   const colors = ['#8054d8', '#e7a928', '#0f9f79', '#e16b6b', '#64748b'];
   const circumference = 2 * Math.PI * 42;
-  let consumed = 0;
 
   return (
     <section className="space-y-3" aria-labelledby="finance-charts-title">
@@ -146,8 +145,7 @@ export function FinanceCharts({ transactions }: { transactions: FinanceChartTran
                   <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0" strokeWidth="12" />
                   {expenses.map(([category, amount], index) => {
                     const length = (amount / totalExpenses) * circumference;
-                    const offset = consumed;
-                    consumed += length;
+                    const offset = expenses.slice(0, index).reduce((sum, item) => sum + (item[1] / totalExpenses) * circumference, 0);
                     return <circle key={category} cx="50" cy="50" r="42" fill="none" stroke={colors[index % colors.length]} strokeWidth="12" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-offset}><title>{`${category}: ${currency(amount)}`}</title></circle>;
                   })}
                 </svg>
