@@ -107,7 +107,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
 
   return (
     <nav aria-label="Navegação principal">
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">Menu principal</p>
         <div className="space-y-1.5">
           {items.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} aria-current={item.active ? 'page' : undefined}
@@ -120,7 +120,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
         </div>
       </div>
 
-      <div className="md:hidden">
+      <div className="lg:hidden">
         {moreOpen && <>
           <button type="button" aria-label="Fechar menu Mais" onClick={() => setMoreOpen(false)}
             className="fixed inset-0 z-40 bg-slate-950/20" />
