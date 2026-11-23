@@ -106,7 +106,7 @@ export default function AppHomePage() {
       // Individual modules keep their normal on-demand fallback if preload fails.
     });
   }, [companyId, workspace]);
-  useCompanyRealtimeRefresh(companyId, ['customers', 'products', 'rentals'], () => setRealtimeRefresh((value) => value + 1));
+  useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_quotes', 'financial_transactions'], () => setRealtimeRefresh((value) => value + 1));
 
   useEffect(() => {
     if (!companyId || !supabase) return;
@@ -151,7 +151,7 @@ export default function AppHomePage() {
     }
     void loadDashboard();
     return () => { active = false; };
-  }, [companyId, realtimeRefresh]);
+  }, [companyId, realtimeRefresh, workspace?.role]);
 
   async function signOut() {
     if (!supabase || signingOut) return;
