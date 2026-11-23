@@ -68,8 +68,6 @@ export default function LeadFestaAdminPage() {
     setSavingId('');
   }
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p role="status" className="rounded-xl border border-purple-100 bg-white px-5 py-4 text-sm text-gray-600">Carregando ativações...</p></main>;
-
   return <main className="min-h-screen bg-[#f8f7fc] px-4 py-6 text-gray-900 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-5xl space-y-6">
       <Link href="/app/admin/" className="text-sm font-semibold text-[#6840bd]">← Painel do proprietário</Link>
@@ -79,7 +77,7 @@ export default function LeadFestaAdminPage() {
       <section className={panel}>
         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold">Empresas cadastradas</h2><p className="mt-1 text-sm text-gray-500">{rows.length} empresa(s)</p></div><button type="button" className={button} onClick={() => { setLoading(true); void load(); }}>Atualizar</button></div>
         <div className="mt-4 divide-y divide-gray-100">
-          {rows.length ? rows.map((row) => <div key={row.company_id} className="flex flex-wrap items-center justify-between gap-4 py-4">
+          {loading ? <p className="py-6 text-sm text-gray-500">Carregando ativações...</p> : rows.length ? rows.map((row) => <div key={row.company_id} className="flex flex-wrap items-center justify-between gap-4 py-4">
             <div className="min-w-0"><p className="font-semibold">{row.company_name}</p><p className="mt-1 text-xs text-gray-400">{row.updated_at ? 'Última alteração: ' + new Date(row.updated_at).toLocaleString('pt-BR') : 'Nunca ativado'}</p></div>
             <div className="flex items-center gap-3"><span className={'rounded-full px-3 py-1.5 text-xs font-bold ' + (row.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600')}>{row.enabled ? 'Ativo' : 'Inativo'}</span><button type="button" className={button} onClick={() => void toggle(row)} disabled={Boolean(savingId)}>{savingId === row.company_id ? 'Salvando...' : row.enabled ? 'Suspender' : 'Ativar módulo'}</button></div>
           </div>) : <p className="py-6 text-sm text-gray-500">Nenhuma empresa cadastrada.</p>}
