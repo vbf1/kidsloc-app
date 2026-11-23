@@ -496,9 +496,9 @@ body { overflow-x: clip; }
 .kl-platform-admin .kl-admin-stat small { overflow-wrap: anywhere; }
 .kl-platform-admin .kl-admin-company-summary-grid > div { min-width: 0; }
 @media (max-width: 480px) {
-  .kl-admin-header-inner { align-items: flex-start; }
+  .kl-admin-header-inner { flex-direction: column; align-items: stretch; }
   .kl-admin-header-inner > button,
-  .kl-admin-header-inner > .kl-admin-back-link { align-self: stretch; text-align: center; }
+  .kl-admin-header-inner > .kl-admin-back-link { width: 100%; align-self: stretch; text-align: center; }
   .kl-admin-hero { padding: 16px; }
   .kl-admin-hero .kl-admin-eyebrow { font-size: 9px; letter-spacing: .12em; }
   .kl-admin-module-link { gap: 10px; padding: 13px; }
