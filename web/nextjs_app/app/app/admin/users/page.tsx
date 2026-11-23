@@ -73,18 +73,18 @@ export default function PlatformUsersPage() {
   return (
     <main className="min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
           <Link href="/app/admin/" className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8054d8]">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
-            <span><span className="block text-xl font-bold">KidsLoc <span className="text-[#8054d8]">Admin</span></span><span className="block text-xs text-gray-500">Proprietário da plataforma</span></span>
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#8054d8] text-lg font-black text-white sm:size-11 sm:rounded-2xl sm:text-xl">K</span>
+            <span className="min-w-0 flex-1"><span className="block truncate text-base font-bold leading-tight sm:text-xl">KidsLoc <span className="text-[#8054d8]">Admin</span></span><span className="block truncate text-[10px] leading-4 text-gray-500 sm:text-xs">Proprietário da plataforma</span></span>
           </Link>
-          <Link href="/app/admin/" className="shrink-0 rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] hover:bg-purple-50">Voltar ao painel</Link>
+          <Link href="/app/admin/" className="shrink-0 rounded-xl border border-purple-200 px-2.5 py-2 text-xs font-semibold text-[#6840bd] hover:bg-purple-50 sm:px-3 sm:text-sm"><span className="sm:hidden">Voltar</span><span className="hidden sm:inline">Voltar ao painel</span></Link>
         </div>
       </header>
       <div className="kl-workspace-refresh kl-platform-admin mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
         <section className="kl-admin-hero">
           <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div><p className="kl-admin-eyebrow">CENTRAL DE CONTROLE · KIDSLOC</p><h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-[2.15rem]">Usuários da plataforma</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Consulte contas cadastradas, empresas vinculadas e atividade de acesso.</p></div>
+            <div className="min-w-0"><p className="kl-admin-eyebrow">CENTRAL DE CONTROLE · KIDSLOC</p><h1 className="mt-2 text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-[2.15rem]">Usuários da plataforma</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Consulte contas cadastradas, empresas vinculadas e atividade de acesso.</p></div>
             <button type="button" onClick={() => void refresh()} disabled={refreshing} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#6840bd] shadow-sm hover:bg-purple-50 disabled:opacity-60">{refreshing ? 'Atualizando...' : 'Atualizar lista'}</button>
           </div><div className="kl-admin-hero-orb" aria-hidden="true" />
         </section>
