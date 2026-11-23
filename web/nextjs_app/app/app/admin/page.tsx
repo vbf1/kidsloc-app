@@ -303,15 +303,15 @@ export default function PlatformAdminPage() {
           </div>
           {overviewError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{overviewError}</p>}
           {overviewLoading ? <p className="mt-4 text-sm text-gray-500">Carregando dados da empresa...</p> : companyOverview && (
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="kl-admin-company-summary-grid mt-4 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {[
                 ['Usuários', companyOverview.members],
                 ['Clientes', companyOverview.customers],
                 ['Itens do catálogo', companyOverview.products],
                 ['Locações', companyOverview.rentals],
                 ['Lançamentos financeiros', companyOverview.financialTransactions],
-              ].map(([label, value]) => <div key={label} className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
-                <p className="text-xs font-medium text-gray-500">{label}</p><p className="mt-1 text-2xl font-bold text-[#6840bd]">{value}</p>
+              ].map(([label, value]) => <div key={label} className="min-w-0 rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                <p className="break-words text-[11px] font-medium leading-4 text-gray-500 sm:text-xs">{label}</p><p className="mt-1 text-xl font-bold text-[#6840bd] sm:text-2xl">{value}</p>
               </div>)}
             </div>
           )}
