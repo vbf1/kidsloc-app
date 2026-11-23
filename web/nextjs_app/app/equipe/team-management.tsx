@@ -38,8 +38,8 @@ export default function TeamManagement() {
 
   const activeCompany = useMemo(() => companies.find((company) => company.id === companyId) ?? null, [companies, companyId]);
   const canManage = activeCompany?.role === 'admin';
-  const normalizedMemberSearch = memberSearch.normalize('NFD').replace(/\\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
-  const filteredMembers = useMemo(() => members.filter((member) => [member.name, member.email, member.role].some((value) => value.normalize('NFD').replace(/\\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(normalizedMemberSearch))), [members, normalizedMemberSearch];
+  const normalizedMemberSearch = memberSearch.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
+  const filteredMembers = useMemo(() => members.filter((member) => [member.name, member.email, member.role].some((value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(normalizedMemberSearch))), [members, normalizedMemberSearch]);
 
   const loadCompanies = useCallback(async () => {
     if (!supabase) return;
