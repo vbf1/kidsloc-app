@@ -1231,7 +1231,6 @@ class _RecordsPageState extends State<_RecordsPage> {
     for (final controller in fields.values) { controller.dispose(); }
   }
 
-  @override
   String _normalizeSearch(String value) {
     var result = value.toLowerCase();
     const replacements = {
@@ -1244,6 +1243,7 @@ class _RecordsPageState extends State<_RecordsPage> {
     return result;
   }
 
+  @override
   Widget build(BuildContext context) {
     final query = _normalizeSearch(_search.trim());
     final filteredRows = _rows.where((row) =>
