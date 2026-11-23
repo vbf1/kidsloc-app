@@ -59,7 +59,8 @@ export default function ContractsPage(){
  },[router]);
  useCompanyRealtimeRefresh(companyId, ['rental_contracts', 'rentals', 'rental_items', 'customers', 'products'], () => { void load(); });
  const filteredContracts=contracts.filter(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||(statusFilter==='active'?['draft','sent','viewed'].includes(contractStatus(c)):contractStatus(c)===statusFilter));});
- const paginatedContracts=filteredContracts.slice(page*pageSize,(page+1)*pageSize);
+ const visiblePage=Math.min(page,Math.max(0,Math.ceil(filteredContracts.length/pageSize)-1));
+ const paginatedContracts=filteredContracts.slice(visiblePage*pageSize,(visiblePage+1)*pageSize);
  const contractSummary=[
   {id:'all',label:'Total de contratos',count:contracts.length,description:'Todos os registros',style:'border-slate-200 bg-white text-slate-800'},
   {id:'active',label:'Em andamento',count:contracts.filter(c=>['draft','sent','viewed'].includes(contractStatus(c))).length,description:'Rascunhos e aguardando assinatura',style:'border-blue-100 bg-blue-50/60 text-blue-800'},
@@ -209,7 +210,7 @@ export default function ContractsPage(){
      {contracts.length>0&&!contracts.some(c=>{const name=String((c.contract_snapshot.customer as Customer|undefined)?.name??'').toLocaleLowerCase('pt-BR');const q=search.trim().toLocaleLowerCase('pt-BR');return (!q||name.includes(q)||String(c.contract_number).includes(q))&&(statusFilter==='all'||(statusFilter==='active'?['draft','sent','viewed'].includes(contractStatus(c)):contractStatus(c)===statusFilter));})&&<div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center text-sm text-slate-500 lg:col-span-2">Nenhum contrato corresponde à busca ou ao filtro.</div>}
     </div>
    </section>
-     <Pagination totalCount={filteredContracts.length} page={page} pageSize={pageSize} onPageChange={setPage}/>
+     <Pagination totalCount={filteredContracts.length} page={visiblePage} pageSize={pageSize} onPageChange={setPage}/>
    <p className="rounded-xl bg-slate-100/80 p-3 text-[11px] leading-5 text-slate-500">A assinatura eletrônica registra identidade declarada, desenho da assinatura, consentimento e data/hora. Ela não é uma assinatura ICP-Brasil ou certificado digital qualificado.</p>
 
    {previewHtml&&<div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-5"><section className="flex h-[96dvh] w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:h-[94dvh]">
