@@ -6,17 +6,13 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
-import { CustomerForm } from '../../../components/customer-form';
 import { SearchablePicker } from '../../../components/searchable-picker';
-import type { CustomerFormValues, CustomerRecord } from '../../../lib/customers';
-import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 
 type Company = { id: string; name: string; created_at: string };
 
 type CompanyOverview = { members: number; customers: number; products: number; rentals: number; financialTransactions: number };
 type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
-type CompanyCustomer = Pick<CustomerRecord, 'id' | 'company_id' | 'name' | 'phone' | 'email' | 'city_state' | 'created_at' | 'address' | 'notes' | 'cpf' | 'rg' | 'zip' | 'neighborhood'>;
 const panelClass = 'rounded-[22px] border border-[#ebe6f3] bg-white p-5 shadow-[0_8px_28px_rgba(39,24,70,0.045)] sm:p-6';
 const buttonClass = 'rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50';
 
@@ -32,20 +28,6 @@ export default function PlatformAdminPage() {
   const [companyOverview, setCompanyOverview] = useState<CompanyOverview | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState('');
-  const [companyCustomers, setCompanyCustomers] = useState<CompanyCustomer[]>([]);
-  const [customersLoading, setCustomersLoading] = useState(false);
-  const [customersError, setCustomersError] = useState('');
-  const [customerSearch, setCustomerSearch] = useState('');
-  const customerPageSize = useResponsivePageSize();
-  const [customerPagination, setCustomerPagination] = useState({ page: 0, pageSize: 6 });
-  const customerPage = customerPagination.pageSize === customerPageSize ? customerPagination.page : 0;
-  function setCustomerPage(nextPage: number | ((current: number) => number)) {
-    const resolvedPage = typeof nextPage === 'function' ? nextPage(customerPage) : nextPage;
-    setCustomerPagination({ page: resolvedPage, pageSize: customerPageSize });
-  }
-  const [editingCustomer, setEditingCustomer] = useState<CompanyCustomer | null>(null);
-  const [customerSaving, setCustomerSaving] = useState(false);
-  const [customerFormError, setCustomerFormError] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -55,7 +37,6 @@ export default function PlatformAdminPage() {
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const overviewRequest = useRef(0);
-  const customersRequest = useRef(0);
   const conversationsRequest = useRef(0);
   const messagesRequest = useRef(0);
 
@@ -165,55 +146,6 @@ export default function PlatformAdminPage() {
     void loadCompanyOverview();
   }, [loadCompanyOverview]);
 
-  const loadCompanyCustomers = useCallback(async () => {
-    const requestId = ++customersRequest.current;
-    if (!supabase || !selectedCompanyId) {
-      setCompanyCustomers([]);
-      setCustomersError('');
-      setCustomersLoading(false);
-      return;
-    }
-    setCustomersLoading(true);
-    const { data, error: queryError } = await supabase.from('customers')
-      .select('id,company_id,name,phone,email,city_state,created_at,address,notes,cpf,rg,zip,neighborhood')
-      .eq('company_id', selectedCompanyId).order('created_at', { ascending: false }).limit(500);
-    if (requestId !== customersRequest.current) return;
-    if (queryError) {
-      setCompanyCustomers([]);
-      setCustomersError('Não foi possível carregar os clientes desta empresa.');
-    } else {
-      setCompanyCustomers((data ?? []) as CompanyCustomer[]);
-      setCustomersError('');
-    }
-    setCustomersLoading(false);
-  }, [selectedCompanyId]);
-
-  useEffect(() => {
-    // Load only records belonging to the selected company.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadCompanyCustomers();
-  }, [loadCompanyCustomers]);
-
-  async function saveCompanyCustomer(values: CustomerFormValues) {
-    if (!supabase || !selectedCompanyId || !editingCustomer) return;
-    setCustomerSaving(true);
-    setCustomerFormError('');
-    const { data: updatedCustomer, error: updateError } = await supabase.from('customers')
-      .update({ ...values, updated_at: new Date().toISOString() })
-      .eq('id', editingCustomer.id)
-      .eq('company_id', selectedCompanyId)
-      .select('id')
-      .maybeSingle();
-    if (updateError || !updatedCustomer) {
-      setCustomerFormError('Não foi possível confirmar a atualização. Confira os dados e tente novamente.');
-      setCustomerSaving(false);
-      return;
-    }
-    await loadCompanyCustomers();
-    setEditingCustomer(null);
-    setCustomerSaving(false);
-  }
-
   const loadConversations = useCallback(async () => {
     const requestId = ++conversationsRequest.current;
     if (!supabase || !selectedCompanyId) {
@@ -279,7 +211,6 @@ export default function PlatformAdminPage() {
     setRefreshing(true);
     await loadCompanies();
     await loadCompanyOverview();
-    await loadCompanyCustomers();
     await loadConversations();
     await loadMessages();
     setRefreshing(false);
@@ -299,8 +230,8 @@ export default function PlatformAdminPage() {
   return (
     <main className="min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><div><p className="text-xl font-bold">KidsLoc <span className="text-[#8054d8]">Admin</span></p><p className="text-xs text-gray-500">Proprietário da plataforma</p></div></div>
+        <div className="kl-admin-header-inner mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
+          <div className="kl-admin-brand"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#8054d8] text-lg font-black text-white sm:size-11 sm:rounded-2xl sm:text-xl">K</span><div className="kl-admin-brand-copy"><p className="whitespace-nowrap text-base font-bold sm:text-xl">KidsLoc <span className="text-[#8054d8]">Admin</span></p><p className="text-[11px] text-gray-500 sm:text-xs">Proprietário da plataforma</p></div></div>
           <button type="button" onClick={() => void signOut()} className={buttonClass}>Sair</button>
         </div>
       </header>
@@ -315,7 +246,7 @@ export default function PlatformAdminPage() {
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white">Acesso do proprietário</span>
-              <button type="button" onClick={() => void refreshAll()} disabled={refreshing || companySaving || customerSaving} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#6840bd] shadow-sm transition hover:bg-purple-50 disabled:opacity-60">{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
+              <button type="button" onClick={() => void refreshAll()} disabled={refreshing || companySaving} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#6840bd] shadow-sm transition hover:bg-purple-50 disabled:opacity-60">{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
             </div>
           </div>
           <div className="kl-admin-hero-orb" aria-hidden="true" />
@@ -340,17 +271,13 @@ export default function PlatformAdminPage() {
             <div className="w-full min-w-0 text-sm font-semibold sm:w-auto sm:min-w-64">Selecionar empresa
               <div className="mt-1"><SearchablePicker title="Selecionar empresa" value={selectedCompanyId} options={[
                 { value: '', label: 'Selecione uma empresa' }, ...companies.map((company) => ({ value: company.id, label: company.name })),
-              ]} placeholder="Selecione uma empresa" searchPlaceholder="Buscar empresa..." emptyText="Nenhuma empresa encontrada." disabled={companySaving || customerSaving} onChange={(value) => {
+              ]} placeholder="Selecione uma empresa" searchPlaceholder="Buscar empresa..." emptyText="Nenhuma empresa encontrada." disabled={companySaving} onChange={(value) => {
                 setSelectedCompanyId(value);
                 setSelectedConversationId('');
                 setMessages([]);
                 setEditingCompany(false);
                 setCompanyNameDraft('');
                 setCompanyFormError('');
-                setEditingCustomer(null);
-                setCustomerFormError('');
-                setCustomerSearch('');
-                setCustomerPage(0);
               }} /></div>
             </div>
           </div>
@@ -376,74 +303,25 @@ export default function PlatformAdminPage() {
           </div>
           {overviewError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{overviewError}</p>}
           {overviewLoading ? <p className="mt-4 text-sm text-gray-500">Carregando dados da empresa...</p> : companyOverview && (
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="kl-admin-company-summary-grid mt-4 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {[
                 ['Usuários', companyOverview.members],
                 ['Clientes', companyOverview.customers],
                 ['Itens do catálogo', companyOverview.products],
                 ['Locações', companyOverview.rentals],
                 ['Lançamentos financeiros', companyOverview.financialTransactions],
-              ].map(([label, value]) => <div key={label} className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
-                <p className="text-xs font-medium text-gray-500">{label}</p><p className="mt-1 text-2xl font-bold text-[#6840bd]">{value}</p>
+              ].map(([label, value]) => <div key={label} className="min-w-0 rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                <p className="break-words text-[11px] font-medium leading-4 text-gray-500 sm:text-xs">{label}</p><p className="mt-1 text-xl font-bold text-[#6840bd] sm:text-2xl">{value}</p>
               </div>)}
             </div>
           )}
           <p className="mt-3 text-xs text-gray-400">Este resumo não permite editar, cadastrar ou excluir informações da empresa.</p>
         </section>
-        <section className={panelClass}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><h2 className="text-lg font-bold">Clientes da empresa</h2><p className="text-sm text-gray-500">Consulta dos cadastros de {selectedCompany?.name ?? 'empresa selecionada'}</p></div>
-            <label className="text-sm font-medium">Buscar cliente
-              <input value={customerSearch} onChange={(event) => { setCustomerSearch(event.target.value); setCustomerPage(0); }} placeholder="Nome, telefone, CPF, endereço..." className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 font-normal sm:w-64" />
-            </label>
-          </div>
-          {customersError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{customersError}</p>}
-          {customersLoading ? <p className="mt-4 text-sm text-gray-500">Carregando clientes...</p> : (() => {
-            const term = customerSearch.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').trim();
-            const numericTerm = customerSearch.replace(/\D/g, '');
-            const filtered = companyCustomers.filter((customer) => {
-              const textMatch = [
-                customer.name, customer.phone, customer.email, customer.city_state,
-                customer.cpf, customer.rg, customer.address, customer.neighborhood,
-                customer.zip, customer.notes,
-              ].some((value) => value !== null && value !== undefined
-                && value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR').includes(term));
-              const numericMatch = numericTerm.length > 0 && [
-                customer.phone, customer.cpf, customer.zip,
-              ].some((value) => value !== null && value !== undefined
-                && value.replace(/\D/g, '').includes(numericTerm));
-              return textMatch || numericMatch;
-            });
-            const pageCount = Math.max(1, Math.ceil(filtered.length / customerPageSize));
-            const visibleCustomers = filtered.slice(customerPage * customerPageSize, (customerPage + 1) * customerPageSize);
-            return filtered.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[600px] text-left text-sm">
-              <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Nome</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Cidade / UF</th><th className="px-3 py-3 text-right">Ações</th></tr></thead>
-              <tbody>{visibleCustomers.map((customer) => <tr key={customer.id} className="border-b border-gray-50"><td className="px-3 py-3 font-semibold">{customer.name}</td><td className="px-3 py-3">{customer.phone || '—'}</td><td className="px-3 py-3">{customer.email || '—'}</td><td className="px-3 py-3">{customer.city_state || '—'}</td><td className="px-3 py-3 text-right"><button type="button" onClick={() => { setEditingCustomer(customer); setCustomerFormError(''); }} className={buttonClass}>Editar</button></td></tr>)}</tbody>
-            </table><div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-gray-400">Exibindo {Math.min(customerPage * customerPageSize + 1, filtered.length)}–{Math.min((customerPage + 1) * customerPageSize, filtered.length)} de {filtered.length} resultado(s), entre até 500 clientes carregados.</p><div className="flex items-center gap-2"><button type="button" disabled={customerPage === 0} onClick={() => setCustomerPage((current) => Math.max(0, current - 1))} className={buttonClass}>Anterior</button><span className="text-xs text-gray-500">Página {Math.min(customerPage + 1, pageCount)} de {pageCount}</span><button type="button" disabled={customerPage + 1 >= pageCount} onClick={() => setCustomerPage((current) => Math.min(pageCount - 1, current + 1))} className={buttonClass}>Próxima</button></div></div></div>
-            : <p className="mt-4 text-sm text-gray-500">Nenhum cliente encontrado.</p>;
-          })()}
-          {editingCustomer && <div className="mt-6 rounded-2xl border border-purple-100 bg-purple-50/40 p-4 sm:p-5">
-            <CustomerForm
-              key={editingCustomer.id}
-              initialValues={{
-                name: editingCustomer.name,
-                phone: editingCustomer.phone ?? '',
-                email: editingCustomer.email ?? '',
-                cpf: editingCustomer.cpf ?? '',
-                rg: editingCustomer.rg ?? '',
-                zip: editingCustomer.zip ?? '',
-                address: editingCustomer.address ?? '',
-                neighborhood: editingCustomer.neighborhood ?? '',
-                city_state: editingCustomer.city_state ?? '',
-                notes: editingCustomer.notes ?? '',
-              }}
-              saving={customerSaving}
-              error={customerFormError}
-              onCancel={() => { setEditingCustomer(null); setCustomerFormError(''); }}
-              onSubmit={saveCompanyCustomer}
-            />
-          </div>}
-        </section>
+        {selectedCompany && <Link href={`/app/admin/customers/?companyId=${selectedCompany.id}`} className="kl-admin-module-link">
+          <span className="kl-admin-module-mark">CL</span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[#30264a]">Clientes da empresa</span><span className="mt-1 block text-xs leading-5 text-[#777187]">Consulte e edite os cadastros de {selectedCompany.name} em uma página própria.</span></span>
+          <span className="kl-admin-module-action">Abrir clientes <span aria-hidden="true">→</span></span>
+        </Link>}
         <section className="grid gap-6 lg:grid-cols-[minmax(260px,.8fr)_minmax(0,1.5fr)]">
           <div className={panelClass}>
             <h2 className="text-lg font-bold">Conversas</h2><p className="mb-4 text-sm text-gray-500">{selectedCompany?.name ?? 'Selecione uma empresa'}</p>

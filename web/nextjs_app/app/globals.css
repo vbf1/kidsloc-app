@@ -466,3 +466,41 @@ body { overflow-x: clip; }
     overflow-wrap: anywhere;
   }
 }
+
+
+/* Ajustes finos do painel do proprietário em telas estreitas. */
+.kl-platform-admin { min-width: 0; overflow-x: clip; }
+.kl-admin-header-inner {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.kl-admin-brand { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.kl-admin-brand-copy { min-width: 0; }
+.kl-admin-back-link { flex: 0 0 auto; }
+.kl-platform-admin .kl-admin-hero h1 {
+  max-width: 100%;
+  font-size: clamp(1.5rem, 6vw, 2.15rem);
+  line-height: 1.12;
+  overflow-wrap: normal;
+}
+.kl-platform-admin .kl-admin-hero p:not(.kl-admin-eyebrow) { overflow-wrap: anywhere; }
+.kl-platform-admin .kl-admin-module-link { overflow-wrap: anywhere; }
+.kl-platform-admin .kl-admin-module-action { white-space: normal; text-align: left; }
+.kl-platform-admin .kl-admin-stat,
+.kl-platform-admin .kl-admin-stat > * { min-width: 0; }
+.kl-platform-admin .kl-admin-stat p,
+.kl-platform-admin .kl-admin-stat small { overflow-wrap: anywhere; }
+.kl-platform-admin .kl-admin-company-summary-grid > div { min-width: 0; }
+@media (max-width: 480px) {
+  .kl-admin-header-inner { flex-direction: column; align-items: stretch; }
+  .kl-admin-header-inner > button,
+  .kl-admin-header-inner > .kl-admin-back-link { width: 100%; align-self: stretch; text-align: center; }
+  .kl-admin-hero { padding: 16px; }
+  .kl-admin-hero .kl-admin-eyebrow { font-size: 9px; letter-spacing: .12em; }
+  .kl-admin-module-link { gap: 10px; padding: 13px; }
+  .kl-admin-module-action { margin-left: 50px; font-size: 11px; }
+}
