@@ -16,7 +16,10 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
   const descriptionId = useId();
   const panelRef = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
