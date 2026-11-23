@@ -135,8 +135,6 @@ export default function PlatformCompanyCustomersPage() {
 
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId);
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p className="rounded-2xl border border-purple-100 bg-white px-6 py-5 text-sm text-gray-600">Verificando acesso administrativo...</p></main>;
-
   return (
     <main className="min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
@@ -186,7 +184,7 @@ export default function PlatformCompanyCustomersPage() {
             </label>
           </div>
           {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          {customersLoading ? <p className="mt-5 text-sm text-gray-500">Carregando clientes...</p> : filteredCustomers.length ? <>
+          {loading || customersLoading ? <p className="mt-5 text-sm text-gray-500">Carregando clientes...</p> : filteredCustomers.length ? <>
             <div className="mt-5 hidden overflow-x-auto md:block"><table className="w-full min-w-[680px] text-left text-sm">
               <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Cliente</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Cidade / UF</th><th className="px-3 py-3 text-right">Ação</th></tr></thead>
               <tbody>{visibleCustomers.map((customer) => <tr key={customer.id} className="border-b border-gray-50 align-top hover:bg-purple-50/30">
