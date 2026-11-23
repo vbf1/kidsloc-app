@@ -26,7 +26,7 @@ type CompanyOverview = { members: number; customers: number; products: number; r
 type Conversation = { id: string; company_id: string; conversation_type: string; title: string | null; created_by: string; created_at: string };
 type Message = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
 type CompanyCustomer = Pick<CustomerRecord, 'id' | 'company_id' | 'name' | 'phone' | 'email' | 'city_state' | 'created_at' | 'address' | 'notes' | 'cpf' | 'rg' | 'zip' | 'neighborhood'>;
-const panelClass = 'rounded-2xl border border-purple-100 bg-white p-5 shadow-sm';
+const panelClass = 'rounded-[22px] border border-[#ebe6f3] bg-white p-5 shadow-[0_8px_28px_rgba(39,24,70,0.045)] sm:p-6';
 const buttonClass = 'rounded-xl border border-purple-200 px-3 py-2 text-sm font-semibold text-[#6840bd] transition hover:bg-purple-50 disabled:opacity-50';
 
 export default function PlatformAdminPage() {
@@ -350,12 +350,32 @@ export default function PlatformAdminPage() {
           <button type="button" onClick={() => void signOut()} className={buttonClass}>Sair</button>
         </div>
       </header>
-      <div className="kl-workspace-refresh mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <Link href="/app/admin/leadfesta/" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-white p-5 shadow-sm transition hover:border-purple-300 hover:shadow-md"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Módulo adicional</p><h2 className="mt-1 text-lg font-bold text-gray-900">LeadFesta</h2><p className="mt-1 text-sm text-gray-600">Ative ou suspenda o acesso comercial por empresa.</p></div><span className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white">Gerenciar acesso →</span></Link>
-        <section className="flex flex-wrap items-end justify-between gap-4">
-          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Administração global</p><h1 className="mt-2 text-3xl font-bold">Painel do proprietário</h1><p className="mt-2 text-sm text-gray-500">Acompanhamento das empresas e das conversas internas. {email}</p></div>
-          <button type="button" onClick={() => void refreshAll()} disabled={refreshing || companySaving || customerSaving} className={buttonClass}>{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
+      <div className="kl-workspace-refresh kl-platform-admin mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        <section className="kl-admin-hero">
+          <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <p className="kl-admin-eyebrow">CENTRAL DE CONTROLE · KIDSLOC</p>
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-[2.15rem]">Painel do proprietário</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">Visão geral da plataforma, empresas cadastradas e atividade das equipes.</p>
+              <p className="mt-3 text-xs font-medium text-white/65">{email}</p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white">Acesso do proprietário</span>
+              <button type="button" onClick={() => void refreshAll()} disabled={refreshing || companySaving || customerSaving} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#6840bd] shadow-sm transition hover:bg-purple-50 disabled:opacity-60">{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>
+            </div>
+          </div>
+          <div className="kl-admin-hero-orb" aria-hidden="true" />
         </section>
+        <section className="kl-admin-stat-grid" aria-label="Indicadores da plataforma">
+          <article className="kl-admin-stat"><span className="kl-admin-stat-icon">▦</span><p>Empresas cadastradas</p><strong>{companies.length}</strong><small>Contas de empresas na plataforma</small></article>
+          <article className="kl-admin-stat"><span className="kl-admin-stat-icon">♙</span><p>Usuários cadastrados</p><strong>{platformUsers.length}</strong><small>{usersLoading ? 'Atualizando usuários…' : 'Contas identificadas'}</small></article>
+          <article className="kl-admin-stat"><span className="kl-admin-stat-icon">☷</span><p>Conversas da empresa</p><strong>{selectedCompanyId ? conversations.length : '—'}</strong><small>{selectedCompany?.name ?? 'Selecione uma empresa abaixo'}</small></article>
+        </section>
+        <Link href="/app/admin/leadfesta/" className="kl-admin-module-link">
+          <span className="kl-admin-module-mark">LF</span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[#30264a]">LeadFesta</span><span className="mt-1 block text-xs leading-5 text-[#777187]">Gerencie o acesso ao módulo adicional por empresa.</span></span>
+          <span className="kl-admin-module-action">Gerenciar módulo <span aria-hidden="true">→</span></span>
+        </Link>
         {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <section className={panelClass}>
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Empresas cadastradas</h2><p className="text-sm text-gray-500">{companies.length} empresa(s) encontradas</p></div>
