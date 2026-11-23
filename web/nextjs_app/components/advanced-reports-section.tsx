@@ -40,6 +40,7 @@ export function AdvancedReportsSection({ companyId }: { companyId: string }) {
 
   async function load() {
     if (!supabase || !companyId) return;
+    await Promise.resolve();
     setError('');
     try {
       const [txRows, paymentRows, rentalRows, productRows, itemRows] = await Promise.all([
