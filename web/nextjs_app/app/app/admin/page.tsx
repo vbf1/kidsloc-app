@@ -266,8 +266,8 @@ export default function PlatformAdminPage() {
   return (
     <main className="min-h-screen bg-[#f8f7fc] text-gray-900">
       <header className="border-b border-purple-100 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span><div><p className="text-xl font-bold">KidsLoc <span className="text-[#8054d8]">Admin</span></p><p className="text-xs text-gray-500">Proprietário da plataforma</p></div></div>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#8054d8] text-lg font-black text-white sm:size-11 sm:rounded-2xl sm:text-xl">K</span><div className="min-w-0"><p className="truncate text-base font-bold leading-tight sm:text-xl">KidsLoc <span className="text-[#8054d8]">Admin</span></p><p className="truncate text-[10px] leading-4 text-gray-500 sm:text-xs">Proprietário da plataforma</p></div></div>
           <button type="button" onClick={() => void signOut()} className={buttonClass}>Sair</button>
         </div>
       </header>
@@ -276,7 +276,7 @@ export default function PlatformAdminPage() {
           <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <p className="kl-admin-eyebrow">CENTRAL DE CONTROLE · KIDSLOC</p>
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-[2.15rem]">Painel do proprietário</h1>
+              <h1 className="mt-2 text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-[2.15rem]">Painel do proprietário</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">Visão geral da plataforma, empresas cadastradas e atividade das equipes.</p>
               <p className="mt-3 text-xs font-medium text-white/65">{email}</p>
             </div>
@@ -339,15 +339,15 @@ export default function PlatformAdminPage() {
           </div>
           {overviewError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{overviewError}</p>}
           {overviewLoading ? <p className="mt-4 text-sm text-gray-500">Carregando dados da empresa...</p> : companyOverview && (
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {[
                 ['Usuários', companyOverview.members],
                 ['Clientes', companyOverview.customers],
                 ['Itens do catálogo', companyOverview.products],
                 ['Locações', companyOverview.rentals],
                 ['Lançamentos financeiros', companyOverview.financialTransactions],
-              ].map(([label, value]) => <div key={label} className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
-                <p className="text-xs font-medium text-gray-500">{label}</p><p className="mt-1 text-2xl font-bold text-[#6840bd]">{value}</p>
+              ].map(([label, value]) => <div key={label} className="min-w-0 rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                <p className="break-words text-xs font-medium leading-5 text-gray-500">{label}</p><p className="mt-1 text-2xl font-bold text-[#6840bd]">{value}</p>
               </div>)}
             </div>
           )}
