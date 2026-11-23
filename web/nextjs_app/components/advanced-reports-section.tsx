@@ -104,16 +104,7 @@ export function AdvancedReportsSection({ companyId }: { companyId: string }) {
     </div>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {loading ? <p className="rounded-xl bg-white p-4 text-sm text-slate-500">Carregando indicadores do período...</p> : <>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-        {[
-          ['Receitas do período', brl(summary.revenue), 'Receitas lançadas no mês'],
-          ['Recebimentos', brl(summary.received), 'Pagamentos registrados no mês'],
-          ['Despesas do período', brl(summary.expense), 'Despesas lançadas no mês'],
-          ['Resultado do período', brl(summary.result), 'Receitas menos despesas lançadas'],
-          ['A receber', brl(summary.pending), 'Saldo pendente das receitas do período'],
-          ['Locações', String(summary.rentals), 'Locações que cruzam o período'],
-        ].map(([label, value, description]) => <article key={label} className="rounded-xl border border-purple-100 bg-white p-3 sm:p-4"><p className="text-xs font-semibold text-gray-500">{label}</p><p className="mt-2 text-lg font-extrabold tracking-tight sm:text-xl">{value}</p><p className="mt-1 text-xs text-gray-400">{description}</p></article>)}
-      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-xl border border-purple-100 bg-white p-4">
           <h3 className="font-bold">Desempenho financeiro por brinquedo</h3><p className="mt-1 text-xs text-gray-500">Faturamento bruto, despesas rateadas e lucro líquido estimado no período.</p>
@@ -124,7 +115,7 @@ export function AdvancedReportsSection({ companyId }: { companyId: string }) {
           </div>)}</div><Pagination totalCount={summary.top.length} page={topPage} pageSize={pageSize} onPageChange={setTopPage} /></> : <p className="mt-4 text-sm text-gray-500">Ainda não há itens de locação para exibir.</p>}
         </article>
         <article className="rounded-xl border border-purple-100 bg-white p-4">
-          <h3 className="font-bold">Situação das locações</h3><p className="mt-1 text-xs text-gray-500">Locações que cruzam o período selecionado.</p>
+          <h3 className="font-bold">Situação das locações</h3><p className="mt-1 text-xs text-gray-500">Locações que cruzam o período selecionado.</p><p className="mt-3 text-sm font-semibold text-purple-800">{summary.rentals} {summary.rentals === 1 ? 'locação' : 'locações'} no período</p>
           <div className="mt-4 space-y-3">{summary.statuses.length ? summary.statuses.map(([status, count]) => <div key={status} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-3 text-sm"><span>{({ pending: 'Pendente', confirmed: 'Confirmada', ongoing: 'Em andamento', in_progress: 'Em andamento', completed: 'Concluída', draft: 'Rascunho' } as Record<string, string>)[status] ?? status}</span><strong>{count}</strong></div>) : <p className="text-sm text-gray-500">Nenhuma locação neste período.</p>}</div>
           <div className="mt-5 rounded-xl bg-purple-50 p-4"><p className="text-xs text-purple-700">Valor contratado no período</p><p className="mt-1 text-xl font-bold text-purple-900">{brl(summary.booked)}</p></div>
         </article>
