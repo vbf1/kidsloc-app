@@ -421,20 +421,46 @@ export default function PlatformAdminPage() {
           <p className="mt-2 text-xs text-gray-400">Consulta global somente leitura. Nenhum dado de acesso, senha ou token é exibido.</p>
           {usersError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{usersError}</p>}
           {usersLoading ? <p className="mt-4 text-sm text-gray-500">Carregando usuários cadastrados...</p> : filteredPlatformUsers.length ? (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Usuário</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">Empresa / perfil</th><th className="px-3 py-3">Cadastro</th><th className="px-3 py-3">Último acesso</th></tr></thead>
-                <tbody>{filteredPlatformUsers.map((user) => <tr key={user.id} className="border-b border-gray-50 align-top">
-                  <td className="px-3 py-3 font-semibold">{user.name || 'Nome não informado'}<span className="mt-1 block text-xs font-normal text-gray-400">{user.email_confirmed_at ? 'E-mail confirmado' : 'E-mail não confirmado'}</span></td>
-                  <td className="px-3 py-3">{user.email || '—'}</td>
-                  <td className="px-3 py-3">{user.phone || '—'}</td>
-                  <td className="px-3 py-3"><div className="space-y-1">{user.role === 'platform_owner' && <div className="font-semibold text-[#6840bd]">Proprietário da plataforma</div>}{user.memberships.length ? user.memberships.map((membership, index) => <div key={membership.company + membership.role + index}><span className="font-medium">{membership.company}</span><span className="ml-2 text-xs text-gray-500">{formatRoleLabel(membership.role)}</span></div>) : user.role !== 'platform_owner' ? <span className="text-gray-400">{user.company || 'Sem empresa vinculada'}</span> : null}</div></td>
-                  <td className="px-3 py-3 whitespace-nowrap">{user.registered_at ? new Date(user.registered_at).toLocaleDateString('pt-BR') : '—'}</td>
-                  <td className="px-3 py-3 whitespace-nowrap">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca acessou'}</td>
-                </tr>)}</tbody>
-              </table>
+            <>
+              <div className="mt-4 hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[900px] text-left text-sm">
+                  <thead><tr className="border-b border-gray-100 text-xs uppercase text-gray-500"><th className="px-3 py-3">Usuário</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Telefone</th><th className="px-3 py-3">Empresa / perfil</th><th className="px-3 py-3">Cadastro</th><th className="px-3 py-3">Último acesso</th></tr></thead>
+                  <tbody>{filteredPlatformUsers.map((user) => <tr key={user.id} className="border-b border-gray-50 align-top">
+                    <td className="px-3 py-3 font-semibold">{user.name || 'Nome não informado'}<span className="mt-1 block text-xs font-normal text-gray-400">{user.email_confirmed_at ? 'E-mail confirmado' : 'E-mail não confirmado'}</span></td>
+                    <td className="px-3 py-3">{user.email || '—'}</td>
+                    <td className="px-3 py-3">{user.phone || '—'}</td>
+                    <td className="px-3 py-3"><div className="space-y-1">{user.role === 'platform_owner' && <div className="font-semibold text-[#6840bd]">Proprietário da plataforma</div>}{user.memberships.length ? user.memberships.map((membership, index) => <div key={membership.company + membership.role + index}><span className="font-medium">{membership.company}</span><span className="ml-2 text-xs text-gray-500">{formatRoleLabel(membership.role)}</span></div>) : user.role !== 'platform_owner' ? <span className="text-gray-400">{user.company || 'Sem empresa vinculada'}</span> : null}</div></td>
+                    <td className="px-3 py-3 whitespace-nowrap">{user.registered_at ? new Date(user.registered_at).toLocaleDateString('pt-BR') : '—'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca acessou'}</td>
+                  </tr>)}</tbody>
+                </table>
+              </div>
+              <div className="mt-4 grid gap-3 md:hidden">
+                {filteredPlatformUsers.map((user) => (
+                  <article key={user.id} className="min-w-0 rounded-2xl border border-[#ebe6f3] bg-white p-4 shadow-[0_4px_14px_rgba(39,24,70,0.04)]">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="break-words text-sm font-bold text-[#29213b]">{user.name || 'Nome não informado'}</h3>
+                        <p className="mt-1 break-all text-xs leading-5 text-[#625b70]">{user.email || 'E-mail não informado'}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${user.email_confirmed_at ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{user.email_confirmed_at ? 'Confirmado' : 'Pendente'}</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-[#f0edf5] pt-3">
+                      <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-[#918a9e]">Telefone</p><p className="mt-1 break-words text-xs font-medium text-[#40394f]">{user.phone || '—'}</p></div>
+                      <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-[#918a9e]">Cadastro</p><p className="mt-1 text-xs font-medium text-[#40394f]">{user.registered_at ? new Date(user.registered_at).toLocaleDateString('pt-BR') : '—'}</p></div>
+                      <div className="col-span-2 min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-[#918a9e]">Empresa / perfil</p>
+                        <div className="mt-1 space-y-1 text-xs text-[#40394f]">
+                          {user.role === 'platform_owner' && <p className="font-semibold text-[#6840bd]">Proprietário da plataforma</p>}
+                          {user.memberships.length ? user.memberships.map((membership, index) => <p key={membership.company + membership.role + index} className="break-words"><span className="font-semibold">{membership.company}</span><span className="ml-1 text-[#777187]">· {formatRoleLabel(membership.role)}</span></p>) : user.role !== 'platform_owner' ? <p>{user.company || 'Sem empresa vinculada'}</p> : null}
+                        </div>
+                      </div>
+                      <div className="col-span-2 min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-[#918a9e]">Último acesso</p><p className="mt-1 text-xs font-medium text-[#40394f]">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca acessou'}</p></div>
+                    </div>
+                  </article>
+                ))}
+              </div>
               <p className="mt-3 text-xs text-gray-400">Exibindo {filteredPlatformUsers.length} usuário(s). Os dados são carregados diretamente do cadastro de autenticação e dos vínculos com empresas.</p>
-            </div>
+            </>
           ) : <p className="mt-4 text-sm text-gray-500">{platformUsers.length ? 'Nenhum usuário corresponde à busca.' : 'Nenhum usuário cadastrado foi encontrado.'}</p>}
         </section>
         <section className={panelClass}>
