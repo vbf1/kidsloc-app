@@ -644,8 +644,10 @@ class _HomePageState extends State<HomePage> {
       ));
     } else if (action == 'new_customer') {
       await _openModule('Clientes', 'customers');
+      return;
     } else if (action == 'calendar') {
       await _openModule('Agenda', 'rentals');
+      return;
     }
     if (mounted && _companyId == companyId) {
       unawaited(_refreshDashboard(companyId, _role));
