@@ -88,7 +88,7 @@ export function AppShell({
       </header>
       <div className="app-shell-layout mx-auto grid max-w-7xl gap-5 px-3 py-5 pb-24 sm:px-6 sm:py-6 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-6 lg:py-8 lg:pb-8 lg:px-8">
         <aside className="app-shell-sidebar min-w-0 lg:sticky lg:top-6 lg:self-start">
-          <div className="mb-4 hidden rounded-2xl border border-purple-100 bg-white p-4 md:block">
+          <div className="mb-4 hidden rounded-2xl border border-purple-100 bg-white p-4 lg:block">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</p>
             <p className="mt-1 break-words font-bold text-gray-900">{companyName}</p>
             <p className="mt-2 break-all text-xs leading-5 text-gray-500">{email}</p>
