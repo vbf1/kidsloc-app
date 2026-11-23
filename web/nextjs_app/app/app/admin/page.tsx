@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import { SearchablePicker } from '../../../components/searchable-picker';
 import type { CustomerRecord } from '../../../lib/customers';
-import { useResponsivePageSize } from '../../../lib/use-responsive-page-size';
 
 type Company = { id: string; name: string; created_at: string };
 
