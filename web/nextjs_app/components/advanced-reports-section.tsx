@@ -59,7 +59,7 @@ export function AdvancedReportsSection({ companyId }: { companyId: string }) {
   }
 
   // Load the selected company's reporting data on entry and after realtime refreshes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { void load(); }, [companyId, refresh]);
   useCompanyRealtimeRefresh(companyId, ['financial_transactions', 'payments', 'rentals', 'rental_items', 'products'], () => setRefresh(v => v + 1));
 
