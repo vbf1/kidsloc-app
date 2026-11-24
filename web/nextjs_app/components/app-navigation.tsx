@@ -18,7 +18,7 @@ type NavItem = {
 function NavIcon({ name }: { name: NavItem['icon'] }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 shrink-0" {...common}>
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-[18px] shrink-0" {...common}>
       {name === 'home' && <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>}
       {name === 'users' && <><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h1" /><path d="M16 11a3 3 0 1 0-2.5-4.7M14 14a5 5 0 0 1 6.5 4.8V20h-5" /></>}
       {name === 'toy' && <><path d="M5 9.5 12 5l7 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5z" /><path d="M9 20v-6h6v6M8 9h.01M16 9h.01" /></>}
@@ -32,7 +32,7 @@ function NavIcon({ name }: { name: NavItem['icon'] }) {
 
 function MoreIcon({ open }: { open: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       {open ? <path d="m6 6 12 12M18 6 6 18" /> : <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>}
     </svg>
   );
@@ -143,13 +143,13 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
           </section>
         </>}
 
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200/80 bg-white/95 px-3 pt-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur-xl"
-          style={{ paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom))' }}>
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200/80 bg-white/95 px-3 pt-1 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+          style={{ paddingBottom: 'max(0.3rem, env(safe-area-inset-bottom))' }}>
           <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
             {primaryItems.map((item) => <Link key={item.href} href={toNextHref(item.href, basePath)} onClick={() => setMoreOpen(false)} aria-current={item.active ? 'page' : undefined}
               className={item.active
-                ? 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
-                : 'relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
+                ? 'relative flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-semibold text-[#6840bd]'
+                : 'relative flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
               <NavIcon name={item.icon} />
               <span className="max-w-full truncate px-1">{item.shortLabel}</span>
               {item.active && <span className="absolute bottom-0 h-0.5 w-7 rounded-full bg-[#8054d8]" />}
@@ -157,8 +157,8 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
             <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen}
               aria-controls="mobile-more-menu" aria-label={moreOpen ? 'Fechar mais opções' : 'Abrir mais opções'}
               className={moreOpen || moreIsActive
-                ? 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold text-[#6840bd]'
-                : 'flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
+                ? 'flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-semibold text-[#6840bd]'
+                : 'flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium text-gray-500 transition active:bg-gray-50'}>
               <MoreIcon open={moreOpen} />
               <span>Mais</span>
               {moreIsActive && <span className="h-0.5 w-7 rounded-full bg-[#8054d8]" />}
