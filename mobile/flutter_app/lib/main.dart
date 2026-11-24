@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'auth_validation.dart';
 import 'quote_create_page.dart';
 import 'rental_create_page.dart';
 import 'finance_page.dart';
@@ -220,13 +221,10 @@ class _AuthPageState extends State<AuthPage> {
                         controller: _password,
                         obscureText: true,
                         decoration: const InputDecoration(labelText: 'Senha'),
-                        validator: (value) =>
-                            (value == null ||
-                                    value.length < (_creating ? 8 : 6))
-                                ? _creating
-                                    ? 'Use pelo menos 8 caracteres.'
-                                    : 'Informe uma senha com pelo menos 6 caracteres.'
-                                : null,
+                        validator: (value) => validateAuthPassword(
+                          value,
+                          isCreatingAccount: _creating,
+                        ),
                       ),
                       if (_message != null) ...[
                         const SizedBox(height: 16),
