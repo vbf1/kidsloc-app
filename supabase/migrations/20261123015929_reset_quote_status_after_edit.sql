@@ -42,7 +42,7 @@ begin
   end loop;
   update public.rental_quotes set customer_id=p_customer_id,event_date=p_event_date,start_time=p_start_time,end_time=p_end_time,
     delivery_method=p_delivery_method,delivery_address=nullif(trim(p_delivery_address),''),delivery_fee=p_delivery_fee,discount=p_discount,
-    subtotal=v_subtotal,total_amount=greatest(0,v_subtotal+p_delivery_fee-p_discount),notes=nullif(trim(p_notes),''), 
+    subtotal=v_subtotal,total_amount=greatest(0,v_subtotal+p_delivery_fee-p_discount),notes=nullif(trim(p_notes),''),
     quote_snapshot=coalesce(p_snapshot,'{}'::jsonb),
     status=case when status in ('sent','accepted','rejected','expired') then 'draft' else status end
   where id=p_quote_id and company_id=v_quote.company_id;
