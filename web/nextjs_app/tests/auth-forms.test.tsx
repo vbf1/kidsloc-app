@@ -65,6 +65,9 @@ describe('web authentication forms', () => {
   it('validates signup fields before requesting account creation', async () => {
     render(<SignupPage />);
 
+    fireEvent.change(screen.getByLabelText('Confirmar senha'), {
+      target: { value: 'senha-diferente' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
     expect(await screen.findByText('Informe seu nome.')).toBeTruthy();
