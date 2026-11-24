@@ -299,6 +299,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
   final _name = TextEditingController();
   bool _busy = false;
   bool _checking = true;
+  bool _isPlatformOwner = false;
   String? _message;
 
   @override
@@ -309,9 +310,19 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
 
   Future<void> _checkMembership() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser;
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
       if (user == null) return;
-      final rows = await Supabase.instance.client
+
+      final isPlatformOwner =
+          await client.rpc('is_platform_owner_for_company');
+      if (!mounted) return;
+      if (isPlatformOwner == true) {
+        setState(() => _isPlatformOwner = true);
+        return;
+      }
+
+      final rows = await client
           .from('company_members')
           .select('company_id')
           .eq('user_id', user.id)
@@ -326,7 +337,7 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
     } on PostgrestException catch (_) {
       if (mounted) {
         setState(() => _message =
-            'Não foi possível consultar seu vínculo com a empresa. Tente novamente.');
+            'Não foi possível verificar suas permissões e seu vínculo com a empresa. Tente novamente.');
       }
     } catch (_) {
       if (mounted) {
@@ -394,7 +405,45 @@ class _CompanySetupPageState extends State<CompanySetupPage> {
         ),
         body: _checking
             ? const Center(child: CircularProgressIndicator())
-            : Center(
+            : _isPlatformOwner
+                ? Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 440),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _BrandHeader(),
+                            SizedBox(height: 28),
+                            Text(
+                              'Acesso administrativo pela web',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'Esta conta é proprietária da plataforma e não deve cadastrar uma empresa por este aplicativo.',
+                            ),
+                            SizedBox(height: 12),
+                            SelectableText(
+                              'https://vbf1.github.io/kidsloc-app/app/admin/',
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Abra o endereço acima no navegador para acessar o painel administrativo.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                : Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: ConstrainedBox(
