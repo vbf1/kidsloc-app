@@ -109,9 +109,9 @@ export default function ContractsPage(){
  async function saveCompanyDetails(){if(!supabase)return;const settings={legal_type:companyForm.legal_type,legal_name:companyForm.legal_name.trim(),document:companyForm.document.trim(),phone:companyForm.phone.trim(),email:companyForm.email.trim(),address:companyForm.address.trim(),zip:companyForm.zip.trim()};const {error:e}=await supabase.from('companies').update({name:companyForm.name.trim(),contract_settings:settings}).eq('id',companyId);if(e){setError('Não foi possível salvar os dados da empresa: '+e.message);return;}setCompanyName(companyForm.name.trim());setCompanySettings(settings);setCompanyFormOpen(false);setNotice('Dados da empresa atualizados.');}
  async function deleteContract(c:Contract){if(!supabase)return;const {error:e}=await supabase.from('rental_contracts').delete().eq('id',c.id).eq('company_id',companyId).neq('status','signed');if(e){setError('Não foi possível excluir o contrato: '+e.message);return;}setDeleteTarget(null);setNotice('Contrato excluído.');await load();}
  async function signOut(){if(supabase){await supabase.auth.signOut();router.push('/login/');}}
- if(loading)return <main className="grid min-h-screen place-items-center text-sm text-slate-500">Carregando contratos...</main>;
  return <AppShell companyName={companyName} email={email} role={role} companyId={companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH??''} signingOut={false} onSignOut={signOut}>
   <section className="kl-workspace-refresh mx-auto w-full min-w-0 max-w-6xl space-y-6 pb-8">
+   {loading && <p role="status" className="rounded-xl border border-purple-100 bg-white px-4 py-3 text-sm text-gray-500">Atualizando contratos...</p>}
    <header className="space-y-2">
     <p className="text-xs font-bold uppercase tracking-[.18em] text-[#8054d8]">Documentos da empresa</p>
     <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
