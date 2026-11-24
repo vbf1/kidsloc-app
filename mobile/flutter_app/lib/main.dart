@@ -221,8 +221,11 @@ class _AuthPageState extends State<AuthPage> {
                         obscureText: true,
                         decoration: const InputDecoration(labelText: 'Senha'),
                         validator: (value) =>
-                            (value == null || value.length < 8)
-                                ? 'Use pelo menos 8 caracteres.'
+                            (value == null ||
+                                    value.length < (_creating ? 8 : 6))
+                                ? _creating
+                                    ? 'Use pelo menos 8 caracteres.'
+                                    : 'Informe uma senha com pelo menos 6 caracteres.'
                                 : null,
                       ),
                       if (_message != null) ...[
