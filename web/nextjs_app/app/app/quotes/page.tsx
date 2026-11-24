@@ -234,9 +234,9 @@ export default function QuotesPage() {
   }
   async function signOut(){if(!supabase)return;await supabase.auth.signOut();router.push('/login/');}
 
-  if(loading && !hasModuleData('quotes', workspaceScope)) return <main className="grid min-h-screen place-items-center bg-[#f8f7fc]"><p>Carregando orçamentos...</p></main>;
   return <AppShell companyName={companyName} email={email} role={role} companyId={companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH??''} signingOut={false} onSignOut={signOut}>
     <section>
+      {loading && <p role="status" className="mb-4 rounded-xl border border-purple-100 bg-white px-4 py-3 text-sm text-gray-500">Atualizando orçamentos...</p>}
       <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8054d8]">Comercial <span className="px-1 text-slate-300">/</span> Propostas</p><h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Orçamentos</h1><p className="mt-1.5 text-sm text-slate-500">Acompanhe propostas, valores e próximos passos dos seus eventos.</p></div>
       {!showForm && <button onClick={()=>{setShowForm(true);setError('');setNotice('');}} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4] focus:outline-none focus:ring-2 focus:ring-purple-200">+ Novo orçamento</button>}</div>
       {error && <p role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
