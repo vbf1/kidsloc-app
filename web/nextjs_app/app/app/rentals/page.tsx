@@ -60,7 +60,9 @@ export default function RentalsPage() {
   const [notice, setNotice] = useState('');
   const [defaultDepositPercentage, setDefaultDepositPercentage] = useState(30);
   const [rentalPaymentSummary, setRentalPaymentSummary] = useState<RentalPaymentSummary | null>(null);
-  const [legacyDepositConfirmation, setLegacyDepositConfirmation] = useState(false);
+  const [rentalPaymentStageConfirmation, setRentalPaymentStageConfirmation] = useState<{ stage: 'deposit' | 'balance'; applyDefault: boolean } | null>(null);
+  const [rentalPaymentMethod, setRentalPaymentMethod] = useState('Pix');
+  const [rentalPaymentDate, setRentalPaymentDate] = useState(localDateValue());
   const [rentalPaymentLoading, setRentalPaymentLoading] = useState(false);
   const [rentalPaymentSaving, setRentalPaymentSaving] = useState(false);
   const [rentalPaymentError, setRentalPaymentError] = useState('');
@@ -323,18 +325,26 @@ export default function RentalsPage() {
     return () => { active = false; };
   }, [viewingRental?.id, companyId, role, refreshIndex]);
 
-  async function registerRentalPaymentStage(stage: 'deposit' | 'balance', applyDefault = false) {
-    if (!supabase || !companyId || !viewingRental || rentalPaymentSaving) return;
+  function openRentalPaymentStage(stage: 'deposit' | 'balance', applyDefault = false) {
+    setRentalPaymentError('');
+    setRentalPaymentMethod('Pix');
+    setRentalPaymentDate(localDateValue());
+    setRentalPaymentStageConfirmation({ stage, applyDefault });
+  }
+
+  async function registerRentalPaymentStage() {
+    const confirmation = rentalPaymentStageConfirmation;
+    if (!supabase || !companyId || !viewingRental || !confirmation || rentalPaymentSaving) return;
     setRentalPaymentSaving(true);
     setRentalPaymentError('');
     try {
       const { error } = await supabase.rpc('register_rental_payment_stage', {
         p_company_id: companyId,
         p_rental_id: viewingRental.id,
-        p_stage: stage,
-        p_payment_method: null,
-        p_paid_at: localDateValue(),
-        p_apply_default_deposit: applyDefault,
+        p_stage: confirmation.stage,
+        p_payment_method: rentalPaymentMethod,
+        p_paid_at: rentalPaymentDate,
+        p_apply_default_deposit: confirmation.applyDefault,
       });
       if (error) {
         setRentalPaymentError(error.message);
@@ -345,8 +355,8 @@ export default function RentalsPage() {
       });
       if (summaryError) setRentalPaymentError(summaryError.message);
       else setRentalPaymentSummary(data as RentalPaymentSummary);
-      setNotice(stage === 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.');
-      setLegacyDepositConfirmation(false);
+      setNotice(confirmation.stage === 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.');
+      setRentalPaymentStageConfirmation(null);
       setRefreshIndex((value) => value + 1);
     } catch {
       setRentalPaymentError('Não foi possível registrar o recebimento. Tente novamente.');
@@ -423,7 +433,7 @@ export default function RentalsPage() {
           {!formOpen && <button type="button" onClick={openNewRental} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Nova locação</button>}
         </div>
         {notice && !formOpen && <div role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</div>}
-        <WorkspaceModal open={legacyDepositConfirmation} title="Aplicar sinal padrão nesta locação?" description="Esta locação foi criada antes do controle de sinal. O valor só será preenchido depois da sua confirmação." onClose={() => setLegacyDepositConfirmation(false)} size="md">
+        <WorkspaceModal open={Boolean(rentalPaymentStageConfirmation)} title={rentalPaymentStageConfirmation?.stage === 'deposit' ? (rentalPaymentStageConfirmation.applyDefault ? 'Aplicar sinal padrão nesta locação?' : 'Confirmar pagamento do sinal') : 'Confirmar quitação do saldo'} description={rentalPaymentStageConfirmation?.applyDefault ? 'Esta locação foi criada antes do controle de sinal. O valor só será preenchido depois da sua confirmação.' : 'Informe como o cliente realizou o pagamento antes de confirmar.'} onClose={() => { if (!rentalPaymentSaving) setRentalPaymentStageConfirmation(null); }} size="md">
           <div className="space-y-4">
             <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
               <p>Percentual padrão atual: <strong>{rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage}%</strong></p>
@@ -431,8 +441,10 @@ export default function RentalsPage() {
               <p className="mt-2 text-xs">Essa alteração será aplicada somente a esta locação antiga. As demais não serão modificadas.</p>
             </div>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setLegacyDepositConfirmation(false)} className="rounded-xl border px-4 py-3 text-sm">Cancelar</button>
-              <button type="button" disabled={rentalPaymentSaving} onClick={() => void registerRentalPaymentStage('deposit', true)} className="rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{rentalPaymentSaving?'Registrando...':'Aplicar sinal e registrar pagamento'}</button>
+              <label className="block text-sm font-medium text-amber-950">Forma de pagamento<select value={rentalPaymentMethod} onChange={(event) => setRentalPaymentMethod(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm"><option value="Pix">Pix</option><option value="Dinheiro">Dinheiro</option><option value="Cartão de crédito">Cartão de crédito</option><option value="Cartão de débito">Cartão de débito</option><option value="Transferência bancária">Transferência bancária</option><option value="Outro">Outro</option></select></label>
+              <label className="block text-sm font-medium text-amber-950">Data do pagamento<input type="date" required value={rentalPaymentDate} onChange={(event) => setRentalPaymentDate(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm" /></label>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setRentalPaymentStageConfirmation(null)} className="rounded-xl border px-4 py-3 text-sm">Cancelar</button>
+              <button type="button" disabled={rentalPaymentSaving || !rentalPaymentMethod || !rentalPaymentDate} onClick={() => void registerRentalPaymentStage()} className="rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{rentalPaymentSaving?'Registrando...':rentalPaymentStageConfirmation?.applyDefault?'Aplicar sinal e registrar pagamento':'Confirmar recebimento'}</button></div>
             </div>
           </div>
         </WorkspaceModal>
@@ -490,12 +502,12 @@ export default function RentalsPage() {
                 {rentalPaymentSummary?.deposit_registered ? (
                   <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || viewingRental.status === 'cancelled'} onClick={() => { setRentalPaymentReversal('deposit'); setRentalPaymentReversalReason(''); }} className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 disabled:opacity-40">Desfazer pagamento do sinal</button>
                 ) : (
-                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || (rentalPaymentSummary.legacy_deposit_missing ? Math.max(0, Math.round(rentalPaymentSummary.total_amount * rentalPaymentSummary.default_deposit_percentage)/100*100)/100 - rentalPaymentSummary.paid_total <= 0 : rentalPaymentSummary.deposit_remaining <= 0) || viewingRental.status === 'cancelled'} onClick={() => rentalPaymentSummary?.legacy_deposit_missing ? setLegacyDepositConfirmation(true) : registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
+                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || (rentalPaymentSummary.legacy_deposit_missing ? Math.max(0, Math.round(rentalPaymentSummary.total_amount * rentalPaymentSummary.default_deposit_percentage)/100*100)/100 - rentalPaymentSummary.paid_total <= 0 : rentalPaymentSummary.deposit_remaining <= 0) || viewingRental.status === 'cancelled'} onClick={() => openRentalPaymentStage('deposit', Boolean(rentalPaymentSummary?.legacy_deposit_missing))} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
                 )}
                 {rentalPaymentSummary?.balance_registered ? (
                   <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || viewingRental.status === 'cancelled'} onClick={() => { setRentalPaymentReversal('balance'); setRentalPaymentReversalReason(''); }} className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 disabled:opacity-40">Desfazer quitação do saldo</button>
                 ) : (
-                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.balance_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('balance')} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Quitou saldo restante</button>
+                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.balance_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => openRentalPaymentStage('balance')} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Quitou saldo restante</button>
                 )}
                 {rentalPaymentSaving && <span className="self-center text-xs text-gray-500">Atualizando pagamento...</span>}
               </div>
