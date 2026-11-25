@@ -418,8 +418,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       }
       if (!mounted) return;
       if (!widget.isEditing) {
-        await _offerWhatsAppConfirmation();
-        if (!mounted) return;
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Locação atualizada com sucesso.')),
