@@ -192,7 +192,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
 
   String? _normalizedWhatsAppPhone(String? value) {
-    var digits = (value ?? '').replaceAll(RegExp(r'\\D'), '');
+    var digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
     if (digits.length == 10 || digits.length == 11) digits = '55$digits';
     return digits.length >= 12 && digits.length <= 13 ? digits : null;
   }
@@ -208,7 +208,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       return;
     }
     final itemLines = _items.map((item) =>
-      '- ${item['name']} (quantidade: ${item['quantity']})').join('\\n');
+      '- ${item['name']} (quantidade: ${item['quantity']})').join('\n');
     final address = _composeAddress();
     final message = [
       'Olá, ${customer['name']}! Tudo bem?',
