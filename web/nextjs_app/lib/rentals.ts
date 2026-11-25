@@ -86,9 +86,9 @@ export function formatRentalWhatsAppMessage(args: {
 export type RentalFormValues = {
   customer_id: string; start_date: string; end_date: string; start_time: string; end_time: string;
   status: RentalStatus; delivery_method: RentalDeliveryMethod; delivery_address: string;
-  total_amount: string; deposit_amount: string; responsible_user_ids: string[]; items: RentalItemValue[];
+  total_amount: string; deposit_amount: string; deposit_percentage: string; responsible_user_ids: string[]; items: RentalItemValue[];
 };
-export type RentalFieldErrors = Partial<Record<'customer_id' | 'start_date' | 'end_date' | 'start_time' | 'end_time' | 'delivery_address' | 'total_amount' | 'deposit_amount' | 'items', string>>;
+export type RentalFieldErrors = Partial<Record<'customer_id' | 'start_date' | 'end_date' | 'start_time' | 'end_time' | 'delivery_address' | 'total_amount' | 'deposit_amount' | 'deposit_percentage' | 'items', string>>;
 export type RentalRecord = {
   id: string; company_id: string; rental_number: number; customer_id: string | null;
   start_date: string; end_date: string; start_time: string | null; end_time: string | null;
@@ -107,7 +107,7 @@ export const RENTAL_STATUSES: RentalStatus[] = ['pending', 'confirmed', 'ongoing
 export const EMPTY_RENTAL: RentalFormValues = {
   customer_id: '', start_date: '', end_date: '', start_time: '09:00', end_time: '18:00',
   status: 'pending', delivery_method: 'customer_pickup', delivery_address: '',
-  total_amount: '0,00', deposit_amount: '0,00', responsible_user_ids: [], items: [],
+  total_amount: '0,00', deposit_amount: '0,00', deposit_percentage: '30', responsible_user_ids: [], items: [],
 };
 export function parseRentalPrice(value: string): number | null {
   const input = value.trim().replace(/\s/g, '');
@@ -166,6 +166,8 @@ export function validateRental(values: RentalFormValues, isEditing = false): Ren
   if (parseRentalPrice(values.total_amount) === null) errors.total_amount = 'Informe um valor total válido.';
   const totalAmount = parseRentalPrice(values.total_amount);
   const depositAmount = parseRentalPrice(values.deposit_amount);
+  const depositPercentage = Number(values.deposit_percentage.replace(',', '.'));
+  if (!Number.isFinite(depositPercentage) || depositPercentage < 0 || depositPercentage > 100) errors.deposit_percentage = 'Informe um percentual entre 0 e 100.';
   if (depositAmount === null) errors.deposit_amount = 'Informe um valor de sinal válido.';
   else if (totalAmount !== null && depositAmount > totalAmount) errors.deposit_amount = 'O sinal não pode ser maior que o valor total da locação.';
   if (!values.items.length) errors.items = 'Adicione pelo menos um item à locação.';
