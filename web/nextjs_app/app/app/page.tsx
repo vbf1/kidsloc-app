@@ -124,7 +124,7 @@ export default function AppHomePage() {
             .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled').order('start_date', { ascending: true }).limit(5),
           supabase!.from('rental_quotes').select('id', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'sent']),
           workspace?.role === 'admin'
-            ? supabase!.from('financial_transactions').select('amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            ? supabase!.from('financial_transactions').select('id,amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
             : Promise.resolve({ data: [], error: null }),
           workspace?.role === 'admin'
             ? supabase!.from('payments').select('transaction_id,amount').eq('company_id', companyId).is('reversed_at', null)
