@@ -191,6 +191,60 @@ class _FinancePageState extends State<FinancePage> {
     }
   }
 
+  Future<void> _registerRentalStage(Map<String, dynamic> row, String stage) async {
+    final rentalId = row['rental_id']?.toString();
+    if (rentalId == null || rentalId.isEmpty || !_canManage || _saving) return;
+    try {
+      final rawSummary = await Supabase.instance.client.rpc('get_rental_payment_summary', params: {
+        'p_company_id': widget.companyId, 'p_rental_id': rentalId,
+      });
+      final summary = Map<String, dynamic>.from(rawSummary as Map);
+      final applyDefault = stage == 'deposit' && summary['legacy_deposit_missing'] == true;
+      final percentage = (summary['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
+      final total = _money(row['amount']);
+      final target = applyDefault ? (total * percentage / 100) : _money(summary['deposit_amount']);
+      final paid = _money(summary['paid_total']);
+      final amount = stage == 'deposit'
+          ? (target - paid).clamp(0, double.infinity).toDouble()
+          : _money(summary['balance_remaining']);
+      if (amount <= 0) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(stage == 'deposit' ? 'Não há sinal pendente.' : 'Esta locação já está quitada.')));
+        return;
+      }
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(stage == 'deposit' ? 'Confirmar pagamento do sinal' : 'Confirmar quitação do saldo'),
+          content: Text(applyDefault
+              ? 'Esta locação antiga ainda não possui sinal definido. Aplicaremos $percentage% (${_format(amount)}) somente nesta locação e registraremos o recebimento. Confirma?'
+              : 'Será registrado o recebimento de ${_format(amount)} para a locação. Confirma?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Confirmar')),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      setState(() => _saving = true);
+      await Supabase.instance.client.rpc('register_rental_payment_stage', params: {
+        'p_company_id': widget.companyId,
+        'p_rental_id': rentalId,
+        'p_stage': stage,
+        'p_payment_method': null,
+        'p_paid_at': _date(DateTime.now()),
+        'p_apply_default_deposit': applyDefault,
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(stage == 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.')));
+      await _load();
+    } on PostgrestException catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível registrar o recebimento.')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _showReceipt(Map<String, dynamic> transaction, Map<String, dynamic> payment) async {
     final date = payment['paid_at']?.toString().split('T').first ?? '';
     final formattedDate = date.isEmpty ? 'Não informada' : _labelDate(date);
@@ -491,12 +545,23 @@ class _FinancePageState extends State<FinancePage> {
                               ],
                               if (income && balance > 0 && _canManage && row['status'] != 'cancelled') ...[
                                 const SizedBox(height: 8),
-                                Align(alignment: Alignment.centerRight, child: FilledButton.tonalIcon(
-                                  onPressed: _saving ? null : () => _openReceive(row),
-                                  icon: const Icon(Icons.payments_outlined, size: 17),
-                                  label: const Text('Registrar recebimento'),
-                                  style: FilledButton.styleFrom(foregroundColor: const Color(0xFF166534), backgroundColor: const Color(0xFFECFDF3)),
-                                )),
+                                Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
+                                  if (row['rental_id'] != null) OutlinedButton.icon(
+                                    onPressed: _saving ? null : () => _registerRentalStage(row, 'deposit'),
+                                    icon: const Icon(Icons.payments_outlined, size: 17),
+                                    label: const Text('Pagou sinal'),
+                                  ),
+                                  if (row['rental_id'] != null) FilledButton.tonalIcon(
+                                    onPressed: _saving ? null : () => _registerRentalStage(row, 'balance'),
+                                    icon: const Icon(Icons.check_circle_outline, size: 17),
+                                    label: const Text('Quitou saldo restante'),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: _saving ? null : () => _openReceive(row),
+                                    icon: const Icon(Icons.add_card_outlined, size: 17),
+                                    label: const Text('Recebimento parcial'),
+                                  ),
+                                ]),
                               ],
                             ]),
                           );
