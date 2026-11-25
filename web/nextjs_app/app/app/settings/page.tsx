@@ -43,7 +43,7 @@ export default function SettingsPage() {
   const [role, setRole] = useState('');
   const [theme, setTheme] = useState<ThemeChoice>('system');
   const [uiScale, setUiScale] = useState<UiScale>('medium');
-  const [language, setLanguage = useState<AppLanguage>('pt-BR');
+  const [language, setLanguage] = useState<AppLanguage>('pt-BR');
   const [languageSaving, setLanguageSaving] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState('30');
   const [loading, setLoading] = useState(true);
