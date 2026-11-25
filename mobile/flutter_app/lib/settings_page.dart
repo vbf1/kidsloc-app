@@ -100,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         groupValue: AppThemeController.mode.value,
                         title: Text(_themeLabel(value)),
                         onChanged: (next) {
-                          if (next != null) setState(() => AppThemeController.setMode(next));
+                          if (next != null) { setState(() {}); AppThemeController.setMode(next); }
                         },
                       )),
                     ]),
