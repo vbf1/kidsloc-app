@@ -11,7 +11,21 @@ describe('rental delivery address', () => {
     const parts = parseRentalAddress('Rua das Flores, 120, Centro, Belo Horizonte - MG');
     expect(parts.street).toBe('Rua das Flores, 120, Centro, Belo Horizonte - MG');
     expect(parts.city).toBe('');
-    expect(formatRentalAddress(parts)).toBe('Rua das Flores, 120, Centro, Belo Horizonte - MG');
+    expect(formatRentalAddress(parts)).toBe('Rua: Rua das Flores, 120, Centro, Belo Horizonte - MG');
+  });
+
+
+  it('round-trips structured fields when editing a saved rental', () => {
+    const formatted = formatRentalAddress({
+      postal_code: '30110-000', street: 'Rua das Flores', number: '120',
+      complement: 'Casa 2', neighborhood: 'Centro', city: 'Belo Horizonte',
+      state: 'MG', reference: 'Próximo à praça',
+    });
+    expect(parseRentalAddress(formatted)).toEqual({
+      postal_code: '30110-000', street: 'Rua das Flores', number: '120',
+      complement: 'Casa 2', neighborhood: 'Centro', city: 'Belo Horizonte',
+      state: 'MG', reference: 'Próximo à praça',
+    });
   });
 
   it('combines the structured address fields for the existing database field', () => {
@@ -24,7 +38,7 @@ describe('rental delivery address', () => {
       city: 'Belo Horizonte',
       state: 'MG',
       reference: 'Próximo à praça',
-    })).toBe('Rua das Flores, 120, Complemento: Casa 2, Centro, Belo Horizonte - MG, CEP: 30110-000, Referência: Próximo à praça');
+    })).toBe('Rua: Rua das Flores | Número: 120 | Complemento: Casa 2 | Bairro: Centro | Cidade: Belo Horizonte | Estado: MG | CEP: 30110-000 | Referência: Próximo à praça');
   });
 });
 
