@@ -13,7 +13,7 @@ export function AuthShell({ title, description, children }: {
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-3xl border border-purple-100 bg-white p-7 shadow-sm sm:p-9">
         <Link href="/" aria-label="Voltar para a página inicial do KidsLoc" className="mx-auto flex w-fit items-center justify-center">
-          <Image src={logoSrc} alt="KidsLoc App — Locação de Brinquedos Mais Fácil e Organizada" width={112} height={112} priority className="size-20 rounded-2xl object-contain" />
+          <Image src={logoSrc} alt="KidsLoc App — Locação de Brinquedos Mais Fácil e Organizada" width={100} height={100} priority className="size-[72px] rounded-2xl object-contain" />
         </Link>
         <h1 className="mt-8 text-2xl font-bold">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-gray-500">{description}</p>
