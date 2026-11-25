@@ -319,16 +319,18 @@ export default function RentalsPage() {
     if (!supabase || !companyId || !viewingRental || rentalPaymentSaving) return;
     setRentalPaymentSaving(true);
     setRentalPaymentError('');
-    const { error } = await supabase.rpc('register_rental_payment_stage', {
-      p_company_id: companyId,
-      p_rental_id: viewingRental.id,
-      p_stage: stage,
-      p_payment_method: null,
-      p_paid_at: localDateValue(),
-    });
-    if (error) {
-      setRentalPaymentError(error.message);
-    } else {
+    try {
+      const { error } = await supabase.rpc('register_rental_payment_stage', {
+        p_company_id: companyId,
+        p_rental_id: viewingRental.id,
+        p_stage: stage,
+        p_payment_method: null,
+        p_paid_at: localDateValue(),
+      });
+      if (error) {
+        setRentalPaymentError(error.message);
+        return;
+      }
       const { data, error: summaryError } = await supabase.rpc('get_rental_payment_summary', {
         p_company_id: companyId, p_rental_id: viewingRental.id,
       });
@@ -336,8 +338,11 @@ export default function RentalsPage() {
       else setRentalPaymentSummary(data as RentalPaymentSummary);
       setNotice(stage === 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.');
       setRefreshIndex((value) => value + 1);
+    } catch {
+      setRentalPaymentError('Não foi possível registrar o recebimento. Tente novamente.');
+    } finally {
+      setRentalPaymentSaving(false);
     }
-    setRentalPaymentSaving(false);
   }
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
