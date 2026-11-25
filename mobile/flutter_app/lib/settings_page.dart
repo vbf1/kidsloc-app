@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/app_theme.dart';
+import 'services/app_language.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, required this.companyId, required this.role});
@@ -41,7 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
     } on PostgrestException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Não foi possível carregar as configurações.');
+      if (mounted) setState(() => _error = appText('Não foi possível carregar as configurações.'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -50,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _save() async {
     final value = double.tryParse(_deposit.text.trim().replaceAll(',', '.'));
     if (value == null || value < 0 || value > 100) {
-      setState(() => _error = 'Informe um percentual entre 0 e 100.');
+      setState(() => _error = appText('Informe um percentual entre 0 e 100.'));
       return;
     }
     setState(() { _saving = true; _error = null; _notice = null; });
@@ -61,26 +62,26 @@ class _SettingsPageState extends State<SettingsPage> {
       });
       if (!mounted) return;
       _deposit.text = (data['default_deposit_percentage'] ?? value).toString();
-      setState(() => _notice = 'Configurações salvas. O percentual será usado nas novas locações.');
+      setState(() => _notice = appText('Configurações salvas. O percentual será usado nas novas locações.'));
     } on PostgrestException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Não foi possível salvar as configurações.');
+      if (mounted) setState(() => _error = appText('Não foi possível salvar as configurações.'));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
   String _themeLabel(ThemeMode value) => switch (value) {
-    ThemeMode.light => 'Claro',
-    ThemeMode.dark => 'Escuro',
-    ThemeMode.system => 'Automático',
+    ThemeMode.light => appText('Claro'),
+    ThemeMode.dark => appText('Escuro'),
+    ThemeMode.system => appText('Automático'),
   };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações do app')),
+      appBar: AppBar(title: Text(appText('Configurações do app'))),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -90,9 +91,38 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Aparência', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(appText('Idioma'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      const Text('Escolha o tema usado neste dispositivo.'),
+                      Text(appText('Escolha o idioma de todo o aplicativo.')),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: AppLanguageController.languageTag,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: appText('Idioma')),
+                        items: AppLanguageController.options.entries.map((entry) => DropdownMenuItem<String>(
+                          value: entry.key, child: Text(entry.value),
+                        )).toList(),
+                        onChanged: (value) async {
+                          if (value == null) return;
+                          try {
+                            await AppLanguageController.setLanguage(value);
+                            if (mounted) setState(() => _notice = appText('Idioma atualizado com sucesso.'));
+                          } catch (_) {
+                            if (mounted) setState(() => _error = 'Não foi possível salvar o idioma na sua conta.');
+                          }
+                        },
+                      ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(appText('Aparência'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(appText('Escolha o tema usado neste dispositivo.')),
                       const SizedBox(height: 8),
                       ...ThemeMode.values.map((value) => RadioListTile<ThemeMode>(
                         contentPadding: EdgeInsets.zero,
@@ -111,25 +141,25 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Padrão de sinal', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(appText('Padrão de sinal'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      const Text('Percentual sugerido automaticamente nas novas locações.'),
+                      Text(appText('Percentual sugerido automaticamente nas novas locações.')),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _deposit,
                         enabled: _canManage,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'Percentual padrão (%)', border: OutlineInputBorder(), helperText: 'Começa em 30%. Pode ser alterado em cada locação.'),
+                        decoration: InputDecoration(labelText: appText('Percentual padrão (%)'), border: const OutlineInputBorder(), helperText: 'Começa em 30%. Pode ser alterado em cada locação.'),
                       ),
-                      if (!_canManage) const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text('Somente administradores podem alterar esta configuração.'),
+                      if (!_canManage) Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(appText('Somente administradores podem alterar esta configuração.')),
                       ),
                       if (_canManage) Align(
                         alignment: Alignment.centerRight,
                         child: FilledButton(
                           onPressed: _saving ? null : _save,
-                          child: Text(_saving ? 'Salvando...' : 'Salvar configurações'),
+                          child: Text(appText(_saving ? 'Salvando...' : 'Salvar configurações')),
                         ),
                       ),
                     ]),
@@ -138,7 +168,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
                 if (_notice != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_notice!, style: TextStyle(color: Theme.of(context).colorScheme.primary))),
                 const SizedBox(height: 12),
-                const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('O tema é salvo neste dispositivo. O percentual de sinal é compartilhado com a empresa e não altera locações antigas automaticamente.'))),
+                Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(appText('O tema é salvo neste dispositivo. O percentual de sinal é compartilhado com a empresa e não altera locações antigas automaticamente.')))),
               ],
             ),
     );
