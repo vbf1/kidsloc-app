@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
 export const metadata: Metadata = {
   title: 'KidsLoc App | Gestão de locações',
   description: 'Gestão inteligente para locadoras de brinquedos e eventos.',
   icons: {
-    icon: '/kidsloc-logo.jpg',
-    shortcut: '/kidsloc-logo.jpg',
-    apple: '/kidsloc-logo.jpg',
+    icon: `${basePath}/kidsloc-logo.jpg`,
+    shortcut: `${basePath}/kidsloc-logo.jpg`,
+    apple: `${basePath}/kidsloc-logo.jpg`,
   },
 };
 
