@@ -7,6 +7,29 @@ create table if not exists public.company_settings (
   updated_at timestamptz not null default now()
 );
 
+alter table public.rentals
+  add column if not exists deposit_percentage numeric(5,2);
+
+do $constraint$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'rentals_deposit_percentage_range'
+      and conrelid = 'public.rentals'::regclass
+  ) then
+    alter table public.rentals
+      add constraint rentals_deposit_percentage_range
+      check (deposit_percentage is null or (deposit_percentage >= 0 and deposit_percentage <= 100));
+  end if;
+end;
+$constraint$;
+
+-- Existing positive deposits can be reconstructed. Zero amounts stay NULL so
+-- the app can distinguish legacy rentals from new rentals explicitly set to 0%.
+update public.rentals
+set deposit_percentage = least(100, greatest(0, round(deposit_amount / nullif(total_amount, 0) * 100, 2)))
+where deposit_percentage is null and deposit_amount > 0 and total_amount > 0;
+
 alter table public.company_settings enable row level security;
 
 drop policy if exists company_settings_select_members on public.company_settings;
@@ -76,6 +99,46 @@ begin
 end;
 $function$;
 
+create or replace function public.set_rental_deposit_amount(
+  p_company_id uuid,
+  p_rental_id uuid,
+  p_deposit_amount numeric
+)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_rental public.rentals%rowtype;
+  v_percentage numeric(5,2);
+begin
+  if auth.uid() is null then raise exception 'Usuário não autenticado.'; end if;
+  if not public.is_company_member(p_company_id) then raise exception 'Acesso negado à empresa.'; end if;
+  if p_deposit_amount is null or p_deposit_amount < 0 then raise exception 'Informe um valor de sinal válido.'; end if;
+  if not public.can_manage_rental(p_company_id, p_rental_id) then raise exception 'Você não tem permissão para editar esta locação.'; end if;
+
+  select r.* into v_rental
+  from public.rentals r
+  where r.id = p_rental_id and r.company_id = p_company_id
+  for update;
+  if not found then raise exception 'Locação não encontrada nesta empresa.'; end if;
+  if p_deposit_amount > v_rental.total_amount then raise exception 'O sinal não pode ser maior que o valor total da locação.'; end if;
+
+  v_percentage := case
+    when v_rental.total_amount > 0 then round(p_deposit_amount / v_rental.total_amount * 100, 2)
+    else 0
+  end;
+  update public.rentals
+  set deposit_amount = p_deposit_amount,
+      deposit_percentage = v_percentage
+  where id = p_rental_id and company_id = p_company_id;
+end;
+$function$;
+
+revoke all on function public.set_rental_deposit_amount(uuid, uuid, numeric) from public, anon;
+grant execute on function public.set_rental_deposit_amount(uuid, uuid, numeric) to authenticated;
+
 create or replace function public.get_rental_payment_summary(
   p_company_id uuid,
   p_rental_id uuid
@@ -134,7 +197,8 @@ begin
     'deposit_paid', least(v_rental.deposit_amount, v_paid_total),
     'deposit_remaining', greatest(0, v_rental.deposit_amount - v_paid_total),
     'balance_remaining', greatest(0, v_total_amount - v_paid_total),
-    'legacy_deposit_missing', v_rental.deposit_amount = 0,
+    'deposit_percentage', v_rental.deposit_percentage,
+    'legacy_deposit_missing', v_rental.deposit_percentage is null,
     'default_deposit_percentage', v_default_percentage,
     'has_financial_transaction', v_transaction.id is not null
   );
@@ -184,7 +248,7 @@ begin
     raise exception 'O valor total da locação precisa ser maior que zero.';
   end if;
 
-  if p_stage = 'deposit' and v_rental.deposit_amount = 0 then
+  if p_stage = 'deposit' and v_rental.deposit_percentage is null then
     if not p_apply_default_deposit then
       raise exception 'Esta locação antiga ainda não tem sinal definido. Confirme a aplicação do percentual padrão nas configurações.';
     end if;
@@ -193,7 +257,8 @@ begin
     from public.company_settings s where s.company_id = p_company_id;
     v_default_percentage := coalesce(v_default_percentage, 30);
     update public.rentals
-    set deposit_amount = round(v_rental.total_amount * v_default_percentage / 100, 2)
+    set deposit_amount = round(v_rental.total_amount * v_default_percentage / 100, 2),
+        deposit_percentage = v_default_percentage
     where id = p_rental_id and company_id = p_company_id
     returning * into v_rental;
   end if;
@@ -272,13 +337,18 @@ as $function$
 declare
   v_percentage numeric(5,2) := 30;
 begin
-  if coalesce(new.deposit_amount, 0) = 0 and new.total_amount > 0 then
-    select coalesce(s.default_deposit_percentage, 30)
-      into v_percentage
-    from public.company_settings s
-    where s.company_id = new.company_id;
-    v_percentage := coalesce(v_percentage, 30);
-    new.deposit_amount := round(new.total_amount * v_percentage / 100, 2);
+  if new.deposit_percentage is null and new.total_amount > 0 then
+    if coalesce(new.deposit_amount, 0) > 0 then
+      new.deposit_percentage := round(new.deposit_amount / new.total_amount * 100, 2);
+    else
+      select coalesce(s.default_deposit_percentage, 30)
+        into v_percentage
+      from public.company_settings s
+      where s.company_id = new.company_id;
+      v_percentage := coalesce(v_percentage, 30);
+      new.deposit_percentage := v_percentage;
+      new.deposit_amount := round(new.total_amount * v_percentage / 100, 2);
+    end if;
   end if;
   return new;
 end;
