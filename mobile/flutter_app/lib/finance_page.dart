@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/app_language.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/company_realtime.dart';
@@ -349,7 +350,7 @@ class _FinancePageState extends State<FinancePage> {
     final currentPage = _page.clamp(0, (filteredTransactions.length / pageSize).ceil().clamp(1, 999999) - 1).toInt();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financeiro'),
+        title: Text(appText('Financeiro')),
         actions: [
           if (_canManage) IconButton(tooltip: 'Novo lançamento', onPressed: _loading || _saving ? null : _newTransaction, icon: const Icon(Icons.add)),
           IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),

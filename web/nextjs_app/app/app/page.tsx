@@ -26,7 +26,7 @@ function formatCurrency(value: number) {
 }
 function rentalStatus(value: string) {
   const labels: Record<string, string> = {
-    pending: 'Pendente', confirmed: 'Confirmada', in_progress: 'Em andamento',
+    pending: 'Pendente', confirmed: 'Confirmada', ongoing: 'Em andamento', in_progress: 'Em andamento',
     completed: 'Concluída', cancelled: 'Cancelada', draft: 'Rascunho',
   };
   return labels[value] ?? value;

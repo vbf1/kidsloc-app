@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/app_language.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/company_realtime.dart';
 import 'widgets/pagination_controls.dart';
@@ -269,7 +270,7 @@ class _ReportsPageState extends State<ReportsPage> {
     final s = _summary;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Relatórios avançados'),
+        title: Text(appText('Relatórios avançados')),
         actions: [
           IconButton(
               onPressed: _loading ? null : _load,

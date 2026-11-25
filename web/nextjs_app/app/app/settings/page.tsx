@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '../../../components/app-shell';
 import { supabase } from '../../../lib/supabase';
 import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
+import { LANGUAGE_OPTIONS, LANGUAGE_STORAGE_KEY, LANGUAGE_EVENT, normalizeLanguage, type AppLanguage } from '../../../lib/i18n';
 
 type ThemeChoice = 'light' | 'dark' | 'system';
 const THEME_KEY = 'kidsloc-theme';
@@ -28,6 +29,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [theme, setTheme] = useState<ThemeChoice>('system');
+  const [language, setLanguage] = useState<AppLanguage>('pt-BR');
+  const [languageSaving, setLanguageSaving] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState('30');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,6 +47,9 @@ export default function SettingsPage() {
       if (!user) { clearWorkspaceSessionCache(); router.replace('/login/'); return; }
       if (!active) return;
       setEmail(user.email ?? '');
+      const preferredLanguage = normalizeLanguage(user.user_metadata?.preferred_language ?? window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+      setLanguage(preferredLanguage);
+      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, preferredLanguage);
       const cached = getWorkspaceSessionCache();
       let id = '';
       let name = '';
@@ -69,6 +75,20 @@ export default function SettingsPage() {
     void load();
     return () => { active = false; window.clearTimeout(themeTimer); };
   }, [router]);
+
+  async function saveLanguage(nextLanguage: AppLanguage) {
+    if (!supabase || languageSaving) return;
+    setLanguage(nextLanguage);
+    setLanguageSaving(true);
+    setError(''); setNotice('');
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+    document.documentElement.lang = nextLanguage;
+    window.dispatchEvent(new CustomEvent(LANGUAGE_EVENT, { detail: nextLanguage }));
+    const { error: languageError } = await supabase.auth.updateUser({ data: { preferred_language: nextLanguage } });
+    if (languageError) setError('Não foi possível salvar o idioma na sua conta. A preferência ficará salva neste dispositivo.');
+    else setNotice('Idioma atualizado com sucesso.');
+    setLanguageSaving(false);
+  }
 
   async function saveSettings() {
     if (!supabase || !companyId || !canManage || saving) return;
@@ -99,6 +119,15 @@ export default function SettingsPage() {
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
       {loading ? <p role="status" className="rounded-xl border bg-white p-4 text-sm text-slate-500">Carregando configurações...</p> : <>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-sky-50 text-xl">🌐</span><div><h2 className="font-bold text-slate-900">Idioma</h2><p className="mt-1 text-sm text-slate-500">Escolha o idioma de todo o aplicativo. A preferência será salva na sua conta.</p></div></div>
+          <label className="mt-5 block max-w-md text-sm font-semibold text-slate-700">Idioma do aplicativo
+            <select value={language} disabled={languageSaving} onChange={event=>void saveLanguage(normalizeLanguage(event.target.value))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-base disabled:opacity-60">
+              {LANGUAGE_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+          {languageSaving && <p className="mt-2 text-xs text-slate-500">Salvando idioma...</p>}
+        </section>
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-purple-50 text-xl">🌙</span><div><h2 className="font-bold text-slate-900">Aparência</h2><p className="mt-1 text-sm text-slate-500">Escolha como o KidsLoc será exibido neste dispositivo.</p></div></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">

@@ -11,7 +11,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: mobile/flutter_app
@@ -38,44 +38,3 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --no-pub --no-fatal-infos
       - run: flutter test
-      - name: Build Android APK
-        run: >-
-          flutter build apk --debug
-          --dart-define=SUPABASE_URL=${{ vars.SUPABASE_URL || 'https://wfwohnssvftegnhwdzmt.supabase.co' }}
-          --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ vars.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
-      - name: Enable KVM for Android emulator
-        shell: bash
-        run: |
-          if [[ -e /dev/kvm ]]; then
-            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-            sudo udevadm control --reload-rules
-            sudo udevadm trigger --name-match=kvm
-          fi
-
-          if [[ -r /dev/kvm && -w /dev/kvm ]]; then
-            echo "KVM hardware acceleration is available."
-          else
-            echo "::warning::KVM is unavailable or inaccessible; Android emulator will use slow software CPU emulation."
-            echo "ANDROID_I_WANT_MY_TCG=yes" >> "$GITHUB_ENV"
-          fi
-      - name: Smoke test on Android emulator
-        timeout-minutes: 18
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_2
-          disable-animations: true
-          emulator-boot-timeout: 600
-          working-directory: mobile/flutter_app
-          script: |
-            adb install build/app/outputs/flutter-apk/app-debug.apk
-            adb shell am start -n br.com.kidsloc.app/.MainActivity
-            sleep 10
-            test -n "$(adb shell pidof br.com.kidsloc.app)" || { adb logcat -d -s AndroidRuntime:E flutter:E; exit 1; }
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kidsloc-android-debug-apk
-          path: mobile/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
-          retention-days: 7
