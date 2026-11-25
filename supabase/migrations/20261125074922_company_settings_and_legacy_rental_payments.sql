@@ -155,6 +155,7 @@ declare
   v_paid_total numeric(12,2) := 0;
   v_total_amount numeric(12,2);
   v_default_percentage numeric(5,2) := 30;
+  v_deposit_target numeric(12,2) := 0;
 begin
   if auth.uid() is null or not public.has_company_role(p_company_id, array['owner','admin']) then
     raise exception 'Somente proprietários e administradores podem consultar os pagamentos da locação.';
@@ -190,12 +191,18 @@ begin
     where p.company_id = p_company_id and p.rental_id = p_rental_id;
   end if;
 
+  v_deposit_target := v_rental.deposit_amount;
+  if v_rental.deposit_percentage is null then
+    v_deposit_target := round(v_total_amount * v_default_percentage / 100, 2);
+  end if;
+
   return jsonb_build_object(
     'total_amount', v_total_amount,
-    'deposit_amount', v_rental.deposit_amount,
+    'deposit_amount', v_deposit_target,
+    'deposit_target_amount', v_deposit_target,
     'paid_total', v_paid_total,
-    'deposit_paid', least(v_rental.deposit_amount, v_paid_total),
-    'deposit_remaining', greatest(0, v_rental.deposit_amount - v_paid_total),
+    'deposit_paid', least(v_deposit_target, v_paid_total),
+    'deposit_remaining', greatest(0, v_deposit_target - v_paid_total),
     'balance_remaining', greatest(0, v_total_amount - v_paid_total),
     'deposit_percentage', v_rental.deposit_percentage,
     'legacy_deposit_missing', v_rental.deposit_percentage is null,
