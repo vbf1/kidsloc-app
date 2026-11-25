@@ -55,6 +55,11 @@ describe('rental validation', () => {
     expect(validateRental({ ...valid, deposit_amount: '200,01' }).deposit_amount).toBeTruthy();
     expect(validateRental({ ...valid, deposit_amount: '200,00' }).deposit_amount).toBeUndefined();
   });
+  it('accepts a custom deposit percentage and rejects values outside 0 to 100', () => {
+    expect(validateRental({ ...valid, deposit_percentage: '45' })).toEqual({});
+    expect(validateRental({ ...valid, deposit_percentage: '-1' }).deposit_percentage).toBeTruthy();
+    expect(validateRental({ ...valid, deposit_percentage: '101' }).deposit_percentage).toBeTruthy();
+  });
   it('rejects reversed dates and invalid time ranges', () => {
     expect(validateRental({ ...valid, end_date: '2026-11-19' }).end_date).toBeTruthy();
     expect(validateRental({ ...valid, start_date: '2026-11-20', end_date: '2026-11-20', start_time: '18:00', end_time: '09:00' }).end_time).toBeTruthy();
