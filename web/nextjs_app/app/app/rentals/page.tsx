@@ -283,10 +283,15 @@ export default function RentalsPage() {
         rentalId = typeof data === 'string' ? data : null;
       }
       if (!rentalId) { setFormError('A locação foi salva, mas não foi possível identificar o registro para salvar o sinal. Abra a locação e tente novamente.'); return; }
-      const { error: depositError } = await supabase.rpc('set_rental_deposit_amount', {
-        p_company_id: companyId, p_rental_id: rentalId, p_deposit_amount: depositAmount,
-      });
-      if (depositError) { setFormError('A locação foi salva, mas o sinal não foi atualizado: ' + depositError.message); return; }
+      const shouldSaveDeposit = !editingRental
+        || Math.abs(Number(editingRental.deposit_amount ?? 0) - depositAmount) > 0.009
+        || Math.abs(Number(editingRental.total_amount ?? 0) - totalAmount) > 0.009;
+      if (shouldSaveDeposit) {
+        const { error: depositError } = await supabase.rpc('set_rental_deposit_amount', {
+          p_company_id: companyId, p_rental_id: rentalId, p_deposit_amount: depositAmount,
+        });
+        if (depositError) { setFormError('A locação foi salva, mas o sinal não foi atualizado: ' + depositError.message); return; }
+      }
       setNotice(editingRental ? 'Locação atualizada com sucesso.' : 'Locação criada com sucesso. A confirmação pelo WhatsApp fica disponível nos detalhes da locação.');
       setFormOpen(false);
       setEditingRental(null);
