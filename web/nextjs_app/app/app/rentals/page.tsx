@@ -58,6 +58,7 @@ export default function RentalsPage() {
   const [listLoading, setListLoading] = useState(!hasModuleData('rentals', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
+  const [defaultDepositPercentage, setDefaultDepositPercentage] = useState(30);
   const [rentalPaymentSummary, setRentalPaymentSummary] = useState<RentalPaymentSummary | null>(null);
   const [rentalPaymentLoading, setRentalPaymentLoading] = useState(false);
   const [rentalPaymentSaving, setRentalPaymentSaving] = useState(false);
@@ -104,6 +105,10 @@ export default function RentalsPage() {
         setCompanyName(name.trim());
         setRole(membership.role as CompanyRole);
         setCompanyId(membership.company_id);
+        const { data: companySettings } = await supabase.rpc('get_company_settings', { p_company_id: membership.company_id });
+        if (typeof companySettings?.default_deposit_percentage === 'number' || typeof companySettings?.default_deposit_percentage === 'string') {
+          setDefaultDepositPercentage(Number(companySettings.default_deposit_percentage) || 0);
+        }
         setWorkspaceSessionCache({ userId: user.id, email: user.email ?? 'E-mail não informado', companyName: name.trim(), companyId: membership.company_id, role: membership.role as CompanyRole });
       } catch {
         if (active) setAccessError('Ocorreu um erro ao verificar seu acesso. Confira sua conexão.');
@@ -214,6 +219,7 @@ export default function RentalsPage() {
     setPage(0);
     setNewFormDefaults({
       ...EMPTY_RENTAL, start_date: today, end_date: today,
+      deposit_percentage: String(defaultDepositPercentage),
       responsible_user_ids: currentUserId ? [currentUserId] : [],
     });
   }
