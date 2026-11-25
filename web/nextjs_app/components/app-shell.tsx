@@ -51,6 +51,7 @@ export function AppShell({
     const applyLanguage = (raw: unknown) => {
       const language = normalizeLanguage(raw);
       document.documentElement.lang = language;
+      document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
       const visit = (node: Node) => {
         if (node.nodeType === Node.TEXT_NODE) {
