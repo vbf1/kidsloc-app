@@ -81,9 +81,9 @@ select is(
   'converted rental starts in pending status'
 );
 select lives_ok(
-  $ select public.set_rental_deposit_amount(
+  $$ select public.set_rental_deposit_amount(
        'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 25
-     ) $,
+     ) $$,
   'company admin can record a rental deposit'
 );
 select is(
@@ -106,9 +106,9 @@ select is(
   'payment summary exposes the full remaining balance'
 );
 select throws_ok(
-  $ select public.set_rental_deposit_amount(
+  $$ select public.set_rental_deposit_amount(
        'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 106
-     ) $,
+     ) $$,
   'P0001',
   'O sinal não pode ser maior que o valor total da locação.',
   'rental deposit cannot exceed the rental total'
@@ -139,11 +139,11 @@ select set_config(
 );
 
 select lives_ok(
-  $ select public.register_rental_payment_stage(
+  $$ select public.register_rental_payment_stage(
        'd2000000-0000-4000-8000-000000000001',
        current_setting('test.rental_id')::uuid,
        'deposit', 'Pix', current_date
-     ) $,
+     ) $$,
   'company admin can register the configured deposit with one action'
 );
 select is(
@@ -164,11 +164,11 @@ select is(
   'partial payment keeps the transaction pending'
 );
 select lives_ok(
-  $ select public.register_rental_payment_stage(
+  $$ select public.register_rental_payment_stage(
        'd2000000-0000-4000-8000-000000000001',
        current_setting('test.rental_id')::uuid,
        'balance', 'Pix', current_date
-     ) $,
+     ) $$,
   'company admin can quit the entire remaining balance with one action'
 );
 select is(
@@ -187,9 +187,9 @@ select is(
   'one-tap balance action completes the rental total'
 );
 select throws_ok(
-  $ select public.register_rental_payment_stage(
+  $$ select public.register_rental_payment_stage(
        'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 'deposit'
-     ) $,
+     ) $$,
   'P0001',
   'O sinal desta locação já foi registrado.',
   'deposit action cannot register the same deposit twice'
@@ -228,17 +228,17 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', 'd1000000-0000-4000-8000-000000000002', true);
 select throws_ok(
-  $ select public.register_rental_payment_stage(
+  $$ select public.register_rental_payment_stage(
        'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 'balance'
-     ) $,
+     ) $$,
   'P0001',
   'Somente proprietários e administradores podem registrar recebimentos.',
   'staff cannot register one-tap rental payments'
 );
 select throws_ok(
-  $ select public.set_rental_deposit_amount(
+  $$ select public.set_rental_deposit_amount(
        'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 30
-     ) $,
+     ) $$,
   'P0001',
   'Você não tem permissão para editar esta locação.',
   'staff without rental assignment cannot edit the deposit'
