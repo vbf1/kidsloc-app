@@ -128,6 +128,10 @@ begin
   select coalesce(sum(amount), 0) into v_paid_total
   from public.payments
   where transaction_id = p_transaction_id and reversed_at is null;
+  if v_paid_total = 0 and v_transaction.status = 'paid'
+     and not exists (select 1 from public.payments where transaction_id = p_transaction_id) then
+    v_paid_total := v_transaction.amount;
+  end if;
   if p_amount > v_transaction.amount - v_paid_total then
     raise exception 'O recebimento ultrapassa o saldo pendente.';
   end if;
@@ -233,6 +237,10 @@ begin
   from public.payments p
   where p.company_id = p_company_id and p.transaction_id = v_transaction.id
     and p.reversed_at is null;
+  if v_paid_total = 0 and v_transaction.status = 'paid'
+     and not exists (select 1 from public.payments p where p.transaction_id = v_transaction.id) then
+    v_paid_total := v_transaction.amount;
+  end if;
 
   if p_stage = 'deposit' then
     v_target := least(v_rental.deposit_amount, v_transaction.amount);
