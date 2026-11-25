@@ -5,7 +5,8 @@ import { FieldFeedback, FormFeedback } from './form-feedback';
 import { SearchablePicker } from './searchable-picker';
 import {
   defaultRentalUnitPrice, EMPTY_RENTAL, formatRentalPrice, parseRentalPrice, rentalItemsTotal,
-  validateRental, type RentalCustomer, type RentalFieldErrors, type RentalFormValues,
+  validateRental, parseRentalAddress, formatRentalAddress, EMPTY_RENTAL_ADDRESS,
+  type RentalAddressParts, type RentalCustomer, type RentalFieldErrors, type RentalFormValues,
   type RentalMember, type RentalProduct,
 } from '../lib/rentals';
 
@@ -49,8 +50,13 @@ export function RentalForm({
   }));
   const [pricingMode, setPricingMode] = useState<'individual' | 'combo'>(() => initialValues.items.length > 0 && initialValues.items.every((item) => parseRentalPrice(item.unit_price) === 0) ? 'combo' : 'individual');
   const [fieldErrors, setFieldErrors] = useState<RentalFieldErrors>({});
+  const [addressParts, setAddressParts] = useState<RentalAddressParts>(() => parseRentalAddress(initialValues.delivery_address));
   const [productToAdd, setProductToAdd] = useState('');
   const availableProducts = useMemo(() => products.filter((product) => product.item_type !== 'service' && !values.items.some((item) => item.product_id === product.id)), [products, values.items]);
+  function updateAddressPart(field: keyof RentalAddressParts, value: string) {
+    setAddressParts((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => ({ ...current, delivery_address: undefined }));
+  }
   function updateField<K extends keyof RentalFormValues>(field: K, value: RentalFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
@@ -102,12 +108,17 @@ export function RentalForm({
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const errors = validateRental(values, isEditing);
+    const deliveryAddress = values.delivery_method === 'delivery' ? formatRentalAddress(addressParts) : '';
+    if (values.delivery_method === 'delivery' && !addressParts.street.trim()) {
+      setFieldErrors((current) => ({ ...current, delivery_address: 'Informe a rua ou avenida do endereço de entrega.' }));
+      return;
+    }
+    const errors = validateRental({ ...values, delivery_address: deliveryAddress }, isEditing);
     setFieldErrors(errors);
     if (Object.keys(errors).length) return;
     await onSubmit({
       ...values,
-      delivery_address: values.delivery_method === 'delivery' ? values.delivery_address.trim() : '',
+      delivery_address: deliveryAddress,
       total_amount: moneyInput(parseRentalPrice(values.total_amount) ?? 0),
       items: values.items.map((item) => ({
         ...item, quantity: String(Number(item.quantity)),
@@ -177,10 +188,34 @@ export function RentalForm({
               { value: 'delivery', label: 'Entrega no endereço', description: 'A equipe leva os equipamentos ao local' },
             ]} placeholder="Selecione a modalidade" searchPlaceholder="Buscar modalidade..." emptyText="Nenhuma modalidade encontrada." disabled={saving} onChange={(value) => updateField('delivery_method', value as RentalFormValues['delivery_method'])} /></div>
           </div>
-          {values.delivery_method === 'delivery' && <label className={labelClass + ' lg:col-span-2'}>Endereço de entrega (opcional)
-            <textarea rows={2} maxLength={500} value={values.delivery_address} onChange={(event) => updateField('delivery_address', event.target.value)} className={inputClass} placeholder="Rua, número, bairro, cidade" disabled={saving} />
-            {fieldErrors.delivery_address && <FieldFeedback id="rental-address-error">{fieldErrors.delivery_address}</FieldFeedback>}
-          </label>}
+          {values.delivery_method === 'delivery' && <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+            <label className={labelClass}>Rua / Avenida *
+              <input maxLength={180} value={addressParts.street} onChange={(event) => updateAddressPart('street', event.target.value)} className={inputClass} placeholder="Nome da rua ou avenida" disabled={saving} />
+            </label>
+            <label className={labelClass}>Número
+              <input maxLength={20} value={addressParts.number} onChange={(event) => updateAddressPart('number', event.target.value)} className={inputClass} placeholder="Número ou s/n" disabled={saving} />
+            </label>
+            <label className={labelClass}>Bairro
+              <input maxLength={100} value={addressParts.neighborhood} onChange={(event) => updateAddressPart('neighborhood', event.target.value)} className={inputClass} disabled={saving} />
+            </label>
+            <label className={labelClass}>Cidade
+              <input maxLength={100} value={addressParts.city} onChange={(event) => updateAddressPart('city', event.target.value)} className={inputClass} disabled={saving} />
+            </label>
+            <label className={labelClass}>Estado (UF)
+              <input maxLength={2} value={addressParts.state} onChange={(event) => updateAddressPart('state', event.target.value.toUpperCase())} className={inputClass} placeholder="MG" disabled={saving} />
+            </label>
+            <label className={labelClass}>CEP
+              <input maxLength={9} value={addressParts.postal_code} onChange={(event) => updateAddressPart('postal_code', event.target.value)} className={inputClass} placeholder="00000-000" disabled={saving} />
+            </label>
+            <label className={labelClass}>Complemento
+              <input maxLength={100} value={addressParts.complement} onChange={(event) => updateAddressPart('complement', event.target.value)} className={inputClass} placeholder="Casa, bloco, apartamento..." disabled={saving} />
+            </label>
+            <label className={labelClass}>Ponto de referência
+              <input maxLength={120} value={addressParts.reference} onChange={(event) => updateAddressPart('reference', event.target.value)} className={inputClass} disabled={saving} />
+            </label>
+            {fieldErrors.delivery_address && <div className="sm:col-span-2"><FieldFeedback id="rental-address-error">{fieldErrors.delivery_address}</FieldFeedback></div>}
+            <p className="text-xs text-gray-500 sm:col-span-2">Endereços já cadastrados em formato antigo permanecem preservados no campo Rua / Avenida. Você pode completar os demais dados ao editar.</p>
+          </div>}
         </div>
       </section>
       <section aria-labelledby="rental-items-heading">
