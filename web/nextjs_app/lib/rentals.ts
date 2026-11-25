@@ -67,7 +67,7 @@ export function formatRentalWhatsAppMessage(args: {
     'Valor total: ' + money,
     '',
     'Por favor, confira se está tudo correto. Obrigado pela preferência!',
-  ].join('\\n');
+  ].join('\n');
 }
 export type RentalFormValues = {
   customer_id: string; start_date: string; end_date: string; start_time: string; end_time: string;
