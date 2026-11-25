@@ -10,7 +10,7 @@ import { RentalList } from '../../../components/rental-list';
 import { WorkspaceModal } from '../../../components/workspace-modal';
 import { SearchablePicker } from '../../../components/searchable-picker';
 import {
-  EMPTY_RENTAL, matchesRentalSearch,
+  EMPTY_RENTAL, matchesRentalSearch, formatRentalWhatsAppMessage, normalizeWhatsAppPhone,
   parseRentalPrice, type RentalCustomer, type RentalFormValues, type RentalItemRecord,
   type RentalMember, type RentalProduct, type RentalRecord, type RentalStatus,
 } from '../../../lib/rentals';
@@ -57,6 +57,7 @@ export default function RentalsPage() {
   const [listLoading, setListLoading] = useState(!hasModuleData('rentals', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
+  const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
   const [refreshIndex, setRefreshIndex] = useState(0);
   useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_items', 'rental_item_units', 'rental_responsibles', 'rental_events', 'product_units'], () => setRefreshIndex((value) => value + 1));
   const [searchDraft, setSearchDraft] = useState('');
@@ -203,6 +204,7 @@ export default function RentalsPage() {
     setEditingRental(null);
     setFormError('');
     setNotice('');
+    setWhatsAppUrl(null);
     setFormOpen(true);
     setPage(0);
     setNewFormDefaults({
@@ -215,6 +217,7 @@ export default function RentalsPage() {
     setEditingRental(rental);
     setFormError('');
     setNotice('');
+    setWhatsAppUrl(null);
     setFormOpen(true);
     
   }
@@ -264,7 +267,27 @@ export default function RentalsPage() {
       } else {
         const { error } = await supabase.rpc('create_rental_with_items', commonArgs);
         if (error) { setFormError(formatSaveError(error.message)); return; }
-        setNotice('Locação criada com sucesso.');
+        const customer = customers.find((item) => item.id === values.customer_id);
+        const phone = normalizeWhatsAppPhone(customer?.phone);
+        if (customer && phone) {
+          const message = formatRentalWhatsAppMessage({
+            companyName, customerName: customer.name,
+            startDate: values.start_date, endDate: values.end_date,
+            startTime: values.start_time, endTime: values.end_time,
+            items: values.items.map((item) => ({
+              name: products.find((product) => product.id === item.product_id)?.name ?? 'Item da locação',
+              quantity: Number(item.quantity),
+            })),
+            deliveryMethod: values.delivery_method,
+            deliveryAddress: values.delivery_address,
+            totalAmount,
+          });
+          setWhatsAppUrl('https://wa.me/' + phone + '?text=' + encodeURIComponent(message));
+          setNotice('Locação criada com sucesso. A confirmação está pronta para enviar pelo WhatsApp.');
+        } else {
+          setWhatsAppUrl(null);
+          setNotice('Locação criada com sucesso. Cadastre um telefone válido no cliente para enviar a confirmação pelo WhatsApp.');
+        }
       }
       setFormOpen(false);
       setEditingRental(null);
@@ -311,7 +334,10 @@ export default function RentalsPage() {
           <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8054d8]">Gestão da empresa</p><h1 id="rentals-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Locações</h1><p className="mt-2 text-sm text-gray-500">Acompanhe reservas, períodos, itens e funcionários responsáveis.</p></div>
           {!formOpen && <button type="button" onClick={openNewRental} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Nova locação</button>}
         </div>
-        {notice && !formOpen && <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
+        {notice && !formOpen && <div role="status" className="mb-4 flex flex-col gap-3 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800 sm:flex-row sm:items-center sm:justify-between">
+          <p>{notice}</p>
+          {whatsAppUrl && <button type="button" onClick={() => window.open(whatsAppUrl, '_blank', 'noopener,noreferrer')} className="shrink-0 rounded-xl bg-green-700 px-4 py-2.5 font-semibold text-white hover:bg-green-800">Enviar confirmação pelo WhatsApp</button>}
+        </div>}
         <WorkspaceModal open={formOpen} title={editingRental ? 'Editar locação #' + editingRental.rental_number : 'Nova locação'} description="Organize cliente, período, equipamentos, valores e responsáveis." onClose={closeForm} size="xl">
           <RentalForm key={editingRental?.id ?? 'new-rental'} initialValues={editingRental ? {
             customer_id: editingRental.customer_id ?? '',
