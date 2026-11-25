@@ -23,8 +23,8 @@ const members = [{ user_id: 'member-1', full_name: 'Responsável', role: 'owner'
 function fillRequiredFields() {
   fireEvent.click(screen.getByRole('button', { name: 'Selecione um cliente' }));
   fireEvent.click(screen.getByRole('option', { name: /Ana Souza/ }));
-  fireEvent.change(screen.getByLabelText('Data inicial *'), { target: { value: '2026-11-26' } });
-  fireEvent.change(screen.getByLabelText('Data final *'), { target: { value: '2026-11-26' } });
+  fireEvent.change(screen.getByLabelText('Data inicial *'), { target: { value: '2027-11-26' } });
+  fireEvent.change(screen.getByLabelText('Data final *'), { target: { value: '2027-11-26' } });
   fireEvent.change(screen.getAllByLabelText('Hora')[0], { target: { value: '09' } });
   fireEvent.change(screen.getAllByLabelText('Minutos')[0], { target: { value: '00' } });
   fireEvent.change(screen.getAllByLabelText('Hora')[1], { target: { value: '18' } });
