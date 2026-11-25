@@ -175,7 +175,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   }
 
   String _composeAddress() {
-    return [
+    final parts = [
       _street.text.trim(),
       _number.text.trim(),
       if (_complement.text.trim().isNotEmpty) 'Complemento: ${_complement.text.trim()}',
@@ -183,16 +183,9 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       [_city.text.trim(), _state.text.trim()].where((part) => part.isNotEmpty).join(' - '),
       if (_postalCode.text.trim().isNotEmpty) 'CEP: ${_postalCode.text.trim()}',
       if (_reference.text.trim().isNotEmpty) 'Referência: ${_reference.text.trim()}',
-    ].where((part) => part.isNotEmpty).join(', ').substring(0,
-      [
-        _street.text.trim(),
-        _number.text.trim(),
-        if (_complement.text.trim().isNotEmpty) 'Complemento: ${_complement.text.trim()}',
-        _neighborhood.text.trim(),
-        [_city.text.trim(), _state.text.trim()].where((part) => part.isNotEmpty).join(' - '),
-        if (_postalCode.text.trim().isNotEmpty) 'CEP: ${_postalCode.text.trim()}',
-        if (_reference.text.trim().isNotEmpty) 'Referência: ${_reference.text.trim()}',
-      ].where((part) => part.isNotEmpty).join(', ').length.clamp(0, 500));
+    ].where((part) => part.isNotEmpty).toList();
+    final address = parts.join(', ');
+    return address.length > 500 ? address.substring(0, 500) : address;
   }
 
   String _dateBr(DateTime value) =>
@@ -205,7 +198,8 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   }
 
   Future<void> _offerWhatsAppConfirmation() async {
-    final customer = _customers.where((row) => row['id'].toString() == _customerId).firstOrNull;
+    final matches = _customers.where((row) => row['id'].toString() == _customerId);
+    final customer = matches.isEmpty ? null : matches.first;
     final phone = _normalizedWhatsAppPhone(customer?['phone']?.toString());
     if (customer == null || phone == null) {
       ScaffoldMessenger.of(context).showSnackBar(
