@@ -276,6 +276,17 @@ export function RentalForm({
           {pricingMode === 'combo' && <span className="mt-1 block text-xs font-normal text-gray-500">Informe o preço combinado para todos os equipamentos do pacote.</span>}
           {fieldErrors.total_amount && <FieldFeedback id="rental-total-error">{fieldErrors.total_amount}</FieldFeedback>}
         </label>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className={labelClass}>Sinal pago (R$)
+            <input inputMode="decimal" value={values.deposit_amount} onChange={(event) => updateField('deposit_amount', event.target.value)} className={inputClass} disabled={saving} placeholder="0,00" />
+            {fieldErrors.deposit_amount && <FieldFeedback id="rental-deposit-error">{fieldErrors.deposit_amount}</FieldFeedback>}
+          </label>
+          <div className="rounded-xl bg-purple-50 p-3 text-sm">
+            <span className="block text-xs font-medium text-purple-700">Saldo restante</span>
+            <strong className="mt-1 block text-lg text-gray-900">{formatRentalPrice(Math.max(0, (parseRentalPrice(values.total_amount) ?? 0) - (parseRentalPrice(values.deposit_amount) ?? 0)))}</strong>
+            <span className="text-xs text-gray-500">Valor total menos o sinal informado.</span>
+          </div>
+        </div>
       </section>
       <section aria-labelledby="rental-responsibles-heading">
         <h3 id="rental-responsibles-heading" className="mb-2 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Funcionários responsáveis</h3>
