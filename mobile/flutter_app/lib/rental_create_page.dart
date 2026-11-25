@@ -247,7 +247,6 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     final applyDefault = stage == 'deposit' && _paymentSummary?['legacy_deposit_missing'] == true;
     if (applyDefault) {
       final percentage = (_paymentSummary?['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
-      final total = (_paymentSummary?['total_amount'] as num?)?.toDouble() ?? (double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0);
       final amount = _legacyDepositRemaining;
       final confirmed = await showDialog<bool>(
         context: context,
