@@ -41,6 +41,20 @@ export function AppShell({
   children,
 }: AppShellProps) {
   useEffect(() => {
+    const apply = (choice: string | null) => {
+      if (choice === 'dark' || choice === 'light') document.documentElement.dataset.theme = choice;
+      else delete document.documentElement.dataset.theme;
+    };
+    apply(window.localStorage.getItem('kidsloc-theme'));
+    const onThemeChange = (event: Event) => {
+      const choice = (event as CustomEvent<string>).detail;
+      apply(choice);
+    };
+    window.addEventListener('kidsloc:theme-change', onThemeChange);
+    return () => window.removeEventListener('kidsloc:theme-change', onThemeChange);
+  }, []);
+
+  useEffect(() => {
     if (!companyId || !supabase) return;
     const client = supabase;
     const pendingTables = new Set<string>();
