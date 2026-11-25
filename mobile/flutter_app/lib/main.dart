@@ -560,7 +560,7 @@ class _HomePageState extends State<HomePage> {
   String? _realtimeCompanyId;
   static const _modules = [
     ['Clientes', 'customers'],
-    ['Brinquedos e serviços', 'products'],
+    [appText('Brinquedos e serviços'), 'products'],
     ['Locações', 'rentals'],
     ['Orçamentos', 'rental_quotes'],
     ['Contratos', 'rental_contracts'],
@@ -869,7 +869,7 @@ class _HomePageState extends State<HomePage> {
               trailing: Text(_currency((rental['total_amount'] as num?)?.toDouble() ?? 0), style: const TextStyle(fontWeight: FontWeight.w600)),
             )),
             Align(alignment: Alignment.centerRight, child: TextButton(
-              onPressed: () => _openQuickAction('calendar'), child: const Text('Ver agenda'),
+              onPressed: () => _openQuickAction('calendar'), child: const Text(appText('Ver agenda')),
             )),
           ],
         ))),
