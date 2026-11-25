@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(24);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -91,6 +91,14 @@ select is(
   25::numeric,
   'rental deposit amount is persisted'
 );
+select throws_ok(
+  $ select public.set_rental_deposit_amount(
+       'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 106
+     ) $,
+  'P0001',
+  'O sinal não pode ser maior que o valor total da locação.',
+  'rental deposit cannot exceed the rental total'
+);
 select is(
   (select count(*)::integer from public.rental_items where rental_id = current_setting('test.rental_id')::uuid),
   1,
@@ -169,6 +177,14 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'd1000000-0000-4000-8000-000000000002', true);
+select throws_ok(
+  $ select public.set_rental_deposit_amount(
+       'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 30
+     ) $,
+  'P0001',
+  'Você não tem permissão para editar esta locação.',
+  'staff without rental assignment cannot edit the deposit'
+);
 select throws_ok(
   $$ select public.register_financial_payment(
        current_setting('test.transaction_id')::uuid, 1, 'Pix', current_date, null
