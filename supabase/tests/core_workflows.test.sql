@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(22);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -79,6 +79,17 @@ select is(
   (select status from public.rentals where id = current_setting('test.rental_id')::uuid),
   'pending',
   'converted rental starts in pending status'
+);
+select lives_ok(
+  $ select public.set_rental_deposit_amount(
+       'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 25
+     ) $,
+  'company admin can record a rental deposit'
+);
+select is(
+  (select deposit_amount from public.rentals where id = current_setting('test.rental_id')::uuid),
+  25::numeric,
+  'rental deposit amount is persisted'
 );
 select is(
   (select count(*)::integer from public.rental_items where rental_id = current_setting('test.rental_id')::uuid),
