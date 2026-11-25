@@ -389,7 +389,7 @@ export default function RentalsPage() {
           <div className="space-y-4">
             <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
               <p>Percentual padrão atual: <strong>{rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage}%</strong></p>
-              <p className="mt-1">Valor de sinal nesta locação: <strong>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(rentalPaymentSummary?.total_amount ?? viewingRental?.total_amount ?? 0) * Number(rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage))/100)}</strong></p>
+              <p className="mt-1">Valor de sinal nesta locação: <strong>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Math.max(0, Math.round((Number(rentalPaymentSummary?.total_amount ?? viewingRental?.total_amount ?? 0) * Number(rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage))/100*100)/100 - Number(rentalPaymentSummary?.paid_total ?? 0)))}</strong></p>
               <p className="mt-2 text-xs">Essa alteração será aplicada somente a esta locação antiga. As demais não serão modificadas.</p>
             </div>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -438,7 +438,7 @@ export default function RentalsPage() {
               </div> : <p className="text-sm text-gray-600">Não foi possível consultar os pagamentos. {rentalPaymentError}</p>}
               {rentalPaymentError && rentalPaymentSummary && <p role="alert" className="text-sm text-red-700">{rentalPaymentError}</p>}
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || (!rentalPaymentSummary.legacy_deposit_missing && rentalPaymentSummary.deposit_remaining <= 0) || viewingRental.status === 'cancelled'} onClick={() => rentalPaymentSummary?.legacy_deposit_missing ? setLegacyDepositConfirmation(true) : registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
+                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || (rentalPaymentSummary.legacy_deposit_missing ? Math.max(0, Math.round(rentalPaymentSummary.total_amount * rentalPaymentSummary.default_deposit_percentage)/100*100)/100 - rentalPaymentSummary.paid_total <= 0 : rentalPaymentSummary.deposit_remaining <= 0) || viewingRental.status === 'cancelled'} onClick={() => rentalPaymentSummary?.legacy_deposit_missing ? setLegacyDepositConfirmation(true) : registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
                 <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.balance_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('balance')} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Quitou saldo restante</button>
                 {rentalPaymentSaving && <span className="self-center text-xs text-gray-500">Registrando recebimento...</span>}
               </div>
