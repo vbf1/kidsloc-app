@@ -10,3 +10,13 @@ String? validateAuthPassword(
   }
   return null;
 }
+
+String? validateAuthPasswordConfirmation(String? value, String password) {
+  if (value == null || value.isEmpty) {
+    return 'Confirme sua senha.';
+  }
+  if (value != password) {
+    return 'As senhas não coincidem.';
+  }
+  return null;
+}
