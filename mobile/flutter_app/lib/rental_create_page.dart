@@ -31,6 +31,8 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   final _endTime = TextEditingController(text: '18:00');
   bool _loading = true;
   bool _saving = false;
+  double? _originalDepositAmount;
+  double? _originalTotalAmount;
   String? _error;
   String? _customerId;
   String? _productId;
@@ -172,6 +174,8 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       };
     }).toList();
     if (!mounted) return;
+    _originalDepositAmount = (rental['deposit_amount'] as num?)?.toDouble() ?? 0;
+    _originalTotalAmount = (rental['total_amount'] as num?)?.toDouble() ?? 0;
     setState(() {
       _customerId = rental['customer_id']?.toString();
       _startDate = DateTime.parse(rental['start_date'].toString());
@@ -541,11 +545,16 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         params['p_rental_id'] = rentalId;
         await Supabase.instance.client.rpc('update_rental_with_items', params: params);
       }
-      await Supabase.instance.client.rpc('set_rental_deposit_amount', params: {
-        'p_company_id': widget.companyId,
-        'p_rental_id': rentalId,
-        'p_deposit_amount': deposit,
-      });
+      final originalDeposit = _originalDepositAmount ?? 0;
+      final shouldSaveDeposit = widget.rentalId == null
+          || (originalDeposit <= 0 ? deposit > 0 : (deposit - originalDeposit).abs() > 0.009 || (total - (_originalTotalAmount ?? total)).abs() > 0.009);
+      if (shouldSaveDeposit) {
+        await Supabase.instance.client.rpc('set_rental_deposit_amount', params: {
+          'p_company_id': widget.companyId,
+          'p_rental_id': rentalId,
+          'p_deposit_amount': deposit,
+        });
+      }
       if (!mounted) return;
       if (!widget.isEditing) {
 
