@@ -18,7 +18,7 @@ type Role='admin'|'staff';
 type Tx={id:string;transaction_type:'income'|'expense';category:string|null;description:string;amount:number|string;due_date:string|null;paid_at:string|null;status:'pending'|'paid'|'cancelled';rental_id:string|null};
 type Payment={id:string;transaction_id:string|null;rental_id:string|null;amount:number|string;paid_at:string;payment_method:string|null;notes:string|null};
 type ReceiptInfo={payment:Payment;transaction:Tx;rentalNumber?:number;customerName?:string};
-type RentalStageSummary={deposit_amount:number;paid_total:number;deposit_remaining:number;balance_remaining:number;legacy_deposit_missing:boolean;default_deposit_percentage:number};
+type RentalStageSummary={total_amount:number;deposit_amount:number;paid_total:number;deposit_remaining:number;balance_remaining:number;legacy_deposit_missing:boolean;default_deposit_percentage:number};
 type RentalStageConfirmation={transaction:Tx;stage:'deposit'|'balance';summary:RentalStageSummary;amount:number;applyDefault:boolean};
 const money=(v:number|string)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const dateAfterDays=(days:number)=>{const d=new Date();d.setDate(d.getDate()+days);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
@@ -65,7 +65,7 @@ export default function FinancePage(){
   if(summaryError){setError(summaryError.message);return;}
   const summary=data as RentalStageSummary;
   const applyDefault=stage==='deposit'&&summary.legacy_deposit_missing;
-  const target=applyDefault?Math.round(Number(transaction.amount)*Number(summary.default_deposit_percentage)/100*100)/100:summary.deposit_amount;
+  const target=applyDefault?Math.round(Number(summary.total_amount)*Number(summary.default_deposit_percentage)/100*100)/100:summary.deposit_amount;
   const amount=stage==='deposit'?Math.max(0,Math.round((target-summary.paid_total)*100)/100):Math.max(0,summary.balance_remaining);
   if(amount<=0){setError(stage==='deposit'?'Não há sinal pendente para esta locação.':'Esta locação já está quitada.');return;}
   setRentalStageConfirmation({transaction,stage,summary,amount,applyDefault});
