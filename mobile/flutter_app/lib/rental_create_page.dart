@@ -220,7 +220,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       itemLines,
       'Entrega: ${_delivery == 'delivery' ? 'no endereço' : 'retirada pelo cliente'}',
       if (_delivery == 'delivery' && address.isNotEmpty) 'Endereço: $address',
-      'Valor total: R$ ${double.parse(_total.text.trim().replaceAll(',', '.')).toStringAsFixed(2).replaceAll('.', ',')}',
+      'Valor total: R\$ ${double.parse(_total.text.trim().replaceAll(',', '.')).toStringAsFixed(2).replaceAll('.', ',')}',
       '',
       'Por favor, confira se está tudo correto. Obrigado pela preferência!',
     ].join('\n');
