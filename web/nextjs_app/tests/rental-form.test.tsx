@@ -60,6 +60,7 @@ describe('RentalForm', () => {
     fireEvent.click(screen.getByRole('option', { name: /Máquina de Pipoca/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
     fireEvent.change(screen.getByRole('textbox', { name: /Valor total do combo/ }), { target: { value: '450,00' } });
+    expect((screen.getByRole('textbox', { name: 'Valor do sinal (R$)' }) as HTMLInputElement).value).toBe('135,00');
 
     fireEvent.click(screen.getByRole('button', { name: 'Criar locação' }));
 
