@@ -10,6 +10,8 @@ import { AppNavigation } from './app-navigation';
 import { WebPushControl } from './web-push-control';
 
 type CompanyRole = 'platform_owner' | 'admin' | 'staff';
+const logoSrc = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/kidsloc-logo.jpg`;
+
 const REALTIME_TABLES = [
   'company_members', 'customers', 'products', 'product_units', 'rentals',
   'rental_items', 'rental_item_units', 'rental_responsibles', 'rental_events',
@@ -91,7 +93,7 @@ export function AppShell({
       <header className="border-b border-purple-100 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <Link href="/app/" className="flex min-w-0 items-center gap-3" aria-label="KidsLoc, página inicial">
-            <Image src="/kidsloc-logo.jpg" alt="KidsLoc App" width={88} height={88} priority className="size-14 shrink-0 rounded-xl object-contain" />
+            <Image src={logoSrc} alt="KidsLoc App" width={88} height={88} priority className="size-14 shrink-0 rounded-xl object-contain" />
           </Link>
           <p className="order-3 w-full truncate text-xs font-medium text-gray-500 sm:hidden" aria-label="Empresa atual">{companyName}</p>
           <button type="button" onClick={() => { clearWorkspaceSessionCache(); clearModuleDataCache(); onSignOut(); }} disabled={signingOut}
