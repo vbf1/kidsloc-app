@@ -2,6 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kidsloc_app/auth_validation.dart';
 
 void main() {
+  group('validateAuthEmail', () {
+    test('requires an email address', () {
+      expect(validateAuthEmail(null), 'Informe seu e-mail.');
+      expect(validateAuthEmail('  '), 'Informe seu e-mail.');
+    });
+
+    test('rejects malformed email addresses', () {
+      expect(validateAuthEmail('usuario'), 'Informe um endereço de e-mail válido.');
+      expect(validateAuthEmail('usuario@'), 'Informe um endereço de e-mail válido.');
+      expect(validateAuthEmail('usuario@dominio'), 'Informe um endereço de e-mail válido.');
+      expect(validateAuthEmail('usuario @dominio.com'), 'Informe um endereço de e-mail válido.');
+    });
+
+    test('accepts a valid address and trims surrounding whitespace', () {
+      expect(validateAuthEmail('usuario@dominio.com'), isNull);
+      expect(validateAuthEmail('  usuario@dominio.com  '), isNull);
+    });
+  });
+
   group('validateAuthPassword', () {
     test('requires at least 8 characters when creating an account', () {
       expect(
