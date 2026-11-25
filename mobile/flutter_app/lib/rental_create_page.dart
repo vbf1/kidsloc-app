@@ -592,6 +592,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                 controller: _total,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Valor total (R\$)'),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
               TextFormField(
