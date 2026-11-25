@@ -168,7 +168,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
                 if (_notice != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_notice!, style: TextStyle(color: Theme.of(context).colorScheme.primary))),
                 const SizedBox(height: 12),
-                const Card(child: Padding(padding: EdgeInsets.all(16), child: Text(appText('O tema é salvo neste dispositivo. O percentual de sinal é compartilhado com a empresa e não altera locações antigas automaticamente.')))),
+                Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(appText('O tema é salvo neste dispositivo. O percentual de sinal é compartilhado com a empresa e não altera locações antigas automaticamente.')))),
               ],
             ),
     );
