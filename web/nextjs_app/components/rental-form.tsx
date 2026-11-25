@@ -5,7 +5,7 @@ import { FieldFeedback, FormFeedback } from './form-feedback';
 import { SearchablePicker } from './searchable-picker';
 import {
   defaultRentalUnitPrice, EMPTY_RENTAL, formatRentalPrice, parseRentalPrice, rentalItemsTotal,
-  validateRental, parseRentalAddress, formatRentalAddress, EMPTY_RENTAL_ADDRESS,
+  validateRental, parseRentalAddress, formatRentalAddress,
   type RentalAddressParts, type RentalCustomer, type RentalFieldErrors, type RentalFormValues,
   type RentalMember, type RentalProduct,
 } from '../lib/rentals';
@@ -190,7 +190,7 @@ export function RentalForm({
           </div>
           {values.delivery_method === 'delivery' && <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
             <label className={labelClass}>Rua / Avenida *
-              <input maxLength={180} value={addressParts.street} onChange={(event) => updateAddressPart('street', event.target.value)} className={inputClass} placeholder="Nome da rua ou avenida" disabled={saving} />
+              <input maxLength={500} value={addressParts.street} onChange={(event) => updateAddressPart('street', event.target.value)} className={inputClass} placeholder="Nome da rua ou avenida" disabled={saving} />
             </label>
             <label className={labelClass}>Número
               <input maxLength={20} value={addressParts.number} onChange={(event) => updateAddressPart('number', event.target.value)} className={inputClass} placeholder="Número ou s/n" disabled={saving} />
