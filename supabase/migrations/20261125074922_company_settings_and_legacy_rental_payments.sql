@@ -216,12 +216,7 @@ begin
     returning * into v_transaction;
   end if;
 
-  -- Attach historical payments that were saved against the rental but not its
-  -- finance transaction, so old receipts remain part of the same balance.
-  update public.payments
-  set transaction_id = v_transaction.id
-  where company_id = p_company_id and rental_id = p_rental_id
-    and transaction_id is null;
+  -- Include any legacy payments still linked directly to the rental.
 
   if v_transaction.status = 'cancelled' then
     raise exception 'O lançamento financeiro desta locação está cancelado.';
@@ -229,7 +224,9 @@ begin
 
   select coalesce(sum(p.amount), 0) into v_paid_total
   from public.payments p
-  where p.company_id = p_company_id and p.transaction_id = v_transaction.id;
+  where p.company_id = p_company_id
+    and (p.transaction_id = v_transaction.id
+      or (p.transaction_id is null and p.rental_id = p_rental_id));
   if v_paid_total = 0 and v_transaction.status = 'paid' then
     v_paid_total := v_transaction.amount;
   end if;
