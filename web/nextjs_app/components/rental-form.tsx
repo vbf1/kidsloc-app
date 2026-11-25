@@ -42,7 +42,7 @@ function amountFromPercentage(totalValue: string, percentageValue: string): stri
   const total = parseRentalPrice(totalValue);
   const percentage = Number(percentageValue.replace(',', '.'));
   if (total === null || !Number.isFinite(percentage) || percentage < 0 || percentage > 100) return '0,00';
-  return moneyInput(Math.round((total * percentage + Number.EPSILON) * 100) / 100);
+  return moneyInput(Math.round((total * percentage / 100 + Number.EPSILON) * 100) / 100);
 }
 export function RentalForm({
   initialValues = EMPTY_RENTAL, isEditing, saving, error, customers, products, members,
@@ -142,7 +142,6 @@ export function RentalForm({
     event.preventDefault();
     const deliveryAddress = values.delivery_method === 'delivery' ? formatRentalAddress(addressParts) : '';
     const errors = validateRental({ ...values, delivery_address: deliveryAddress }, isEditing);
-    console.info('[rental-form-validation-debug]', JSON.stringify({ errors, values: { ...values, delivery_address: deliveryAddress } }));
     setFieldErrors(errors);
     if (Object.keys(errors).length) return;
     await onSubmit({
