@@ -38,7 +38,7 @@ describe('ProductForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tipo de item' }));
     fireEvent.click(screen.getByRole('option', { name: /Serviço/ }));
     fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Recreação' } });
-    fireEvent.change(screen.getByLabelText('Preço por evento (R$) *'), { target: { value: '150,00' } });
+    fireEvent.change(screen.getByLabelText(/Preço por evento \(R\$\)/), { target: { value: '150,00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Salvar item' }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Recreação', item_type: 'service', total_quantity: '0' }), null, false));
   });
