@@ -274,7 +274,7 @@ begin
   if not public.has_company_role(p_company_id, array['owner','admin']) then
     raise exception 'Somente proprietários e administradores podem estornar recebimentos.';
   end if;
-  if p_stage not in ('deposit','balance') then raise exception 'Etapa de pagamento inválida.'; end if;
+  if p_stage is null or p_stage not in ('deposit','balance') then raise exception 'Etapa de pagamento inválida.'; end if;
 
   perform 1 from public.rentals r
   where r.id = p_rental_id and r.company_id = p_company_id
