@@ -262,6 +262,36 @@ grant execute on function public.get_rental_payment_summary(uuid, uuid) to authe
 revoke all on function public.register_rental_payment_stage(uuid, uuid, text, text, date, boolean) from public, anon;
 grant execute on function public.register_rental_payment_stage(uuid, uuid, text, text, date, boolean) to authenticated;
 
+
+-- Apply the company's current default to every newly inserted rental, including
+-- rentals created by converting an approved quote. Explicit client values can
+-- still be adjusted immediately afterward through set_rental_deposit_amount.
+create or replace function public.apply_default_rental_deposit()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_percentage numeric(5,2) := 30;
+begin
+  if coalesce(new.deposit_amount, 0) = 0 and new.total_amount > 0 then
+    select coalesce(s.default_deposit_percentage, 30)
+      into v_percentage
+    from public.company_settings s
+    where s.company_id = new.company_id;
+    v_percentage := coalesce(v_percentage, 30);
+    new.deposit_amount := round(new.total_amount * v_percentage / 100, 2);
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists rentals_apply_default_deposit on public.rentals;
+create trigger rentals_apply_default_deposit
+before insert on public.rentals
+for each row execute function public.apply_default_rental_deposit();
+
 -- Idempotent compatibility pass: older rentals receive a finance income row
 -- only when one does not already exist. Existing payment history is retained.
 insert into public.financial_transactions(
