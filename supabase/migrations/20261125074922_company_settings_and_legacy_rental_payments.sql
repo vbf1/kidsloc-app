@@ -307,11 +307,16 @@ where r.total_amount > 0
       and f.transaction_type = 'income' and f.category = 'locacao'
   );
 
+with rental_transactions as (
+  select distinct on (f.company_id, f.rental_id)
+    f.company_id, f.rental_id, f.id
+  from public.financial_transactions f
+  where f.transaction_type = 'income' and f.category = 'locacao'
+  order by f.company_id, f.rental_id, f.created_at, f.id
+)
 update public.payments p
 set transaction_id = f.id
-from public.financial_transactions f
+from rental_transactions f
 where p.company_id = f.company_id
   and p.rental_id = f.rental_id
-  and p.transaction_id is null
-  and f.transaction_type = 'income'
-  and f.category = 'locacao';
+  and p.transaction_id is null;
