@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
@@ -36,17 +37,7 @@ export default function HomePage() {
       <div className="mx-auto max-w-6xl">
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">
-              K
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight">
-                KidsLoc <span className="text-[#8054d8]">App</span>
-              </p>
-              <p className="text-xs text-gray-500">
-                Gestão inteligente para locadoras
-              </p>
-            </div>
+            <Image src="/kidsloc-logo.jpg" alt="KidsLoc App — Locação de Brinquedos Mais Fácil e Organizada" width={112} height={112} priority className="size-24 rounded-2xl object-contain" />
           </div>
           <Link
             href="/login/"

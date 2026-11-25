@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -10,8 +11,7 @@ export function AuthShell({ title, description, children }: {
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-3xl border border-purple-100 bg-white p-7 shadow-sm sm:p-9">
         <Link href="/" className="inline-flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
-          <span className="text-lg font-bold">KidsLoc <span className="text-[#8054d8]">App</span></span>
+          <Image src="/kidsloc-logo.jpg" alt="KidsLoc App — Locação de Brinquedos Mais Fácil e Organizada" width={112} height={112} priority className="size-20 rounded-2xl object-contain" />
         </Link>
         <h1 className="mt-8 text-2xl font-bold">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-gray-500">{description}</p>

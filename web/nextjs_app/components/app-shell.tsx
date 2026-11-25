@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 import { clearWorkspaceSessionCache } from '../lib/workspace-session-cache';
@@ -90,8 +91,7 @@ export function AppShell({
       <header className="border-b border-purple-100 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <Link href="/app/" className="flex min-w-0 items-center gap-3" aria-label="KidsLoc, página inicial">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#8054d8] text-xl font-black text-white">K</span>
-            <span className="truncate text-xl font-bold tracking-tight">KidsLoc <span className="text-[#8054d8]">App</span></span>
+            <Image src="/kidsloc-logo.jpg" alt="KidsLoc App" width={88} height={88} priority className="size-14 shrink-0 rounded-xl object-contain" />
           </Link>
           <p className="order-3 w-full truncate text-xs font-medium text-gray-500 sm:hidden" aria-label="Empresa atual">{companyName}</p>
           <button type="button" onClick={() => { clearWorkspaceSessionCache(); clearModuleDataCache(); onSignOut(); }} disabled={signingOut}
