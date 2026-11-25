@@ -375,10 +375,6 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       setState(() => _error = 'Confira quantidades e preços dos itens.');
       return;
     }
-    if (_delivery == 'delivery' && _street.text.trim().isEmpty) {
-      setState(() => _error = 'Informe o endereço de entrega.');
-      return;
-    }
     setState(() {
       _saving = true;
       _error = null;
@@ -546,8 +542,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                 Text('Endereço de entrega', style: Theme.of(context).textTheme.titleMedium),
                 TextFormField(
                   controller: _street,
-                  decoration: const InputDecoration(labelText: 'Rua / Avenida *'),
-                  validator: (v) => _delivery == 'delivery' && (v == null || v.trim().isEmpty) ? 'Informe a rua ou avenida' : null,
+                  decoration: const InputDecoration(labelText: 'Rua / Avenida (opcional)'),
                 ),
                 Row(children: [
                   Expanded(child: TextFormField(controller: _number, decoration: const InputDecoration(labelText: 'Número'))),
