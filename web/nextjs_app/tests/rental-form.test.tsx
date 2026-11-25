@@ -52,7 +52,7 @@ describe('RentalForm', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Combo \/ pacote fechado/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Retirada pelo cliente' }));
     fireEvent.click(screen.getByRole('option', { name: /Entrega no endereço/ }));
-    fireEvent.change(screen.getByLabelText('Rua / Avenida *'), { target: { value: 'Rua das Flores' } });
+    fireEvent.change(screen.getByLabelText('Rua / Avenida (opcional)'), { target: { value: 'Rua das Flores' } });
     fireEvent.click(screen.getByRole('button', { name: 'Selecione um brinquedo ou máquina' }));
     fireEvent.click(screen.getByRole('option', { name: /Cama Elástica/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
