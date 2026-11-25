@@ -255,7 +255,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       '🎈 *Itens da locação:*', itemLines, '',
       '🚚 *Entrega:* ${_delivery == 'delivery' ? 'no endereço' : 'retirada pelo cliente'}',
       if (_delivery == 'delivery' && address.isNotEmpty) '📍 *Endereço:* $address',
-      '💰 *Valor total:* R\\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}', '',
+      '💰 *Valor total:* R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}', '',
       'Por favor, confira se está tudo certinho. Se precisar de algum ajuste, é só nos avisar!',
       'Agradecemos pela preferência! 💜',
     ].join('\n');
