@@ -8,7 +8,20 @@ import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessi
 import { LANGUAGE_OPTIONS, LANGUAGE_STORAGE_KEY, LANGUAGE_EVENT, normalizeLanguage, type AppLanguage } from '../../../lib/i18n';
 
 type ThemeChoice = 'light' | 'dark' | 'system';
+type UiScale = 'small' | 'medium' | 'large';
 const THEME_KEY = 'kidsloc-theme';
+const UI_SCALE_KEY = 'kidsloc-ui-scale';
+function currentUiScale(): UiScale {
+  if (typeof window === 'undefined') return 'medium';
+  const value = window.localStorage.getItem(UI_SCALE_KEY);
+  return value === 'small' || value === 'large' ? value : 'medium';
+}
+function applyUiScale(value: UiScale) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(UI_SCALE_KEY, value);
+  document.documentElement.dataset.uiScale = value;
+  window.dispatchEvent(new CustomEvent('kidsloc:ui-scale-change', { detail: value }));
+}
 function currentTheme(): ThemeChoice {
   if (typeof window === 'undefined') return 'system';
   const value = window.localStorage.getItem(THEME_KEY);
@@ -29,7 +42,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [theme, setTheme] = useState<ThemeChoice>('system');
-  const [language, setLanguage] = useState<AppLanguage>('pt-BR');
+  const [uiScale, setUiScale] = useState<UiScale>('medium');
+  const [language, setLanguage = useState<AppLanguage>('pt-BR');
   const [languageSaving, setLanguageSaving] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState('30');
   const [loading, setLoading] = useState(true);
@@ -39,7 +53,7 @@ export default function SettingsPage() {
   const canManage = role === 'admin' || role === 'owner';
 
   useEffect(() => {
-    const themeTimer = window.setTimeout(() => setTheme(currentTheme()), 0);
+    const themeTimer = window.setTimeout(() => { setTheme(currentTheme()); setUiScale(currentUiScale()); }, 0);
     let active = true;
     async function load() {
       if (!supabase) { setError('Banco não configurado.'); setLoading(false); return; }
@@ -127,6 +141,13 @@ export default function SettingsPage() {
             </select>
           </label>
           {languageSaving && <p className="mt-2 text-xs text-slate-500">Salvando idioma...</p>}
+        </section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-50 text-xl">Aa</span><div><h2 className="font-bold text-slate-900">Tamanho da interface</h2><p className="mt-1 text-sm text-slate-500">Ajuste o tamanho das letras, espaços e componentes para caber mais conteúdo na tela.</p></div></div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {([{value:'small',label:'Pequeno',description:'Mais compacto'},{value:'medium',label:'Médio',description:'Equilíbrio entre espaço e leitura'},{value:'large',label:'Grande',description:'Elementos maiores'}] as const).map(option => <button key={option.value} type="button" aria-pressed={uiScale===option.value} onClick={()=>{setUiScale(option.value);applyUiScale(option.value);}} className={`rounded-xl border p-4 text-left transition ${uiScale===option.value?'border-purple-400 bg-purple-50 ring-2 ring-purple-100':'border-slate-200 hover:border-purple-200'}`}><span className="block text-sm font-bold text-slate-900">{option.label}</span><span className="mt-1 block text-xs text-slate-500">{option.description}</span></button>)}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">A preferência fica salva neste dispositivo e é aplicada em todas as telas do app.</p>
         </section>
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-purple-50 text-xl">🌙</span><div><h2 className="font-bold text-slate-900">Aparência</h2><p className="mt-1 text-sm text-slate-500">Escolha como o KidsLoc será exibido neste dispositivo.</p></div></div>
