@@ -56,7 +56,7 @@ export default function SettingsPage() {
         if (memberError || !data) { setError('Não foi possível identificar sua empresa.'); setLoading(false); return; }
         const company = Array.isArray(data.companies) ? data.companies[0] : data.companies;
         id = data.company_id; name = company?.name ?? 'Empresa'; memberRole = data.role;
-        setWorkspaceSessionCache({ userId: user.id, email: user.email ?? '', companyName: name, companyId: id, role: memberRole });
+        setWorkspaceSessionCache({ userId: user.id, email: user.email ?? '', companyName: name, companyId: id, role: memberRole as 'admin' | 'staff' });
       }
       if (!active) return;
       setCompanyId(id); setCompanyName(name); setRole(memberRole);
