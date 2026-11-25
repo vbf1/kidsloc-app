@@ -106,10 +106,7 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Icon(Icons.celebration, size: 52, color: Theme.of(context).colorScheme.primary),
-      const SizedBox(height: 10),
-      Text('KidsLoc', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
-      Text('Gestão de festas e locações', style: Theme.of(context).textTheme.bodyMedium),
+      Image.asset('assets/brand/kidsloc-logo.jpg', width: 220, height: 220, fit: BoxFit.contain),
     ],
   );
 }
