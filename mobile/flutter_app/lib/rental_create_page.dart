@@ -25,6 +25,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   final _state = TextEditingController();
   final _reference = TextEditingController();
   final _total = TextEditingController(text: '0');
+  final _deposit = TextEditingController(text: '0');
   final _startTime = TextEditingController(text: '09:00');
   final _endTime = TextEditingController(text: '18:00');
   bool _loading = true;
@@ -72,6 +73,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     _state.dispose();
     _reference.dispose();
     _total.dispose();
+    _deposit.dispose();
     _startTime.dispose();
     _endTime.dispose();
     super.dispose();
@@ -152,6 +154,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       _delivery = rental['delivery_method']?.toString() ?? 'delivery';
       _restoreAddress(rental['delivery_address']?.toString());
       _total.text = ((rental['total_amount'] ?? 0) as num).toStringAsFixed(2);
+      _deposit.text = ((rental['deposit_amount'] ?? 0) as num).toStringAsFixed(2);
       _items
         ..clear()
         ..addAll(items);
@@ -247,6 +250,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     final itemLines = _items.map((item) => '• ${item['name']} (quantidade: ${item['quantity']})').join('\n');
     final address = _composeAddress();
     final amount = double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0;
+    final deposit = double.tryParse(_deposit.text.trim().replaceAll(',', '.')) ?? 0;
     final initialMessage = [
       'Olá, ${customer['name']}! Tudo bem? 😊', '',
       'Aqui é da *$_companyName*. Seu agendamento está registrado! 🎉', '',
@@ -255,7 +259,9 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       '🎈 *Itens da locação:*', itemLines, '',
       '🚚 *Entrega:* ${_delivery == 'delivery' ? 'no endereço' : 'retirada pelo cliente'}',
       if (_delivery == 'delivery' && address.isNotEmpty) '📍 *Endereço:* $address',
-      '💰 *Valor total:* R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}', '',
+      '💰 *Valor total:* R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
+      '💵 *Sinal pago:* R\$ ${deposit.toStringAsFixed(2).replaceAll('.', ',')}',
+      '💳 *Saldo restante:* R\$ ${(amount - deposit).clamp(0, amount).toStringAsFixed(2).replaceAll('.', ',')}', '',
       'Por favor, confira se está tudo certinho. Se precisar de algum ajuste, é só nos avisar!',
       'Agradecemos pela preferência! 💜',
     ].join('\n');
@@ -383,6 +389,11 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       setState(() => _error = 'Informe um valor total válido.');
       return;
     }
+    final deposit = double.tryParse(_deposit.text.trim().replaceAll(',', '.'));
+    if (deposit == null || deposit < 0 || deposit > total) {
+      setState(() => _error = 'Informe um sinal válido, igual ou menor que o valor total.');
+      return;
+    }
     if (_items.any((e) => (e['quantity'] as int) < 1 || (e['unit_price'] as double) < 0)) {
       setState(() => _error = 'Confira quantidades e preços dos itens.');
       return;
@@ -410,12 +421,20 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         'p_start_time': _startTime.text.trim(),
         'p_end_time': _endTime.text.trim(),
       };
+      String rentalId;
       if (widget.rentalId == null) {
-        await Supabase.instance.client.rpc('create_rental_with_items', params: params);
+        final createdId = await Supabase.instance.client.rpc('create_rental_with_items', params: params);
+        rentalId = createdId.toString();
       } else {
-        params['p_rental_id'] = widget.rentalId;
+        rentalId = widget.rentalId!;
+        params['p_rental_id'] = rentalId;
         await Supabase.instance.client.rpc('update_rental_with_items', params: params);
       }
+      await Supabase.instance.client.rpc('set_rental_deposit_amount', params: {
+        'p_company_id': widget.companyId,
+        'p_rental_id': rentalId,
+        'p_deposit_amount': deposit,
+      });
       if (!mounted) return;
       if (!widget.isEditing) {
 
@@ -574,6 +593,22 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Valor total (R\$)'),
               ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _deposit,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Sinal pago (R\$)', helperText: 'Informe quanto o cliente já adiantou.'),
+                onChanged: (_) => setState(() {}),
+              ),
+              Builder(builder: (context) {
+                final totalValue = double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0;
+                final depositValue = double.tryParse(_deposit.text.trim().replaceAll(',', '.')) ?? 0;
+                final remaining = (totalValue - depositValue).clamp(0, totalValue);
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('Saldo restante: R\$ ${remaining.toStringAsFixed(2).replaceAll('.', ',')}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                );
+              }),
               const SizedBox(height: 12),
               Text('Funcionários responsáveis', style: Theme.of(context).textTheme.titleMedium),
               ..._members.map((member) {
