@@ -5,6 +5,7 @@ const auth = vi.hoisted(() => ({
   getSession: vi.fn(),
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
   updateUser: vi.fn(),
 }));
 
@@ -14,6 +15,7 @@ vi.mock('../lib/supabase', () => ({
 
 import LoginPage from '../app/login/page';
 import SignupPage from '../app/signup/page';
+import ForgotPasswordPage from '../app/forgot-password/page';
 import ResetPasswordPage from '../app/reset-password/page';
 
 afterEach(() => cleanup());
@@ -23,6 +25,7 @@ beforeEach(() => {
   auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
   auth.signInWithPassword.mockResolvedValue({ error: { code: 'invalid_credentials' } });
   auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+  auth.resetPasswordForEmail.mockResolvedValue({ error: null });
   auth.updateUser.mockResolvedValue({ error: null });
 });
 
@@ -104,6 +107,37 @@ describe('web authentication forms', () => {
       }));
     });
     expect(await screen.findByText(/Enviamos um link de confirmação/)).toBeTruthy();
+  });
+
+  it('rejects an invalid recovery email before requesting a reset link', async () => {
+    render(<ForgotPasswordPage />);
+
+    fireEvent.change(screen.getByLabelText('E-mail'), {
+      target: { value: 'email-invalido' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar link' }));
+
+    expect(await screen.findByText('Informe um endereço de e-mail válido.')).toBeTruthy();
+    expect(auth.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('requests a password reset link with the configured reset page as redirect', async () => {
+    render(<ForgotPasswordPage />);
+
+    fireEvent.change(screen.getByLabelText('E-mail'), {
+      target: { value: ' pessoa@exemplo.com ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar link' }));
+
+    await waitFor(() => {
+      expect(auth.resetPasswordForEmail).toHaveBeenCalledWith(
+        'pessoa@exemplo.com',
+        expect.objectContaining({
+          redirectTo: expect.stringContaining('/reset-password/'),
+        }),
+      );
+    });
+    expect(await screen.findByText(/Se o endereço estiver cadastrado/)).toBeTruthy();
   });
 
   it('blocks weak recovery passwords before updating the account', async () => {
