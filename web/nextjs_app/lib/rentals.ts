@@ -23,20 +23,34 @@ export const EMPTY_RENTAL_ADDRESS: RentalAddressParts = {
   neighborhood: '', city: '', state: '', reference: '',
 };
 export function parseRentalAddress(value: string | null | undefined): RentalAddressParts {
-  // Older rentals stored the complete address in one text field. Keep it intact
-  // in the street field so editing never discards legacy information.
-  return { ...EMPTY_RENTAL_ADDRESS, street: value?.trim() ?? '' };
+  const raw = value?.trim() ?? '';
+  if (!raw) return { ...EMPTY_RENTAL_ADDRESS };
+  const labels: Record<string, keyof RentalAddressParts> = {
+    'Rua': 'street', 'Número': 'number', 'Complemento': 'complement',
+    'Bairro': 'neighborhood', 'Cidade': 'city', 'Estado': 'state',
+    'CEP': 'postal_code', 'Referência': 'reference',
+  };
+  const parsed = { ...EMPTY_RENTAL_ADDRESS };
+  let recognized = 0;
+  for (const part of raw.split(' | ')) {
+    const separator = part.indexOf(': ');
+    if (separator < 0) continue;
+    const field = labels[part.slice(0, separator)];
+    if (!field) continue;
+    parsed[field] = part.slice(separator + 2);
+    recognized++;
+  }
+  // Legacy addresses remain untouched in the street field.
+  return recognized > 0 ? parsed : { ...EMPTY_RENTAL_ADDRESS, street: raw };
 }
 export function formatRentalAddress(parts: RentalAddressParts): string {
-  return [
-    parts.street.trim(),
-    parts.number.trim(),
-    parts.complement.trim() ? 'Complemento: ' + parts.complement.trim() : '',
-    parts.neighborhood.trim(),
-    [parts.city.trim(), parts.state.trim()].filter(Boolean).join(' - '),
-    parts.postal_code.trim() ? 'CEP: ' + parts.postal_code.trim() : '',
-    parts.reference.trim() ? 'Referência: ' + parts.reference.trim() : '',
-  ].filter(Boolean).join(', ').slice(0, 500);
+  const entries: Array<[string, string]> = [
+    ['Rua', parts.street], ['Número', parts.number], ['Complemento', parts.complement],
+    ['Bairro', parts.neighborhood], ['Cidade', parts.city], ['Estado', parts.state],
+    ['CEP', parts.postal_code], ['Referência', parts.reference],
+  ];
+  return entries.filter(([, value]) => value.trim())
+    .map(([label, value]) => label + ': ' + value.trim()).join(' | ').slice(0, 500);
 }
 export function normalizeWhatsAppPhone(value: string | null | undefined): string | null {
   let digits = (value ?? '').replace(/\D/g, '');
