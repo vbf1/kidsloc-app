@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(24);
+select plan(26);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -90,6 +90,20 @@ select is(
   (select deposit_amount from public.rentals where id = current_setting('test.rental_id')::uuid),
   25::numeric,
   'rental deposit amount is persisted'
+);
+select is(
+  (public.get_rental_payment_summary(
+    'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid
+  ) ->> 'deposit_remaining')::numeric,
+  25::numeric,
+  'payment summary exposes the pending deposit'
+);
+select is(
+  (public.get_rental_payment_summary(
+    'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid
+  ) ->> 'balance_remaining')::numeric,
+  105::numeric,
+  'payment summary exposes the full remaining balance'
 );
 select throws_ok(
   $ select public.set_rental_deposit_amount(
