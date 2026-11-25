@@ -413,7 +413,7 @@ class _FinancePageState extends State<FinancePage> {
                           hintText: 'Buscar lançamentos',
                           hintStyle: const TextStyle(fontSize: 13),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).colorScheme.surface,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
@@ -443,8 +443,8 @@ class _FinancePageState extends State<FinancePage> {
                               onSelected: (_) => setState(() { _filter = option.$1; _page = 0; }),
                               labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _filter == option.$1 ? const Color(0xFF6840BD) : const Color(0xFF475569)),
                               selectedColor: const Color(0xFFF3ECFF),
-                              backgroundColor: Colors.white,
-                              shape: StadiumBorder(side: BorderSide(color: _filter == option.$1 ? const Color(0xFFD8C5FF) : const Color(0xFFE2E8F0))),
+                              backgroundColor: Theme.of(context).colorScheme.surface,
+                              shape: StadiumBorder(side: BorderSide(color: _filter == option.$1 ? const Color(0xFFD8C5FF) : Theme.of(context).colorScheme.outlineVariant)),
                             ),
                         ],
                       ),
@@ -452,7 +452,7 @@ class _FinancePageState extends State<FinancePage> {
                       if (_transactions.isEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 20),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
+                          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
                           child: const Column(children: [
                             Icon(Icons.account_balance_wallet_outlined, size: 32, color: Color(0xFF94A3B8)),
                             SizedBox(height: 10),
@@ -462,7 +462,7 @@ class _FinancePageState extends State<FinancePage> {
                       else if (filteredTransactions.isEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
+                          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
                           child: const Center(child: Text('Nenhum lançamento corresponde à busca ou ao filtro.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B)))),
                         )
                       else
@@ -485,7 +485,7 @@ class _FinancePageState extends State<FinancePage> {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(15),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0)), boxShadow: const [BoxShadow(color: Color(0x080F172A), blurRadius: 12, offset: Offset(0, 3))]),
+                            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant), boxShadow: const [BoxShadow(color: Color(0x080F172A), blurRadius: 12, offset: Offset(0, 3))]),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Container(
@@ -523,7 +523,7 @@ class _FinancePageState extends State<FinancePage> {
                               const SizedBox(height: 12),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-                                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
                                 child: Wrap(spacing: 16, runSpacing: 5, children: [
                                   Text('Recebido/pago: ${fmt(paid)}', style: const TextStyle(fontSize: 11, color: Color(0xFF475569))),
                                   Text('Saldo: ${fmt(balance)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
@@ -536,7 +536,7 @@ class _FinancePageState extends State<FinancePage> {
                                 ...linkedPayments.map((payment) => Container(
                                   margin: const EdgeInsets.only(bottom: 6),
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFF1F5F9))),
+                                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFF1F5F9))),
                                   child: Row(children: [
                                     Expanded(child: Text('${fmt(_money(payment['amount']))} · ${_labelDate(payment['paid_at'].toString().split('T').first)} · ${payment['payment_method'] ?? 'Sem forma'}', style: const TextStyle(fontSize: 11, color: Color(0xFF475569)))),
                                     TextButton.icon(onPressed: () => _showReceipt(row, payment), icon: const Icon(Icons.receipt_long_outlined, size: 16), label: const Text('Comprovante', style: TextStyle(fontSize: 11))),
@@ -589,9 +589,9 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       boxShadow: const [BoxShadow(color: Color(0x060F172A), blurRadius: 10, offset: Offset(0, 2))],
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
