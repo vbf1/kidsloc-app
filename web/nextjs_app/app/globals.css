@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Escala global de leitura: médio é o padrão para reduzir rolagem sem perder legibilidade. */
+html { font-size: 14px; }
+html[data-ui-scale="small"] { font-size: 13px; }
+html[data-ui-scale="medium"] { font-size: 14px; }
+html[data-ui-scale="large"] { font-size: 16px; }
+
 :root {
   color-scheme: light;
   --kidsloc-purple: #8054d8;
