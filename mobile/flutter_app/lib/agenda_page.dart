@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/app_language.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/pagination_controls.dart';
 import 'rental_create_page.dart';
@@ -130,7 +131,7 @@ class _AgendaPageState extends State<AgendaPage> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agenda e disponibilidade'),
+        title: Text(appText('Agenda e disponibilidade')),
         actions: [IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh))],
       ),
       body: _loading
