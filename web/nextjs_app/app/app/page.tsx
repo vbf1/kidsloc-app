@@ -111,8 +111,9 @@ export default function AppHomePage() {
   // Listen directly to finance changes so the operation summary refreshes even
   // when the user stays in the same tab while registering or reversing a payment.
   useEffect(() => {
-    if (!companyId || !supabase || workspace?.role !== 'admin') return;
-    const channel = supabase.channel(`dashboard-finance-${companyId}`)
+    const client = supabase;
+    if (!companyId || !client || workspace?.role !== 'admin') return;
+    const channel = client.channel(`dashboard-finance-${companyId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `company_id=eq.${companyId}` }, () => {
         setRealtimeRefresh((value) => value + 1);
       })
@@ -120,7 +121,7 @@ export default function AppHomePage() {
         setRealtimeRefresh((value) => value + 1);
       })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => { void client.removeChannel(channel); };
   }, [companyId, workspace?.role]);
 
   useEffect(() => {
