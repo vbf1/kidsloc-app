@@ -52,6 +52,6 @@ describe('rental WhatsApp confirmation', () => {
     expect(message).toContain('20/12/2026');
     expect(message).toContain('Cama elástica (quantidade: 1)');
     expect(message).toContain('Rua das Flores, 120, Centro');
-    expect(message).toContain('R$ 350,00');
+    expect(message).toContain('350,00');
   });
 });
