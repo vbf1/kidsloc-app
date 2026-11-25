@@ -19,7 +19,7 @@ import { supabase } from '../../../lib/supabase';
 import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type CompanyRole = 'admin' | 'staff';
-type RentalPaymentSummary = { total_amount: number; deposit_amount: number; paid_total: number; deposit_paid: number; deposit_remaining: number; balance_remaining: number; legacy_deposit_missing: boolean; default_deposit_percentage: number; has_financial_transaction: boolean };
+type RentalPaymentSummary = { total_amount: number; deposit_amount: number; paid_total: number; deposit_paid: number; deposit_remaining: number; balance_remaining: number; legacy_deposit_missing: boolean; default_deposit_percentage: number; has_financial_transaction: boolean; deposit_registered: boolean; balance_registered: boolean };
 
 const RENTAL_COLUMNS = 'id,company_id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,delivery_fee,discount,total_amount,deposit_amount,notes,created_by,created_at,updated_at';
 function localDateValue() {
@@ -64,6 +64,8 @@ export default function RentalsPage() {
   const [rentalPaymentLoading, setRentalPaymentLoading] = useState(false);
   const [rentalPaymentSaving, setRentalPaymentSaving] = useState(false);
   const [rentalPaymentError, setRentalPaymentError] = useState('');
+  const [rentalPaymentReversal, setRentalPaymentReversal] = useState<'deposit' | 'balance' | null>(null);
+  const [rentalPaymentReversalReason, setRentalPaymentReversalReason] = useState('');
   const [confirmationRental, setConfirmationRental] = useState<RentalRecord | null>(null);
   const [confirmationText, setConfirmationText] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
@@ -353,6 +355,37 @@ export default function RentalsPage() {
     }
   }
 
+  async function reverseRentalPaymentStage(stage: 'deposit' | 'balance') {
+    if (!supabase || !companyId || !viewingRental || rentalPaymentSaving) return;
+    setRentalPaymentSaving(true);
+    setRentalPaymentError('');
+    try {
+      const { error } = await supabase.rpc('reverse_rental_payment_stage', {
+        p_company_id: companyId,
+        p_rental_id: viewingRental.id,
+        p_stage: stage,
+        p_reason: rentalPaymentReversalReason.trim() || null,
+      });
+      if (error) {
+        setRentalPaymentError(error.message);
+        return;
+      }
+      const { data, error: summaryError } = await supabase.rpc('get_rental_payment_summary', {
+        p_company_id: companyId, p_rental_id: viewingRental.id,
+      });
+      if (summaryError) setRentalPaymentError(summaryError.message);
+      else setRentalPaymentSummary(data as RentalPaymentSummary);
+      setNotice(stage === 'deposit' ? 'Pagamento do sinal desfeito. O valor voltou para o saldo a receber.' : 'Quitação desfeita. O saldo voltou para o financeiro.');
+      setRentalPaymentReversal(null);
+      setRentalPaymentReversalReason('');
+      setRefreshIndex((value) => value + 1);
+    } catch {
+      setRentalPaymentError('Não foi possível desfazer o pagamento. Tente novamente.');
+    } finally {
+      setRentalPaymentSaving(false);
+    }
+  }
+
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(0);
@@ -403,6 +436,17 @@ export default function RentalsPage() {
             </div>
           </div>
         </WorkspaceModal>
+        <WorkspaceModal open={Boolean(rentalPaymentReversal)} title={rentalPaymentReversal === 'deposit' ? 'Desfazer pagamento do sinal?' : 'Desfazer quitação do saldo?'} description="O recebimento será marcado como estornado, sem apagar o histórico. O valor voltará a constar como pendente no financeiro." onClose={() => { if (!rentalPaymentSaving) setRentalPaymentReversal(null); }} size="md">
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-gray-600">Use esta opção se o pagamento foi registrado por engano ou se o valor foi devolvido ao cliente.</p>
+            <label className="block text-sm font-medium text-gray-700">Motivo (opcional)<input value={rentalPaymentReversalReason} onChange={(event) => setRentalPaymentReversalReason(event.target.value)} maxLength={300} placeholder="Ex.: pagamento lançado por engano ou valor devolvido" className="mt-1 w-full rounded-xl border border-gray-200 p-3" /></label>
+            {rentalPaymentError && <p role="alert" className="text-sm text-red-700">{rentalPaymentError}</p>}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" disabled={rentalPaymentSaving} onClick={() => setRentalPaymentReversal(null)} className="rounded-xl border px-4 py-3 text-sm">Manter pagamento</button>
+              <button type="button" disabled={rentalPaymentSaving} onClick={() => rentalPaymentReversal && void reverseRentalPaymentStage(rentalPaymentReversal)} className="rounded-xl bg-amber-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{rentalPaymentSaving ? 'Atualizando...' : 'Confirmar estorno'}</button>
+            </div>
+          </div>
+        </WorkspaceModal>
         <WorkspaceModal open={formOpen} title={editingRental ? 'Editar locação #' + editingRental.rental_number : 'Nova locação'} description="Organize cliente, período, equipamentos, valores e responsáveis." onClose={closeForm} size="xl">
           <RentalForm key={editingRental?.id ?? 'new-rental'} initialValues={editingRental ? {
             customer_id: editingRental.customer_id ?? '',
@@ -443,9 +487,17 @@ export default function RentalsPage() {
               </div> : <p className="text-sm text-gray-600">Não foi possível consultar os pagamentos. {rentalPaymentError}</p>}
               {rentalPaymentError && rentalPaymentSummary && <p role="alert" className="text-sm text-red-700">{rentalPaymentError}</p>}
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || (rentalPaymentSummary.legacy_deposit_missing ? Math.max(0, Math.round(rentalPaymentSummary.total_amount * rentalPaymentSummary.default_deposit_percentage)/100*100)/100 - rentalPaymentSummary.paid_total <= 0 : rentalPaymentSummary.deposit_remaining <= 0) || viewingRental.status === 'cancelled'} onClick={() => rentalPaymentSummary?.legacy_deposit_missing ? setLegacyDepositConfirmation(true) : registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
-                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.balance_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('balance')} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Quitou saldo restante</button>
-                {rentalPaymentSaving && <span className="self-center text-xs text-gray-500">Registrando recebimento...</span>}
+                {rentalPaymentSummary?.deposit_registered ? (
+                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || viewingRental.status === 'cancelled'} onClick={() => { setRentalPaymentReversal('deposit'); setRentalPaymentReversalReason(''); }} className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 disabled:opacity-40">Desfazer pagamento do sinal</button>
+                ) : (
+                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || (rentalPaymentSummary.legacy_deposit_missing ? Math.max(0, Math.round(rentalPaymentSummary.total_amount * rentalPaymentSummary.default_deposit_percentage)/100*100)/100 - rentalPaymentSummary.paid_total <= 0 : rentalPaymentSummary.deposit_remaining <= 0) || viewingRental.status === 'cancelled'} onClick={() => rentalPaymentSummary?.legacy_deposit_missing ? setLegacyDepositConfirmation(true) : registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
+                )}
+                {rentalPaymentSummary?.balance_registered ? (
+                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || viewingRental.status === 'cancelled'} onClick={() => { setRentalPaymentReversal('balance'); setRentalPaymentReversalReason(''); }} className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 disabled:opacity-40">Desfazer quitação do saldo</button>
+                ) : (
+                  <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.balance_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('balance')} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Quitou saldo restante</button>
+                )}
+                {rentalPaymentSaving && <span className="self-center text-xs text-gray-500">Atualizando pagamento...</span>}
               </div>
             </section>}
             <div className="flex flex-col-reverse justify-end gap-2 border-t border-gray-100 pt-4 sm:flex-row">
