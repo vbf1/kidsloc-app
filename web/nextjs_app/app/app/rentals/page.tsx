@@ -19,7 +19,7 @@ import { supabase } from '../../../lib/supabase';
 import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type CompanyRole = 'admin' | 'staff';
-type RentalPaymentSummary = { total_amount: number; deposit_amount: number; paid_total: number; deposit_paid: number; deposit_remaining: number; balance_remaining: number };
+type RentalPaymentSummary = { total_amount: number; deposit_amount: number; paid_total: number; deposit_paid: number; deposit_remaining: number; balance_remaining: number; legacy_deposit_missing: boolean; default_deposit_percentage: number; has_financial_transaction: boolean };
 
 const RENTAL_COLUMNS = 'id,company_id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,delivery_fee,discount,total_amount,deposit_amount,notes,created_by,created_at,updated_at';
 function localDateValue() {
@@ -58,7 +58,9 @@ export default function RentalsPage() {
   const [listLoading, setListLoading] = useState(!hasModuleData('rentals', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
+  const [defaultDepositPercentage, setDefaultDepositPercentage] = useState(30);
   const [rentalPaymentSummary, setRentalPaymentSummary] = useState<RentalPaymentSummary | null>(null);
+  const [legacyDepositConfirmation, setLegacyDepositConfirmation] = useState(false);
   const [rentalPaymentLoading, setRentalPaymentLoading] = useState(false);
   const [rentalPaymentSaving, setRentalPaymentSaving] = useState(false);
   const [rentalPaymentError, setRentalPaymentError] = useState('');
@@ -104,6 +106,10 @@ export default function RentalsPage() {
         setCompanyName(name.trim());
         setRole(membership.role as CompanyRole);
         setCompanyId(membership.company_id);
+        const { data: companySettings } = await supabase.rpc('get_company_settings', { p_company_id: membership.company_id });
+        if (typeof companySettings?.default_deposit_percentage === 'number' || typeof companySettings?.default_deposit_percentage === 'string') {
+          setDefaultDepositPercentage(Number(companySettings.default_deposit_percentage) || 0);
+        }
         setWorkspaceSessionCache({ userId: user.id, email: user.email ?? 'E-mail não informado', companyName: name.trim(), companyId: membership.company_id, role: membership.role as CompanyRole });
       } catch {
         if (active) setAccessError('Ocorreu um erro ao verificar seu acesso. Confira sua conexão.');
@@ -214,6 +220,7 @@ export default function RentalsPage() {
     setPage(0);
     setNewFormDefaults({
       ...EMPTY_RENTAL, start_date: today, end_date: today,
+      deposit_percentage: String(defaultDepositPercentage),
       responsible_user_ids: currentUserId ? [currentUserId] : [],
     });
   }
@@ -276,10 +283,15 @@ export default function RentalsPage() {
         rentalId = typeof data === 'string' ? data : null;
       }
       if (!rentalId) { setFormError('A locação foi salva, mas não foi possível identificar o registro para salvar o sinal. Abra a locação e tente novamente.'); return; }
-      const { error: depositError } = await supabase.rpc('set_rental_deposit_amount', {
-        p_company_id: companyId, p_rental_id: rentalId, p_deposit_amount: depositAmount,
-      });
-      if (depositError) { setFormError('A locação foi salva, mas o sinal não foi atualizado: ' + depositError.message); return; }
+      const shouldSaveDeposit = !editingRental
+        || Math.abs(Number(editingRental.deposit_amount ?? 0) - depositAmount) > 0.009
+        || Math.abs(Number(editingRental.total_amount ?? 0) - totalAmount) > 0.009;
+      if (shouldSaveDeposit) {
+        const { error: depositError } = await supabase.rpc('set_rental_deposit_amount', {
+          p_company_id: companyId, p_rental_id: rentalId, p_deposit_amount: depositAmount,
+        });
+        if (depositError) { setFormError('A locação foi salva, mas o sinal não foi atualizado: ' + depositError.message); return; }
+      }
       setNotice(editingRental ? 'Locação atualizada com sucesso.' : 'Locação criada com sucesso. A confirmação pelo WhatsApp fica disponível nos detalhes da locação.');
       setFormOpen(false);
       setEditingRental(null);
@@ -309,7 +321,7 @@ export default function RentalsPage() {
     return () => { active = false; };
   }, [viewingRental?.id, companyId, role, refreshIndex]);
 
-  async function registerRentalPaymentStage(stage: 'deposit' | 'balance') {
+  async function registerRentalPaymentStage(stage: 'deposit' | 'balance', applyDefault = false) {
     if (!supabase || !companyId || !viewingRental || rentalPaymentSaving) return;
     setRentalPaymentSaving(true);
     setRentalPaymentError('');
@@ -320,6 +332,7 @@ export default function RentalsPage() {
         p_stage: stage,
         p_payment_method: null,
         p_paid_at: localDateValue(),
+        p_apply_default_deposit: applyDefault,
       });
       if (error) {
         setRentalPaymentError(error.message);
@@ -331,6 +344,7 @@ export default function RentalsPage() {
       if (summaryError) setRentalPaymentError(summaryError.message);
       else setRentalPaymentSummary(data as RentalPaymentSummary);
       setNotice(stage === 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.');
+      setLegacyDepositConfirmation(false);
       setRefreshIndex((value) => value + 1);
     } catch {
       setRentalPaymentError('Não foi possível registrar o recebimento. Tente novamente.');
@@ -376,6 +390,19 @@ export default function RentalsPage() {
           {!formOpen && <button type="button" onClick={openNewRental} className="rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e43c4]">+ Nova locação</button>}
         </div>
         {notice && !formOpen && <div role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</div>}
+        <WorkspaceModal open={legacyDepositConfirmation} title="Aplicar sinal padrão nesta locação?" description="Esta locação foi criada antes do controle de sinal. O valor só será preenchido depois da sua confirmação." onClose={() => setLegacyDepositConfirmation(false)} size="md">
+          <div className="space-y-4">
+            <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+              <p>Percentual padrão atual: <strong>{rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage}%</strong></p>
+              <p className="mt-1">Valor que falta registrar como sinal: <strong>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Math.max(0, Math.round((Number(rentalPaymentSummary?.total_amount ?? viewingRental?.total_amount ?? 0) * Number(rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage))/100*100)/100 - Number(rentalPaymentSummary?.paid_total ?? 0)))}</strong></p>
+              <p className="mt-2 text-xs">Essa alteração será aplicada somente a esta locação antiga. As demais não serão modificadas.</p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setLegacyDepositConfirmation(false)} className="rounded-xl border px-4 py-3 text-sm">Cancelar</button>
+              <button type="button" disabled={rentalPaymentSaving} onClick={() => void registerRentalPaymentStage('deposit', true)} className="rounded-xl bg-[#8054d8] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{rentalPaymentSaving?'Registrando...':'Aplicar sinal e registrar pagamento'}</button>
+            </div>
+          </div>
+        </WorkspaceModal>
         <WorkspaceModal open={formOpen} title={editingRental ? 'Editar locação #' + editingRental.rental_number : 'Nova locação'} description="Organize cliente, período, equipamentos, valores e responsáveis." onClose={closeForm} size="xl">
           <RentalForm key={editingRental?.id ?? 'new-rental'} initialValues={editingRental ? {
             customer_id: editingRental.customer_id ?? '',
@@ -416,7 +443,7 @@ export default function RentalsPage() {
               </div> : <p className="text-sm text-gray-600">Não foi possível consultar os pagamentos. {rentalPaymentError}</p>}
               {rentalPaymentError && rentalPaymentSummary && <p role="alert" className="text-sm text-red-700">{rentalPaymentError}</p>}
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.deposit_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
+                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || (rentalPaymentSummary.legacy_deposit_missing ? Math.max(0, Math.round(rentalPaymentSummary.total_amount * rentalPaymentSummary.default_deposit_percentage)/100*100)/100 - rentalPaymentSummary.paid_total <= 0 : rentalPaymentSummary.deposit_remaining <= 0) || viewingRental.status === 'cancelled'} onClick={() => rentalPaymentSummary?.legacy_deposit_missing ? setLegacyDepositConfirmation(true) : registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
                 <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.balance_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('balance')} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Quitou saldo restante</button>
                 {rentalPaymentSaving && <span className="self-center text-xs text-gray-500">Registrando recebimento...</span>}
               </div>

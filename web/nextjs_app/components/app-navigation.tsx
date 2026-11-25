@@ -12,7 +12,7 @@ type NavItem = {
   shortLabel: string;
   href: string;
   active: boolean;
-  icon: 'home' | 'users' | 'toy' | 'calendar' | 'team' | 'funnel' | 'map-pin' | 'chart';
+  icon: 'home' | 'users' | 'toy' | 'calendar' | 'team' | 'funnel' | 'map-pin' | 'chart' | 'settings';
 };
 
 function NavIcon({ name }: { name: NavItem['icon'] }) {
@@ -25,7 +25,7 @@ function NavIcon({ name }: { name: NavItem['icon'] }) {
       {name === 'calendar' && <><rect x="3.5" y="5" width="17" height="16" rx="2" /><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h3" /></>}
       {name === 'team' && <><circle cx="9" cy="8" r="3" /><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h.5M16 13v7M12.5 16.5h7" /><path d="M16 10a2.5 2.5 0 1 0-1.5-4.5" /></>}
       {name === 'funnel' && <><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" /><path d="M7 7h10" /></>}
-      {name === 'map-pin' && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>}{name === 'chart' && <><path d="M4 19V5M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/></>}
+      {name === 'map-pin' && <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>}{name === 'chart' && <><path d="M4 19V5M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/></>}{name === 'settings' && <><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></>}
     </svg>
   );
 }
@@ -76,9 +76,10 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
   const isContracts = pathname.endsWith('/app/contracts') || pathname.endsWith('/app/contracts/');
   const isCalendar = pathname.endsWith('/app/calendar') || pathname.endsWith('/app/calendar/');
   const isTeam = pathname.endsWith('/equipe') || pathname.endsWith('/equipe/');
+  const isSettings = pathname.endsWith('/app/settings') || pathname.endsWith('/app/settings/');
   const isLeadFesta = (pathname.endsWith('/app/leads') || pathname.endsWith('/app/leads/')) && !pathname.includes('/prospeccao');
   const isProspecting = pathname.includes('/app/leads/prospeccao');
-  const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isFinance && !isContracts && !isCalendar && !isTeam && !isLeadFesta && !isProspecting;
+  const isDashboard = !isCustomers && !isProducts && !isRentals && !isQuotes && !isFinance && !isContracts && !isCalendar && !isTeam && !isLeadFesta && !isProspecting && !isSettings;
 
   const companyItems: NavItem[] = role === 'platform_owner'
     ? [{ label: 'Administração', shortLabel: 'Admin', href: basePath + '/app/admin/', active: pathname.includes('/app/admin'), icon: 'home' }]
@@ -99,6 +100,7 @@ export function AppNavigation({ basePath, role, companyId }: AppNavigationProps)
       { label: 'Prospectar empresas', shortLabel: 'Prospectar', href: basePath + '/app/leads/prospeccao/', active: isProspecting, icon: 'map-pin' as const },
     ] : []),
     ...(role === 'admin' ? [{ label: 'Gerenciar equipe', shortLabel: 'Equipe', href: basePath + '/equipe/', active: isTeam, icon: 'team' as const }] : []),
+    ...(role !== 'platform_owner' ? [{ label: 'Configurações', shortLabel: 'Config.', href: basePath + '/app/settings/', active: isSettings, icon: 'settings' as const }] : []),
   ];
 
   const primaryItems = items.slice(0, 3);

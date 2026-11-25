@@ -31,6 +31,8 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   final _endTime = TextEditingController(text: '18:00');
   bool _loading = true;
   bool _saving = false;
+  double? _originalDepositAmount;
+  double? _originalTotalAmount;
   String? _error;
   String? _customerId;
   String? _productId;
@@ -102,6 +104,14 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   Future<void> _loadOptions() async {
     try {
       final client = Supabase.instance.client;
+      if (widget.rentalId == null) {
+        try {
+          final settings = await client.rpc('get_company_settings', params: {'p_company_id': widget.companyId});
+          _depositPercentage.text = (settings['default_deposit_percentage'] ?? 30).toString();
+        } catch (_) {
+          _depositPercentage.text = '30';
+        }
+      }
       final results = await Future.wait([
         client.from('customers').select('id,name,phone').eq('company_id', widget.companyId).order('name'),
         client.from('products').select('id,name,daily_price,event_price').eq('company_id', widget.companyId).eq('active', true).order('name'),
@@ -164,6 +174,8 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       };
     }).toList();
     if (!mounted) return;
+    _originalDepositAmount = (rental['deposit_amount'] as num?)?.toDouble() ?? 0;
+    _originalTotalAmount = (rental['total_amount'] as num?)?.toDouble() ?? 0;
     setState(() {
       _customerId = rental['customer_id']?.toString();
       _startDate = DateTime.parse(rental['start_date'].toString());
@@ -206,6 +218,16 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     return userId != null && _members.any((member) => member['user_id']?.toString() == userId && ['owner', 'admin'].contains(member['role']?.toString()));
   }
 
+  double get _legacyDepositRemaining {
+    final summary = _paymentSummary;
+    if (summary == null) return 0;
+    final total = (summary['total_amount'] as num?)?.toDouble() ?? 0;
+    final percentage = (summary['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
+    final paid = (summary['paid_total'] as num?)?.toDouble() ?? 0;
+    final target = (total * percentage / 100 * 100).round() / 100;
+    return (target - paid).clamp(0, double.infinity).toDouble();
+  }
+
   Future<void> _loadRentalPaymentSummary() async {
     if (widget.rentalId == null || !_canManageRentalPayments) return;
     setState(() { _paymentSummaryLoading = true; _paymentSummaryError = null; });
@@ -226,6 +248,23 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
 
   Future<void> _registerRentalPaymentStage(String stage) async {
     if (widget.rentalId == null || _paymentActionLoading) return;
+    final applyDefault = stage == 'deposit' && _paymentSummary?['legacy_deposit_missing'] == true;
+    if (applyDefault) {
+      final percentage = (_paymentSummary?['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
+      final amount = _legacyDepositRemaining;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Aplicar sinal padrão?'),
+          content: Text('Esta locação é antiga e ainda não possui sinal cadastrado. Aplicaremos $percentage% (R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}) somente nesta locação. Deseja continuar?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Aplicar e registrar')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     setState(() { _paymentActionLoading = true; _paymentSummaryError = null; });
     try {
       await Supabase.instance.client.rpc('register_rental_payment_stage', params: {
@@ -234,6 +273,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         'p_stage': stage,
         'p_payment_method': null,
         'p_paid_at': _date(DateTime.now()),
+        'p_apply_default_deposit': applyDefault,
       });
       await _loadRentalPaymentSummary();
       if (!mounted) return;
@@ -505,11 +545,16 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         params['p_rental_id'] = rentalId;
         await Supabase.instance.client.rpc('update_rental_with_items', params: params);
       }
-      await Supabase.instance.client.rpc('set_rental_deposit_amount', params: {
-        'p_company_id': widget.companyId,
-        'p_rental_id': rentalId,
-        'p_deposit_amount': deposit,
-      });
+      final originalDeposit = _originalDepositAmount ?? 0;
+      final shouldSaveDeposit = widget.rentalId == null
+          || (originalDeposit <= 0 ? deposit > 0 : (deposit - originalDeposit).abs() > 0.009 || (total - (_originalTotalAmount ?? total)).abs() > 0.009);
+      if (shouldSaveDeposit) {
+        await Supabase.instance.client.rpc('set_rental_deposit_amount', params: {
+          'p_company_id': widget.companyId,
+          'p_rental_id': rentalId,
+          'p_deposit_amount': deposit,
+        });
+      }
       if (!mounted) return;
       if (!widget.isEditing) {
 
@@ -753,7 +798,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                         const SizedBox(height: 10),
                         Wrap(spacing: 8, runSpacing: 8, children: [
                           OutlinedButton.icon(
-                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0) <= 0 || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('deposit'),
+                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['legacy_deposit_missing'] == true) ? _legacyDepositRemaining <= 0 : (((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0) <= 0)) || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('deposit'),
                             icon: const Icon(Icons.payments_outlined),
                             label: const Text('Pagou sinal'),
                           ),

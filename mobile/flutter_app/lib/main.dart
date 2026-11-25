@@ -12,6 +12,8 @@ import 'agenda_page.dart';
 import 'widgets/pagination_controls.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'settings_page.dart';
+import 'services/app_theme.dart';
 import 'services/push_notifications.dart';
 import 'services/company_realtime.dart';
 
@@ -23,6 +25,7 @@ const supabasePublishableKey =
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppThemeController.load();
   if (defaultTargetPlatform == TargetPlatform.android) {
     try {
       await PushNotifications.initialize();
@@ -41,21 +44,36 @@ class KidsLocApp extends StatelessWidget {
   const KidsLocApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'KidsLoc App',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF8054D8),
-            primary: const Color(0xFF8054D8),
-            secondary: const Color(0xFFFFC83D),
+  Widget build(BuildContext context) => ValueListenableBuilder<ThemeMode>(
+        valueListenable: AppThemeController.mode,
+        builder: (context, themeMode, _) => MaterialApp(
+          title: 'KidsLoc App',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeMode,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF8054D8),
+              primary: const Color(0xFF8054D8),
+              secondary: const Color(0xFFFFC83D),
+            ),
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFFFAF9FD),
           ),
-          useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFFFAF9FD),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF8054D8),
+              brightness: Brightness.dark,
+              primary: const Color(0xFFB99AF5),
+              secondary: const Color(0xFFFFD66B),
+            ),
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFF11121D),
+            cardTheme: const CardThemeData(color: Color(0xFF1D2030)),
+          ),
+          home: supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty
+              ? const AuthGate()
+              : const FoundationScreen(),
         ),
-        home: supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty
-            ? const AuthGate()
-            : const FoundationScreen(),
       );
 }
 
@@ -782,6 +800,13 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('KidsLoc App'), actions: [
       IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+      if (_companyId != null) IconButton(
+        tooltip: 'Configurações',
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => SettingsPage(companyId: _companyId!, role: _role),
+        )),
+        icon: const Icon(Icons.settings_outlined),
+      ),
       IconButton(
         tooltip: 'Sair',
         onPressed: () async {

@@ -191,6 +191,60 @@ class _FinancePageState extends State<FinancePage> {
     }
   }
 
+  Future<void> _registerRentalStage(Map<String, dynamic> row, String stage) async {
+    final rentalId = row['rental_id']?.toString();
+    if (rentalId == null || rentalId.isEmpty || !_canManage || _saving) return;
+    try {
+      final rawSummary = await Supabase.instance.client.rpc('get_rental_payment_summary', params: {
+        'p_company_id': widget.companyId, 'p_rental_id': rentalId,
+      });
+      final summary = Map<String, dynamic>.from(rawSummary as Map);
+      final applyDefault = stage == 'deposit' && summary['legacy_deposit_missing'] == true;
+      final percentage = (summary['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
+      final total = _money(summary['total_amount'] ?? row['amount']);
+      final target = applyDefault ? (total * percentage / 100) : _money(summary['deposit_amount']);
+      final paid = _money(summary['paid_total']);
+      final amount = stage == 'deposit'
+          ? (target - paid).clamp(0, double.infinity).toDouble()
+          : _money(summary['balance_remaining']);
+      if (amount <= 0) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(stage == 'deposit' ? 'Não há sinal pendente.' : 'Esta locação já está quitada.')));
+        return;
+      }
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(stage == 'deposit' ? 'Confirmar pagamento do sinal' : 'Confirmar quitação do saldo'),
+          content: Text(applyDefault
+              ? 'Esta locação antiga ainda não possui sinal definido. Aplicaremos $percentage% (${_format(amount)}) somente nesta locação e registraremos o recebimento. Confirma?'
+              : 'Será registrado o recebimento de ${_format(amount)} para a locação. Confirma?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Confirmar')),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      setState(() => _saving = true);
+      await Supabase.instance.client.rpc('register_rental_payment_stage', params: {
+        'p_company_id': widget.companyId,
+        'p_rental_id': rentalId,
+        'p_stage': stage,
+        'p_payment_method': null,
+        'p_paid_at': _date(DateTime.now()),
+        'p_apply_default_deposit': applyDefault,
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(stage == 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.')));
+      await _load();
+    } on PostgrestException catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível registrar o recebimento.')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _showReceipt(Map<String, dynamic> transaction, Map<String, dynamic> payment) async {
     final date = payment['paid_at']?.toString().split('T').first ?? '';
     final formattedDate = date.isEmpty ? 'Não informada' : _labelDate(date);
@@ -318,7 +372,7 @@ class _FinancePageState extends State<FinancePage> {
                       const SizedBox(height: 6),
                       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('Financeiro', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF172033))),
+                          Text('Financeiro', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
                           const SizedBox(height: 5),
                           Text('Acompanhe receitas, despesas, recebimentos e saldos pendentes.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
                         ])),
@@ -359,7 +413,7 @@ class _FinancePageState extends State<FinancePage> {
                           hintText: 'Buscar lançamentos',
                           hintStyle: const TextStyle(fontSize: 13),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Theme.of(context).colorScheme.surface,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
@@ -389,8 +443,8 @@ class _FinancePageState extends State<FinancePage> {
                               onSelected: (_) => setState(() { _filter = option.$1; _page = 0; }),
                               labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _filter == option.$1 ? const Color(0xFF6840BD) : const Color(0xFF475569)),
                               selectedColor: const Color(0xFFF3ECFF),
-                              backgroundColor: Colors.white,
-                              shape: StadiumBorder(side: BorderSide(color: _filter == option.$1 ? const Color(0xFFD8C5FF) : const Color(0xFFE2E8F0))),
+                              backgroundColor: Theme.of(context).colorScheme.surface,
+                              shape: StadiumBorder(side: BorderSide(color: _filter == option.$1 ? const Color(0xFFD8C5FF) : Theme.of(context).colorScheme.outlineVariant)),
                             ),
                         ],
                       ),
@@ -398,17 +452,17 @@ class _FinancePageState extends State<FinancePage> {
                       if (_transactions.isEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 20),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
-                          child: const Column(children: [
+                          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
+                          child: Column(children: [
                             Icon(Icons.account_balance_wallet_outlined, size: 32, color: Color(0xFF94A3B8)),
                             SizedBox(height: 10),
-                            Text('Nenhum lançamento financeiro.', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                            Text('Nenhum lançamento financeiro.', style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           ]),
                         )
                       else if (filteredTransactions.isEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
+                          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
                           child: const Center(child: Text('Nenhum lançamento corresponde à busca ou ao filtro.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B)))),
                         )
                       else
@@ -431,7 +485,7 @@ class _FinancePageState extends State<FinancePage> {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(15),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0)), boxShadow: const [BoxShadow(color: Color(0x080F172A), blurRadius: 12, offset: Offset(0, 3))]),
+                            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant), boxShadow: const [BoxShadow(color: Color(0x080F172A), blurRadius: 12, offset: Offset(0, 3))]),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Container(
@@ -447,7 +501,7 @@ class _FinancePageState extends State<FinancePage> {
                                     child: Text(income ? 'RECEITA' : 'DESPESA', style: TextStyle(fontSize: 9, letterSpacing: .7, fontWeight: FontWeight.w800, color: income ? const Color(0xFF15803D) : const Color(0xFFBE123C))),
                                   ),
                                   const SizedBox(height: 6),
-                                  Text(row['description']?.toString() ?? 'Lançamento', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF172033))),
+                                  Text(row['description']?.toString() ?? 'Lançamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
                                   const SizedBox(height: 4),
                                   Text('${row['category'] ?? 'Sem categoria'} · Vencimento: ${_displayDate(row['due_date'])}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                                   if (rental != null) ...[
@@ -457,7 +511,7 @@ class _FinancePageState extends State<FinancePage> {
                                 ])),
                                 const SizedBox(width: 8),
                                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                  Text(fmt(amount), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF172033))),
+                                  Text(fmt(amount), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
                                   const SizedBox(height: 5),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -469,7 +523,7 @@ class _FinancePageState extends State<FinancePage> {
                               const SizedBox(height: 12),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-                                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
                                 child: Wrap(spacing: 16, runSpacing: 5, children: [
                                   Text('Recebido/pago: ${fmt(paid)}', style: const TextStyle(fontSize: 11, color: Color(0xFF475569))),
                                   Text('Saldo: ${fmt(balance)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
@@ -482,7 +536,7 @@ class _FinancePageState extends State<FinancePage> {
                                 ...linkedPayments.map((payment) => Container(
                                   margin: const EdgeInsets.only(bottom: 6),
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFF1F5F9))),
+                                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFFF1F5F9))),
                                   child: Row(children: [
                                     Expanded(child: Text('${fmt(_money(payment['amount']))} · ${_labelDate(payment['paid_at'].toString().split('T').first)} · ${payment['payment_method'] ?? 'Sem forma'}', style: const TextStyle(fontSize: 11, color: Color(0xFF475569)))),
                                     TextButton.icon(onPressed: () => _showReceipt(row, payment), icon: const Icon(Icons.receipt_long_outlined, size: 16), label: const Text('Comprovante', style: TextStyle(fontSize: 11))),
@@ -491,12 +545,23 @@ class _FinancePageState extends State<FinancePage> {
                               ],
                               if (income && balance > 0 && _canManage && row['status'] != 'cancelled') ...[
                                 const SizedBox(height: 8),
-                                Align(alignment: Alignment.centerRight, child: FilledButton.tonalIcon(
-                                  onPressed: _saving ? null : () => _openReceive(row),
-                                  icon: const Icon(Icons.payments_outlined, size: 17),
-                                  label: const Text('Registrar recebimento'),
-                                  style: FilledButton.styleFrom(foregroundColor: const Color(0xFF166534), backgroundColor: const Color(0xFFECFDF3)),
-                                )),
+                                Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
+                                  if (row['rental_id'] != null) OutlinedButton.icon(
+                                    onPressed: _saving ? null : () => _registerRentalStage(row, 'deposit'),
+                                    icon: const Icon(Icons.payments_outlined, size: 17),
+                                    label: const Text('Pagou sinal'),
+                                  ),
+                                  if (row['rental_id'] != null) FilledButton.tonalIcon(
+                                    onPressed: _saving ? null : () => _registerRentalStage(row, 'balance'),
+                                    icon: const Icon(Icons.check_circle_outline, size: 17),
+                                    label: const Text('Quitou saldo restante'),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: _saving ? null : () => _openReceive(row),
+                                    icon: const Icon(Icons.add_card_outlined, size: 17),
+                                    label: const Text('Recebimento parcial'),
+                                  ),
+                                ]),
                               ],
                             ]),
                           );
@@ -524,9 +589,9 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       boxShadow: const [BoxShadow(color: Color(0x060F172A), blurRadius: 10, offset: Offset(0, 2))],
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
