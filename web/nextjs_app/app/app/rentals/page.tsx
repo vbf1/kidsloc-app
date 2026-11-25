@@ -389,7 +389,7 @@ export default function RentalsPage() {
           <div className="space-y-4">
             <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
               <p>Percentual padrão atual: <strong>{rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage}%</strong></p>
-              <p className="mt-1">Valor de sinal nesta locação: <strong>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(viewingRental?.total_amount ?? 0) * Number(rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage))/100)}</strong></p>
+              <p className="mt-1">Valor de sinal nesta locação: <strong>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(rentalPaymentSummary?.total_amount ?? viewingRental?.total_amount ?? 0) * Number(rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage))/100)}</strong></p>
               <p className="mt-2 text-xs">Essa alteração será aplicada somente a esta locação antiga. As demais não serão modificadas.</p>
             </div>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
