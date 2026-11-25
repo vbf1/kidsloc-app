@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'services/company_realtime.dart';
 
 class RentalCreatePage extends StatefulWidget {
@@ -15,7 +16,14 @@ class RentalCreatePage extends StatefulWidget {
 
 class _RentalCreatePageState extends State<RentalCreatePage> {
   final _formKey = GlobalKey<FormState>();
-  final _address = TextEditingController();
+  final _postalCode = TextEditingController();
+  final _street = TextEditingController();
+  final _number = TextEditingController();
+  final _complement = TextEditingController();
+  final _neighborhood = TextEditingController();
+  final _city = TextEditingController();
+  final _state = TextEditingController();
+  final _reference = TextEditingController();
   final _total = TextEditingController(text: '0');
   final _startTime = TextEditingController(text: '09:00');
   final _endTime = TextEditingController(text: '18:00');
@@ -29,6 +37,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
   List<Map<String, dynamic>> _customers = [];
+  String _companyName = 'nossa equipe';
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _members = [];
   final Set<String> _responsibles = {};
@@ -54,7 +63,14 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   @override
   void dispose() {
     _realtime?.dispose();
-    _address.dispose();
+    _postalCode.dispose();
+    _street.dispose();
+    _number.dispose();
+    _complement.dispose();
+    _neighborhood.dispose();
+    _city.dispose();
+    _state.dispose();
+    _reference.dispose();
     _total.dispose();
     _startTime.dispose();
     _endTime.dispose();
@@ -65,11 +81,20 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     try {
       final client = Supabase.instance.client;
       final results = await Future.wait([
-        client.from('customers').select('id,name').eq('company_id', widget.companyId).order('name'),
+        client.from('customers').select('id,name,phone').eq('company_id', widget.companyId).order('name'),
         client.from('products').select('id,name,daily_price,event_price').eq('company_id', widget.companyId).eq('active', true).order('name'),
         client.from('company_members').select('user_id,role').eq('company_id', widget.companyId),
       ]);
       final members = results[2].map((e) => Map<String, dynamic>.from(e)).toList();
+      try {
+        final company = await client.from('companies').select('name')
+            .eq('id', widget.companyId).maybeSingle();
+        if (company?['name'] is String && (company!['name'] as String).trim().isNotEmpty) {
+          _companyName = (company['name'] as String).trim();
+        }
+      } catch (_) {
+        // A confirmação continua disponível mesmo se o nome da empresa não carregar.
+      }
       final ids = members.map((e) => e['user_id'].toString()).toList();
       final profiles = ids.isEmpty
           ? <Map<String, dynamic>>[]
@@ -125,7 +150,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       _endTime.text = (rental['end_time'] ?? '18:00').toString().substring(0, 5);
       _status = rental['status']?.toString() ?? 'pending';
       _delivery = rental['delivery_method']?.toString() ?? 'delivery';
-      _address.text = rental['delivery_address']?.toString() ?? '';
+      _restoreAddress(rental['delivery_address']?.toString());
       _total.text = ((rental['total_amount'] ?? 0) as num).toStringAsFixed(2);
       _items
         ..clear()
@@ -147,6 +172,125 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     } catch (_) {
       // Histórico indisponível para este perfil; mantém o formulário utilizável.
     }
+  }
+
+  void _restoreAddress(String? value) {
+    final raw = (value ?? '').trim();
+    if (raw.isEmpty) return;
+    const labels = <String, String>{
+      'Rua': 'street',
+      'Número': 'number',
+      'Complemento': 'complement',
+      'Bairro': 'neighborhood',
+      'Cidade': 'city',
+      'Estado': 'state',
+      'CEP': 'postal_code',
+      'Referência': 'reference',
+    };
+    final parsed = <String, String>{};
+    for (final part in raw.split(' | ')) {
+      final separator = part.indexOf(': ');
+      if (separator < 0) continue;
+      final key = labels[part.substring(0, separator)];
+      if (key != null) parsed[key] = part.substring(separator + 2);
+    }
+    if (parsed.isEmpty) {
+      // Older rentals keep their complete address untouched.
+      _street.text = raw;
+      return;
+    }
+    _street.text = parsed['street'] ?? '';
+    _number.text = parsed['number'] ?? '';
+    _complement.text = parsed['complement'] ?? '';
+    _neighborhood.text = parsed['neighborhood'] ?? '';
+    _city.text = parsed['city'] ?? '';
+    _state.text = parsed['state'] ?? '';
+    _postalCode.text = parsed['postal_code'] ?? '';
+    _reference.text = parsed['reference'] ?? '';
+  }
+
+  String _composeAddress() {
+    final entries = <String, String>{
+      'Rua': _street.text.trim(),
+      'Número': _number.text.trim(),
+      'Complemento': _complement.text.trim(),
+      'Bairro': _neighborhood.text.trim(),
+      'Cidade': _city.text.trim(),
+      'Estado': _state.text.trim(),
+      'CEP': _postalCode.text.trim(),
+      'Referência': _reference.text.trim(),
+    };
+    final address = entries.entries
+        .where((entry) => entry.value.isNotEmpty)
+        .map((entry) => '${entry.key}: ${entry.value}')
+        .join(' | ');
+    return address.length > 500 ? address.substring(0, 500) : address;
+  }
+
+  String _dateBr(DateTime value) =>
+      '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+  String? _normalizedWhatsAppPhone(String? value) {
+    var digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 10 || digits.length == 11) digits = '55$digits';
+    return digits.length >= 12 && digits.length <= 13 ? digits : null;
+  }
+
+  Future<void> _offerWhatsAppConfirmation() async {
+    final matches = _customers.where((row) => row['id'].toString() == _customerId);
+    final customer = matches.isEmpty ? null : matches.first;
+    final phone = _normalizedWhatsAppPhone(customer?['phone']?.toString());
+    if (customer == null || phone == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Locação criada. Cadastre um telefone válido no cliente para enviar a confirmação pelo WhatsApp.')),
+      );
+      return;
+    }
+    final itemLines = _items.map((item) =>
+      '- ${item['name']} (quantidade: ${item['quantity']})').join('\n');
+    final address = _composeAddress();
+    final message = [
+      'Olá, ${customer['name']}! Tudo bem?',
+      'Aqui é da $_companyName. Seu agendamento foi registrado com os seguintes dados:',
+      '',
+      'Data: ${_dateBr(_startDate)}${_date(_startDate) == _date(_endDate) ? '' : ' até ${_dateBr(_endDate)}'}',
+      'Horário: ${_startTime.text.trim()} às ${_endTime.text.trim()}',
+      'Itens:',
+      itemLines,
+      'Entrega: ${_delivery == 'delivery' ? 'no endereço' : 'retirada pelo cliente'}',
+      if (_delivery == 'delivery' && address.isNotEmpty) 'Endereço: $address',
+      'Valor total: R\$ ${double.parse(_total.text.trim().replaceAll(',', '.')).toStringAsFixed(2).replaceAll('.', ',')}',
+      '',
+      'Por favor, confira se está tudo correto. Obrigado pela preferência!',
+    ].join('\n');
+    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Locação criada com sucesso'),
+        content: const Text('Deseja abrir o WhatsApp com a mensagem de confirmação pronta para revisar e enviar ao cliente?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Agora não'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+              if (!launched && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Não foi possível abrir o WhatsApp neste dispositivo.')),
+                );
+              }
+            },
+            icon: const Icon(Icons.chat),
+            label: const Text('Abrir WhatsApp'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _date(DateTime d) =>
@@ -231,7 +375,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       setState(() => _error = 'Confira quantidades e preços dos itens.');
       return;
     }
-    if (_delivery == 'delivery' && _address.text.trim().isEmpty) {
+    if (_delivery == 'delivery' && _street.text.trim().isEmpty) {
       setState(() => _error = 'Informe o endereço de entrega.');
       return;
     }
@@ -253,7 +397,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
           'quantity': e['quantity'],
           'unit_price': e['unit_price'],
         }).toList(),
-        'p_delivery_address': _delivery == 'delivery' ? _address.text.trim() : null,
+        'p_delivery_address': _delivery == 'delivery' ? _composeAddress() : null,
         'p_responsible_user_ids': _responsibles.toList(),
         'p_start_time': _startTime.text.trim(),
         'p_end_time': _endTime.text.trim(),
@@ -265,9 +409,14 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         await Supabase.instance.client.rpc('update_rental_with_items', params: params);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.isEditing ? 'Locação atualizada com sucesso.' : 'Locação criada com sucesso.')),
-      );
+      if (!widget.isEditing) {
+        await _offerWhatsAppConfirmation();
+        if (!mounted) return;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Locação atualizada com sucesso.')),
+        );
+      }
       Navigator.pop(context, true);
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -393,12 +542,27 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                 ],
                 onChanged: (v) => setState(() => _delivery = v ?? 'delivery'),
               ),
-              if (_delivery == 'delivery')
+              if (_delivery == 'delivery') ...[
+                Text('Endereço de entrega', style: Theme.of(context).textTheme.titleMedium),
                 TextFormField(
-                  controller: _address,
-                  decoration: const InputDecoration(labelText: 'Endereço de entrega'),
-                  validator: (v) => _delivery == 'delivery' && (v == null || v.trim().isEmpty) ? 'Informe o endereço' : null,
+                  controller: _street,
+                  decoration: const InputDecoration(labelText: 'Rua / Avenida *'),
+                  validator: (v) => _delivery == 'delivery' && (v == null || v.trim().isEmpty) ? 'Informe a rua ou avenida' : null,
                 ),
+                Row(children: [
+                  Expanded(child: TextFormField(controller: _number, decoration: const InputDecoration(labelText: 'Número'))),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(controller: _postalCode, decoration: const InputDecoration(labelText: 'CEP'), keyboardType: TextInputType.number)),
+                ]),
+                TextFormField(controller: _neighborhood, decoration: const InputDecoration(labelText: 'Bairro')),
+                Row(children: [
+                  Expanded(flex: 3, child: TextFormField(controller: _city, decoration: const InputDecoration(labelText: 'Cidade'))),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(controller: _state, decoration: const InputDecoration(labelText: 'Estado (UF)'), textCapitalization: TextCapitalization.characters, maxLength: 2)),
+                ]),
+                TextFormField(controller: _complement, decoration: const InputDecoration(labelText: 'Complemento')),
+                TextFormField(controller: _reference, decoration: const InputDecoration(labelText: 'Ponto de referência')),
+              ],
               TextFormField(
                 controller: _total,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),

@@ -32,7 +32,7 @@ function fillRequiredFields() {
 }
 
 describe('RentalForm', () => {
-  it('submits a fixed-price combo with multiple items and no delivery address', async () => {
+  it('submits a fixed-price combo with multiple items and a structured delivery address', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(
       <RentalForm
@@ -52,6 +52,7 @@ describe('RentalForm', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Combo \/ pacote fechado/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Retirada pelo cliente' }));
     fireEvent.click(screen.getByRole('option', { name: /Entrega no endereço/ }));
+    fireEvent.change(screen.getByLabelText('Rua / Avenida *'), { target: { value: 'Rua das Flores' } });
     fireEvent.click(screen.getByRole('button', { name: 'Selecione um brinquedo ou máquina' }));
     fireEvent.click(screen.getByRole('option', { name: /Cama Elástica/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
@@ -64,7 +65,7 @@ describe('RentalForm', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       delivery_method: 'delivery',
-      delivery_address: '',
+      delivery_address: 'Rua: Rua das Flores',
       total_amount: '450,00',
       items: [
         { product_id: 'toy-1', quantity: '1', unit_price: '0,00' },
