@@ -238,7 +238,7 @@ begin
     v_target := least(v_rental.deposit_amount, v_transaction.amount);
     v_amount := greatest(0, v_target - v_paid_total);
     v_notes := 'Sinal da locação';
-    if v_target <= 0 then raise exception 'O percentual padrão está em 0%. Não há sinal a registrar.'; end if;
+    if v_target <= 0 then raise exception 'O percentual padrão está zerado. Não há sinal a registrar.'; end if;
     if v_amount <= 0 then raise exception 'O sinal desta locação já foi registrado.'; end if;
   else
     v_amount := greatest(0, v_transaction.amount - v_paid_total);
