@@ -139,10 +139,10 @@ export default function AppHomePage() {
             .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled').order('start_date', { ascending: true }).limit(5),
           supabase!.from('rental_quotes').select('id', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'sent']),
           workspace?.role === 'admin'
-            ? supabase!.from('financial_transactions').select('id,amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            ? supabase!.from('financial_transactions').select('id,rental_id,amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
             : Promise.resolve({ data: [], error: null }),
           workspace?.role === 'admin'
-            ? supabase!.from('payments').select('transaction_id,amount').eq('company_id', companyId).is('reversed_at', null)
+            ? supabase!.from('payments').select('transaction_id,rental_id,amount').eq('company_id', companyId).is('reversed_at', null)
             : Promise.resolve({ data: [], error: null }),
         ]);
         if (!active) return;
@@ -151,10 +151,17 @@ export default function AppHomePage() {
           return;
         }
         const financeRows = financeResult.data ?? [];
+        const transactionByRental = new Map<string, string>();
+        for (const row of financeRows) {
+          if (row.rental_id && !transactionByRental.has(row.rental_id)) transactionByRental.set(row.rental_id, row.id);
+        }
         const paymentTotals = new Map<string, number>();
         for (const payment of paymentsResult.data ?? []) {
-          if (!payment.transaction_id) continue;
-          paymentTotals.set(payment.transaction_id, (paymentTotals.get(payment.transaction_id) ?? 0) + Number(payment.amount || 0));
+          // Older payment rows may be linked only by rental_id; include them
+          // so the dashboard does not keep showing the full amount as pending.
+          const transactionId = payment.transaction_id ?? (payment.rental_id ? transactionByRental.get(payment.rental_id) : undefined);
+          if (!transactionId) continue;
+          paymentTotals.set(transactionId, (paymentTotals.get(transactionId) ?? 0) + Number(payment.amount || 0));
         }
         const receivables = financeRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
         const pendingReceivables = financeRows.reduce((sum, row) => {
