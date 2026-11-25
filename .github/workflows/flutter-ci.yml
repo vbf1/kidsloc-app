@@ -33,6 +33,8 @@ jobs:
           fi
           grep -R --include='build.gradle*' -F 'br.com.kidsloc.app' android/app
       - run: flutter pub get
+      - name: Format Dart sources
+        run: dart format lib test
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --no-pub --no-fatal-infos
       - run: flutter test
