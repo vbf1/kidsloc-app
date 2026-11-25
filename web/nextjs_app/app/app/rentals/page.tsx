@@ -232,6 +232,8 @@ export default function RentalsPage() {
     setFormError('');
     setNotice('');
     const totalAmount = parseRentalPrice(values.total_amount);
+    const depositAmount = parseRentalPrice(values.deposit_amount);
+    if (depositAmount === null || depositAmount > (totalAmount ?? -1)) { setFormError('O sinal deve ser válido e não pode ser maior que o valor total.'); setSaving(false); return; }
     if (totalAmount === null) { setFormError('Informe um valor total válido.'); setSaving(false); return; }
     const items = values.items.map((item) => ({
       product_id: item.product_id, quantity: Number(item.quantity),
@@ -257,17 +259,23 @@ export default function RentalsPage() {
       p_end_time: values.end_time,
     };
     try {
+      let rentalId = editingRental?.id ?? null;
       if (editingRental) {
         const { error } = await supabase.rpc('update_rental_with_items', {
           ...commonArgs, p_rental_id: editingRental.id,
         });
         if (error) { setFormError(formatSaveError(error.message)); return; }
-        setNotice('Locação atualizada com sucesso.');
       } else {
-        const { error } = await supabase.rpc('create_rental_with_items', commonArgs);
+        const { data, error } = await supabase.rpc('create_rental_with_items', commonArgs);
         if (error) { setFormError(formatSaveError(error.message)); return; }
-        setNotice('Locação criada com sucesso. A confirmação pelo WhatsApp fica disponível nos detalhes da locação.');
+        rentalId = typeof data === 'string' ? data : null;
       }
+      if (!rentalId) { setFormError('A locação foi salva, mas não foi possível identificar o registro para salvar o sinal. Abra a locação e tente novamente.'); return; }
+      const { error: depositError } = await supabase.rpc('set_rental_deposit_amount', {
+        p_company_id: companyId, p_rental_id: rentalId, p_deposit_amount: depositAmount,
+      });
+      if (depositError) { setFormError('A locação foi salva, mas o sinal não foi atualizado: ' + depositError.message); return; }
+      setNotice(editingRental ? 'Locação atualizada com sucesso.' : 'Locação criada com sucesso. A confirmação pelo WhatsApp fica disponível nos detalhes da locação.');
       setFormOpen(false);
       setEditingRental(null);
       setPage(0);
@@ -323,6 +331,7 @@ export default function RentalsPage() {
             status: editingRental.status, delivery_method: editingRental.delivery_method,
             delivery_address: editingRental.delivery_address ?? '',
             total_amount: String(editingRental.total_amount).replace('.', ','),
+            deposit_amount: String(editingRental.deposit_amount ?? 0).replace('.', ','),
             responsible_user_ids: editingRental.responsible_user_ids, items: editingRental.items.map((item) => ({
               product_id: item.product_id, quantity: String(item.quantity),
               unit_price: String(item.unit_price).replace('.', ','),
@@ -342,7 +351,7 @@ export default function RentalsPage() {
               <div className="rounded-xl border border-gray-100 p-4"><p className="text-xs text-gray-500">Entrega ou retirada</p><p className="mt-1 font-semibold text-gray-900">{viewingRental.delivery_method === 'delivery' ? 'Entrega' : 'Retirada'}</p>{viewingRental.delivery_address && <p className="mt-1 text-sm text-gray-500">{viewingRental.delivery_address}</p>}</div>
             </div>
             <div><h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-purple-700">Itens da locação</h3><div className="divide-y divide-gray-100 rounded-xl border border-gray-100">{viewingRental.items.map(item => <div key={item.id} className="flex justify-between gap-3 p-3 text-sm"><span className="text-gray-700">{item.product_name} × {item.quantity}</span><strong className="text-gray-900">{item.unit_price === 0 ? 'Incluído no combo' : 'R$ ' + Number(item.subtotal).toFixed(2).replace('.', ',')}</strong></div>)}</div></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Responsáveis</p><p className="mt-1 text-sm font-semibold text-gray-900">{viewingRental.responsible_names.join(', ') || 'Não definidos'}</p></div><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Valor total</p><p className="mt-1 text-2xl font-bold text-gray-900">R$ {Number(viewingRental.total_amount).toFixed(2).replace('.', ',')}</p></div></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Responsáveis</p><p className="mt-1 text-sm font-semibold text-gray-900">{viewingRental.responsible_names.join(', ') || 'Não definidos'}</p></div><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Valor total</p><p className="mt-1 text-2xl font-bold text-gray-900">R$ {Number(viewingRental.total_amount).toFixed(2).replace('.', ',')}</p><p className="mt-2 text-xs text-gray-500">Sinal pago: <strong className="text-gray-800">R$ {Number(viewingRental.deposit_amount ?? 0).toFixed(2).replace('.', ',')}</strong></p><p className="text-xs text-gray-500">Saldo restante: <strong className="text-gray-800">R$ {Math.max(0, Number(viewingRental.total_amount) - Number(viewingRental.deposit_amount ?? 0)).toFixed(2).replace('.', ',')}</strong></p></div></div>
             <div className="flex flex-col-reverse justify-end gap-2 border-t border-gray-100 pt-4 sm:flex-row">
               <button type="button" onClick={() => { const customer = customers.find((item) => item.id === viewingRental.customer_id); setConfirmationText(formatRentalWhatsAppMessage({ companyName, customerName: viewingRental.customer_name, startDate: viewingRental.start_date, endDate: viewingRental.end_date, startTime: viewingRental.start_time?.slice(0,5) ?? '—', endTime: viewingRental.end_time?.slice(0,5) ?? '—', items: viewingRental.items.map((item) => ({ name: item.product_name, quantity: item.quantity })), deliveryMethod: viewingRental.delivery_method, deliveryAddress: viewingRental.delivery_address ?? '', totalAmount: Number(viewingRental.total_amount) })); setConfirmationRental(viewingRental); }} className="rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">Preparar confirmação</button>
               <button type="button" onClick={() => setViewingRental(null)} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700">Fechar</button>
