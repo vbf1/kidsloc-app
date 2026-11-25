@@ -24,7 +24,7 @@ String? validateAuthPasswordConfirmation(String? value, String password) {
 String? validateAuthEmail(String? value) {
   final email = value?.trim() ?? '';
   if (email.isEmpty) return 'Informe seu e-mail.';
-  if (!RegExp(r'^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$').hasMatch(email)) {
+  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
     return 'Informe um endereço de e-mail válido.';
   }
   return null;
