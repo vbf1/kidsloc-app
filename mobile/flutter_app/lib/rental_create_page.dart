@@ -244,7 +244,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cadastre um telefone válido no cliente para preparar a confirmação pelo WhatsApp.')));
       return;
     }
-    final itemLines = _items.map((item) => '• ${item['name']} (quantidade: ${item['quantity']})').join('\\n');
+    final itemLines = _items.map((item) => '• ${item['name']} (quantidade: ${item['quantity']})').join('\n');
     final address = _composeAddress();
     final amount = double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0;
     final initialMessage = [
@@ -258,7 +258,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       '💰 *Valor total:* R\\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}', '',
       'Por favor, confira se está tudo certinho. Se precisar de algum ajuste, é só nos avisar!',
       'Agradecemos pela preferência! 💜',
-    ].join('\\n');
+    ].join('\n');
     final controller = TextEditingController(text: initialMessage);
     try {
       if (!mounted) return;
