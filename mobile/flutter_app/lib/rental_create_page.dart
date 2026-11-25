@@ -435,6 +435,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
 
   void _updateTotal() {
     _total.text = _calculatedTotal.toStringAsFixed(2);
+    _recalculateDeposit();
   }
 
   Future<void> _save() async {
