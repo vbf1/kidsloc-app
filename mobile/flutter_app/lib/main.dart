@@ -213,10 +213,7 @@ class _AuthPageState extends State<AuthPage> {
                         controller: _email,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(labelText: 'E-mail'),
-                        validator: (value) =>
-                            (value == null || !value.contains('@'))
-                                ? 'Informe um e-mail válido.'
-                                : null,
+                        validator: validateAuthEmail,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -272,9 +269,9 @@ class _AuthPageState extends State<AuthPage> {
                         TextButton(
                           onPressed: () async {
                             final email = _email.text.trim();
-                            if (!email.contains('@')) {
-                              setState(() => _message =
-                                  'Informe seu e-mail acima para recuperar a senha.');
+                            final emailError = validateAuthEmail(email);
+                            if (emailError != null) {
+                              setState(() => _message = emailError);
                               return;
                             }
                             try {
