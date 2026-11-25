@@ -142,6 +142,7 @@ export function RentalForm({
     event.preventDefault();
     const deliveryAddress = values.delivery_method === 'delivery' ? formatRentalAddress(addressParts) : '';
     const errors = validateRental({ ...values, delivery_address: deliveryAddress }, isEditing);
+    console.info('[rental-form-validation-debug]', JSON.stringify({ errors, values: { ...values, delivery_address: deliveryAddress } }));
     setFieldErrors(errors);
     if (Object.keys(errors).length) return;
     await onSubmit({
