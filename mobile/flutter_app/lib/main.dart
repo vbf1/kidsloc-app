@@ -124,6 +124,7 @@ class _AuthPageState extends State<AuthPage> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
   bool _creating = false;
   bool _busy = false;
   String? _message;
@@ -133,6 +134,7 @@ class _AuthPageState extends State<AuthPage> {
     _name.dispose();
     _email.dispose();
     _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -226,6 +228,21 @@ class _AuthPageState extends State<AuthPage> {
                           isCreatingAccount: _creating,
                         ),
                       ),
+                      if (_creating) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _confirmPassword,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Confirmar senha',
+                          ),
+                          validator: (value) =>
+                              validateAuthPasswordConfirmation(
+                            value,
+                            _password.text,
+                          ),
+                        ),
+                      ],
                       if (_message != null) ...[
                         const SizedBox(height: 16),
                         Text(_message!,
