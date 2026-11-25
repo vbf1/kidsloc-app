@@ -27,7 +27,7 @@ export default function SettingsPage() {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
-  const [theme, setTheme] = useState<ThemeChoice>(() => currentTheme());
+  const [theme, setTheme] = useState<ThemeChoice>('system');
   const [depositPercentage, setDepositPercentage] = useState('30');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,6 +36,7 @@ export default function SettingsPage() {
   const canManage = role === 'admin' || role === 'owner';
 
   useEffect(() => {
+    const themeTimer = window.setTimeout(() => setTheme(currentTheme()), 0);
     let active = true;
     async function load() {
       if (!supabase) { setError('Banco não configurado.'); setLoading(false); return; }
@@ -66,7 +67,7 @@ export default function SettingsPage() {
       setLoading(false);
     }
     void load();
-    return () => { active = false; };
+    return () => { active = false; window.clearTimeout(themeTimer); };
   }, [router]);
 
   async function saveSettings() {
