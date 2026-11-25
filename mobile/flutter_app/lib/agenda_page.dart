@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/pagination_controls.dart';
+import 'rental_create_page.dart';
 import 'services/company_realtime.dart';
 
 class AgendaPage extends StatefulWidget {
@@ -247,6 +248,15 @@ class _AgendaPageState extends State<AgendaPage> {
                       else
                         ...selectedRentals.skip(_page * 6).take(6).map((r) => Card(
                           child: ListTile(
+                            onTap: () async {
+                              final changed = await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(builder: (_) => RentalCreatePage(
+                                  companyId: widget.companyId,
+                                  rentalId: r['id'].toString(),
+                                )),
+                              );
+                              if (changed == true && mounted) _load(showLoading: false);
+                            },
                             leading: const CircleAvatar(child: Icon(Icons.celebration_outlined)),
                             title: Text('Locação #${r['rental_number']} · ${_customerNames[r['customer_id']?.toString()] ?? 'Cliente'}'),
                             subtitle: Text('${_label(_parse(r['start_date']))} a ${_label(_parse(r['end_date']))}\n${r['start_time']?.toString().substring(0, 5) ?? '—'} às ${r['end_time']?.toString().substring(0, 5) ?? '—'} · ${_status(r['status'].toString())}'),
