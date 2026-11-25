@@ -372,7 +372,7 @@ class _FinancePageState extends State<FinancePage> {
                       const SizedBox(height: 6),
                       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('Financeiro', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF172033))),
+                          Text('Financeiro', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
                           const SizedBox(height: 5),
                           Text('Acompanhe receitas, despesas, recebimentos e saldos pendentes.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
                         ])),
@@ -456,7 +456,7 @@ class _FinancePageState extends State<FinancePage> {
                           child: const Column(children: [
                             Icon(Icons.account_balance_wallet_outlined, size: 32, color: Color(0xFF94A3B8)),
                             SizedBox(height: 10),
-                            Text('Nenhum lançamento financeiro.', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                            Text('Nenhum lançamento financeiro.', style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           ]),
                         )
                       else if (filteredTransactions.isEmpty)
@@ -501,7 +501,7 @@ class _FinancePageState extends State<FinancePage> {
                                     child: Text(income ? 'RECEITA' : 'DESPESA', style: TextStyle(fontSize: 9, letterSpacing: .7, fontWeight: FontWeight.w800, color: income ? const Color(0xFF15803D) : const Color(0xFFBE123C))),
                                   ),
                                   const SizedBox(height: 6),
-                                  Text(row['description']?.toString() ?? 'Lançamento', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF172033))),
+                                  Text(row['description']?.toString() ?? 'Lançamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
                                   const SizedBox(height: 4),
                                   Text('${row['category'] ?? 'Sem categoria'} · Vencimento: ${_displayDate(row['due_date'])}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                                   if (rental != null) ...[
@@ -511,7 +511,7 @@ class _FinancePageState extends State<FinancePage> {
                                 ])),
                                 const SizedBox(width: 8),
                                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                  Text(fmt(amount), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF172033))),
+                                  Text(fmt(amount), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
                                   const SizedBox(height: 5),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
