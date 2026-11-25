@@ -11,6 +11,27 @@ type WorkspaceModalProps = {
   size?: 'md' | 'lg' | 'xl';
 };
 
+// Mais de um WorkspaceModal pode ficar aberto durante a troca entre detalhes
+// e edição. O bloqueio do body precisa permanecer ativo até o último fechar.
+let activeBodyScrollLocks = 0;
+let previousBodyOverflow = '';
+
+function acquireBodyScrollLock() {
+  if (activeBodyScrollLocks === 0) {
+    previousBodyOverflow = document.body.style.overflow;
+  }
+  activeBodyScrollLocks += 1;
+  document.body.style.overflow = 'hidden';
+
+  return () => {
+    activeBodyScrollLocks = Math.max(0, activeBodyScrollLocks - 1);
+    if (activeBodyScrollLocks === 0) {
+      document.body.style.overflow = previousBodyOverflow;
+      previousBodyOverflow = '';
+    }
+  };
+}
+
 export function WorkspaceModal({ open, title, description, onClose, children, size = 'lg' }: WorkspaceModalProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -23,9 +44,8 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
+    const releaseBodyScrollLock = acquireBodyScrollLock();
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    document.body.style.overflow = 'hidden';
     const getFocusable = () => panelRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [];
     const firstFocusable = getFocusable()[0];
     (firstFocusable ?? panelRef.current)?.focus();
@@ -41,9 +61,9 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      releaseBodyScrollLock();
       window.removeEventListener('keydown', onKeyDown);
-      previouslyFocused?.focus();
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, [open]);
 
