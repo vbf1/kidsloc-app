@@ -149,10 +149,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         controller: _deposit,
                         enabled: _canManage,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: appText('Percentual padrão (%)'), border: OutlineInputBorder(), helperText: 'Começa em 30%. Pode ser alterado em cada locação.'),
+                        decoration: InputDecoration(labelText: appText('Percentual padrão (%)'), border: const OutlineInputBorder(), helperText: 'Começa em 30%. Pode ser alterado em cada locação.'),
                       ),
-                      if (!_canManage) const Padding(
-                        padding: EdgeInsets.only(top: 8),
+                      if (!_canManage) Padding(
+                        padding: const EdgeInsets.only(top: 8),
                         child: Text(appText('Somente administradores podem alterar esta configuração.')),
                       ),
                       if (_canManage) Align(
