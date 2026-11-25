@@ -7,7 +7,7 @@ on:
     paths: ['mobile/flutter_app/**', '.github/workflows/flutter-ci.yml']
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-24.04
@@ -73,29 +73,6 @@ jobs:
             adb shell am start -n br.com.kidsloc.app/.MainActivity
             sleep 10
             test -n "$(adb shell pidof br.com.kidsloc.app)" || { adb logcat -d -s AndroidRuntime:E flutter:E; exit 1; }
-      - name: Commit resolved Flutter lockfile
-        working-directory: .
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mobile/flutter_app/pubspec.lock
-          if ! git diff --cached --quiet; then
-            git commit -m "build(flutter): update dependency lockfile"
-            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
-          fi
-      - name: Commit generated Android platform
-        if: github.event_name == 'pull_request'
-        working-directory: .
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mobile/flutter_app/android mobile/flutter_app/.metadata mobile/flutter_app/.gitignore
-          if ! git diff --cached --quiet; then
-            git commit -m "build(android): generate native Flutter scaffold"
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          fi
       - uses: actions/upload-artifact@v4
         with:
           name: kidsloc-android-debug-apk
