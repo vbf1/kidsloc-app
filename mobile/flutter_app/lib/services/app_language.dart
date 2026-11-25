@@ -96,6 +96,17 @@ String appText(String source) {
   };
   if (index < 0) return source;
   const translations = <String, List<String>>{
+    'Agenda e disponibilidade': ['Calendar and availability','Calendario y disponibilidad','Calendrier et disponibilités','Kalender und Verfügbarkeit','Calendario e disponibilità','日历与可用情况','カレンダーと空き状況','일정 및 예약 가능 여부','التقويم والتوافر'],
+    'Contratos': ['Contracts','Contratos','Contrats','Verträge','Contratti','合同','契約','계약','العقود'],
+    'Financeiro': ['Finance','Finanzas','Finance','Finanzen','Finanza','财务','財務','재무','المالية'],
+    'Relatórios avançados': ['Advanced reports','Informes avanzados','Rapports avancés','Erweiterte Berichte','Report avanzati','高级报表','詳細レポート','고급 보고서','تقارير متقدمة'],
+    'Novo orçamento': ['New quote','Nuevo presupuesto','Nouveau devis','Neues Angebot','Nuovo preventivo','新报价','新しい見積もり','새 견적','عرض سعر جديد'],
+    'Brinquedos e serviços': ['Toys and services','Juguetes y servicios','Jeux et services','Spielgeräte und Services','Giochi e servizi','玩具和服务','遊具・サービス','놀이기구 및 서비스','الألعاب والخدمات'],
+    'Início': ['Home','Inicio','Accueil','Startseite','Home','首页','ホーム','홈','الرئيسية'],
+    'Painel da empresa': ['Company dashboard','Panel de la empresa','Tableau de bord de l’entreprise','Unternehmensübersicht','Pannello aziendale','企业面板','会社ダッシュボード','회사 대시보드','لوحة الشركة'],
+    'Próximos eventos': ['Upcoming events','Próximos eventos','Événements à venir','Kommende Veranstaltungen','Prossimi eventi','即将举行的活动','今後のイベント','다가오는 행사','الفعاليات القادمة'],
+    'Ver agenda': ['View calendar','Ver calendario','Voir le calendrier','Kalender ansehen','Vedi calendario','查看日历','カレンダーを見る','일정 보기','عرض التقويم'],
+    'Acesso rápido': ['Quick access','Acceso rápido','Accès rapide','Schnellzugriff','Accesso rapido','快捷访问','クイックアクセス','빠른 실행','وصول سريع'],
     'Configurações do app': ['App settings','Configuración de la app','Paramètres de l’application','App-Einstellungen','Impostazioni dell’app','应用设置','アプリ設定','앱 설정','إعدادات التطبيق'],
     'Idioma': ['Language','Idioma','Langue','Sprache','Lingua','语言','言語','언어','اللغة'],
     'Escolha o idioma de todo o aplicativo.': ['Choose the language for the entire app.','Elige el idioma de toda la aplicación.','Choisissez la langue de toute l’application.','Wählen Sie die Sprache für die gesamte App.','Scegli la lingua per tutta l’app.','选择整个应用的语言。','アプリ全体の言語を選択します。','앱 전체에서 사용할 언어를 선택하세요.','اختر لغة التطبيق بالكامل.'],
