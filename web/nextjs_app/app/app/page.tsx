@@ -106,7 +106,7 @@ export default function AppHomePage() {
       // Individual modules keep their normal on-demand fallback if preload fails.
     });
   }, [companyId, workspace]);
-  useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_quotes', 'financial_transactions'], () => setRealtimeRefresh((value) => value + 1));
+  useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_quotes', 'financial_transactions', 'payments'], () => setRealtimeRefresh((value) => value + 1));
 
   useEffect(() => {
     if (!companyId || !supabase) return;
@@ -117,24 +117,35 @@ export default function AppHomePage() {
       try {
         const today = localDateOffset(0);
         const nextWeek = localDateOffset(7);
-        const [todayResult, upcomingResult, recentResult, quotesResult, financeResult] = await Promise.all([
+        const [todayResult, upcomingResult, recentResult, quotesResult, financeResult, paymentsResult] = await Promise.all([
           supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('start_date', today).neq('status', 'cancelled'),
           supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId).gte('start_date', today).lte('start_date', nextWeek).neq('status', 'cancelled'),
           supabase!.from('rentals').select('id,rental_number,start_date,status,total_amount')
             .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled').order('start_date', { ascending: true }).limit(5),
           supabase!.from('rental_quotes').select('id', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'sent']),
           workspace?.role === 'admin'
-            ? supabase!.from('financial_transactions').select('amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            ? supabase!.from('financial_transactions').select('id,amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            : Promise.resolve({ data: [], error: null }),
+          workspace?.role === 'admin'
+            ? supabase!.from('payments').select('transaction_id,amount').eq('company_id', companyId).is('reversed_at', null)
             : Promise.resolve({ data: [], error: null }),
         ]);
         if (!active) return;
-        if (todayResult.error || upcomingResult.error || recentResult.error || quotesResult.error || financeResult.error) {
+        if (todayResult.error || upcomingResult.error || recentResult.error || quotesResult.error || financeResult.error || paymentsResult.error) {
           setStatsError('Não foi possível atualizar o painel agora. Tente novamente.');
           return;
         }
         const financeRows = financeResult.data ?? [];
+        const paymentTotals = new Map<string, number>();
+        for (const payment of paymentsResult.data ?? []) {
+          if (!payment.transaction_id) continue;
+          paymentTotals.set(payment.transaction_id, (paymentTotals.get(payment.transaction_id) ?? 0) + Number(payment.amount || 0));
+        }
         const receivables = financeRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-        const pendingReceivables = financeRows.filter(row => row.status === 'pending').reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const pendingReceivables = financeRows.reduce((sum, row) => {
+          const paid = Math.min(Number(row.amount || 0), paymentTotals.get(row.id) ?? (row.status === 'paid' ? Number(row.amount || 0) : 0));
+          return sum + Math.max(0, Number(row.amount || 0) - paid);
+        }, 0);
         const nextStats = {
           rentalsToday: todayResult.count ?? 0,
           rentalsNext7Days: upcomingResult.count ?? 0,
