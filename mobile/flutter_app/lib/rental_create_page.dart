@@ -45,6 +45,10 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   final Set<String> _responsibles = {};
   final List<Map<String, dynamic>> _items = [];
   List<Map<String, dynamic>> _events = [];
+  Map<String, dynamic>? _paymentSummary;
+  bool _paymentSummaryLoading = false;
+  bool _paymentActionLoading = false;
+  String? _paymentSummaryError;
   CompanyRealtimeSubscription? _realtime;
 
   @override
@@ -194,8 +198,54 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     } catch (_) {
       // Histórico indisponível para este perfil; mantém o formulário utilizável.
     }
+    await _loadRentalPaymentSummary();
   }
 
+  bool get _canManageRentalPayments {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    return userId != null && _members.any((member) => member['user_id']?.toString() == userId && ['owner', 'admin'].contains(member['role']?.toString()));
+  }
+
+  Future<void> _loadRentalPaymentSummary() async {
+    if (widget.rentalId == null || !_canManageRentalPayments) return;
+    setState(() { _paymentSummaryLoading = true; _paymentSummaryError = null; });
+    try {
+      final data = await Supabase.instance.client.rpc('get_rental_payment_summary', params: {
+        'p_company_id': widget.companyId, 'p_rental_id': widget.rentalId,
+      });
+      if (!mounted) return;
+      setState(() => _paymentSummary = Map<String, dynamic>.from(data as Map));
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _paymentSummaryError = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _paymentSummaryError = 'Não foi possível consultar os pagamentos.');
+    } finally {
+      if (mounted) setState(() => _paymentSummaryLoading = false);
+    }
+  }
+
+  Future<void> _registerRentalPaymentStage(String stage) async {
+    if (widget.rentalId == null || _paymentActionLoading) return;
+    setState(() { _paymentActionLoading = true; _paymentSummaryError = null; });
+    try {
+      await Supabase.instance.client.rpc('register_rental_payment_stage', params: {
+        'p_company_id': widget.companyId,
+        'p_rental_id': widget.rentalId,
+        'p_stage': stage,
+        'p_payment_method': null,
+        'p_paid_at': _date(DateTime.now()),
+      });
+      await _loadRentalPaymentSummary();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(stage == 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.')));
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _paymentSummaryError = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _paymentSummaryError = 'Não foi possível registrar o recebimento.');
+    } finally {
+      if (mounted) setState(() => _paymentActionLoading = false);
+    }
+  }
   void _restoreAddress(String? value) {
     final raw = (value ?? '').trim();
     if (raw.isEmpty) return;
@@ -680,6 +730,43 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                     ]),
                   ),
                 ),
+                const SizedBox(height: 16),
+                if (_canManageRentalPayments) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    color: const Color(0xFFF0FDF4),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('Pagamentos da locação', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        const Text('Registre o sinal ou quite o saldo com um toque, sem digitar valores.', style: TextStyle(fontSize: 12)),
+                        const SizedBox(height: 10),
+                        if (_paymentSummaryLoading) const LinearProgressIndicator()
+                        else if (_paymentSummary != null) ...[
+                          Text('Já recebido: R\$ ${((_paymentSummary!['paid_total'] as num?)?.toDouble() ?? 0).toStringAsFixed(2).replaceAll('.', ',')}'),
+                          Text('Sinal pendente: R\$ ${((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0).toStringAsFixed(2).replaceAll('.', ',')}'),
+                          Text('Saldo para quitar: R\$ ${((_paymentSummary!['balance_remaining'] as num?)?.toDouble() ?? 0).toStringAsFixed(2).replaceAll('.', ',')}'),
+                        ] else Text(_paymentSummaryError ?? 'Carregando pagamentos...', style: const TextStyle(fontSize: 12)),
+                        if (_paymentSummaryError != null) Text(_paymentSummaryError!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
+                        const SizedBox(height: 10),
+                        Wrap(spacing: 8, runSpacing: 8, children: [
+                          OutlinedButton.icon(
+                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0) <= 0 || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('deposit'),
+                            icon: const Icon(Icons.payments_outlined),
+                            label: const Text('Pagou sinal'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['balance_remaining'] as num?)?.toDouble() ?? 0) <= 0 || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('balance'),
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: const Text('Quitou saldo restante'),
+                          ),
+                        ]),
+                        if (_paymentActionLoading) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
+                      ]),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Text('Histórico da locação', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
