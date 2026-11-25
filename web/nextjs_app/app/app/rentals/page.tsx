@@ -292,14 +292,8 @@ export default function RentalsPage() {
   }
 
   useEffect(() => {
-    if (!viewingRental || !companyId || !supabase || role === 'staff') {
-      setRentalPaymentSummary(null);
-      setRentalPaymentError('');
-      return;
-    }
+    if (!viewingRental || !companyId || !supabase || role === 'staff') return;
     let active = true;
-    setRentalPaymentLoading(true);
-    setRentalPaymentError('');
     supabase.rpc('get_rental_payment_summary', {
       p_company_id: companyId, p_rental_id: viewingRental.id,
     }).then(({ data, error }) => {
@@ -401,7 +395,7 @@ export default function RentalsPage() {
             customers={customers} products={products} members={members} currentUserId={currentUserId}
             onCancel={closeForm} onSubmit={saveRental} />
         </WorkspaceModal>
-        <WorkspaceModal open={Boolean(viewingRental)} title={viewingRental ? 'Locação #' + viewingRental.rental_number : 'Detalhes da locação'} description="Resumo completo do registro selecionado." onClose={() => setViewingRental(null)} size="lg">
+        <WorkspaceModal open={Boolean(viewingRental)} title={viewingRental ? 'Locação #' + viewingRental.rental_number : 'Detalhes da locação'} description="Resumo completo do registro selecionado." onClose={() => { setViewingRental(null); setRentalPaymentSummary(null); setRentalPaymentError(''); setRentalPaymentLoading(false); }} size="lg">
           {viewingRental && <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-purple-50 p-4">
               <div><p className="text-xs font-semibold uppercase tracking-wide text-purple-600">Cliente</p><h3 className="mt-1 text-xl font-bold text-gray-900">{viewingRental.customer_name}</h3></div>
@@ -476,7 +470,7 @@ export default function RentalsPage() {
         </form>
         {listError && <div className="mb-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><p role="alert">{listError}</p><button type="button" onClick={() => setRefreshIndex((current) => current + 1)} className="font-semibold underline">Tentar novamente</button></div>}
         <RentalList rentals={visibleRentals} loading={listLoading} totalCount={filteredRentals.length} page={page} pageSize={pageSize}
-          onPageChange={(next) => setPage(Math.max(0, Math.min(next, pageCount - 1)))} onEdit={openEditRental} onView={setViewingRental} />
+          onPageChange={(next) => setPage(Math.max(0, Math.min(next, pageCount - 1)))} onEdit={openEditRental} onView={(rental) => { setRentalPaymentSummary(null); setRentalPaymentError(''); setRentalPaymentLoading(Boolean(companyId && supabase && role !== 'staff')); setViewingRental(rental); }} />
         {!listLoading && filteredRentals.length > 0 && <p className="mt-3 text-right text-xs text-gray-400">Exibindo somente locações às quais sua conta tem acesso.</p>}
       </section>
     </AppShell>
