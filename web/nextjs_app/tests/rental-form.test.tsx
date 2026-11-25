@@ -65,7 +65,7 @@ describe('RentalForm', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       delivery_method: 'delivery',
-      delivery_address: 'Rua das Flores',
+      delivery_address: 'Rua: Rua das Flores',
       total_amount: '450,00',
       items: [
         { product_id: 'toy-1', quantity: '1', unit_price: '0,00' },
