@@ -76,6 +76,9 @@ begin
     select coalesce(sum(p.amount), 0) into v_paid_total
     from public.payments p where p.transaction_id = v_transaction.id;
     v_total_amount := v_transaction.amount;
+    if v_paid_total = 0 and v_transaction.status = 'paid' then
+      v_paid_total := v_transaction.amount;
+    end if;
   else
     v_total_amount := v_rental.total_amount;
   end if;
@@ -116,7 +119,7 @@ begin
   if not public.has_company_role(p_company_id, array['owner','admin']) then
     raise exception 'Somente proprietários e administradores podem registrar recebimentos.';
   end if;
-  if p_stage not in ('deposit','balance') then raise exception 'Etapa de pagamento inválida.'; end if;
+  if p_stage is null or p_stage not in ('deposit','balance') then raise exception 'Etapa de pagamento inválida.'; end if;
 
   select r.* into v_rental from public.rentals r
   where r.id = p_rental_id and r.company_id = p_company_id
@@ -134,6 +137,9 @@ begin
 
   select coalesce(sum(p.amount), 0) into v_paid_total
   from public.payments p where p.transaction_id = v_transaction.id;
+  if v_paid_total = 0 and v_transaction.status = 'paid' then
+    v_paid_total := v_transaction.amount;
+  end if;
 
   if p_stage = 'deposit' then
     v_target := least(v_rental.deposit_amount, v_transaction.amount);
