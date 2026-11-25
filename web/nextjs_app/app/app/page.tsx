@@ -108,6 +108,21 @@ export default function AppHomePage() {
   }, [companyId, workspace]);
   useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_quotes', 'financial_transactions', 'payments'], () => setRealtimeRefresh((value) => value + 1));
 
+  // Listen directly to finance changes so the operation summary refreshes even
+  // when the user stays in the same tab while registering or reversing a payment.
+  useEffect(() => {
+    if (!companyId || !supabase || workspace?.role !== 'admin') return;
+    const channel = supabase.channel(`dashboard-finance-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `company_id=eq.${companyId}` }, () => {
+        setRealtimeRefresh((value) => value + 1);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'financial_transactions', filter: `company_id=eq.${companyId}` }, () => {
+        setRealtimeRefresh((value) => value + 1);
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [companyId, workspace?.role]);
+
   useEffect(() => {
     if (!companyId || !supabase) return;
     let active = true;
@@ -167,7 +182,18 @@ export default function AppHomePage() {
       }
     }
     void loadDashboard();
-    return () => { active = false; };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void loadDashboard();
+    };
+    window.addEventListener('focus', refreshWhenVisible);
+    window.addEventListener('pageshow', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshWhenVisible);
+      window.removeEventListener('pageshow', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, [companyId, realtimeRefresh, workspace?.role]);
 
   async function signOut() {
