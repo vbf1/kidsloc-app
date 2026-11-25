@@ -201,7 +201,7 @@ class _FinancePageState extends State<FinancePage> {
       final summary = Map<String, dynamic>.from(rawSummary as Map);
       final applyDefault = stage == 'deposit' && summary['legacy_deposit_missing'] == true;
       final percentage = (summary['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
-      final total = _money(row['amount']);
+      final total = _money(summary['total_amount'] ?? row['amount']);
       final target = applyDefault ? (total * percentage / 100) : _money(summary['deposit_amount']);
       final paid = _money(summary['paid_total']);
       final amount = stage == 'deposit'
