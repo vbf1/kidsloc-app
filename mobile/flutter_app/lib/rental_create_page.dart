@@ -236,61 +236,73 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     return digits.length >= 12 && digits.length <= 13 ? digits : null;
   }
 
-  Future<void> _offerWhatsAppConfirmation() async {
+  Future<void> _openWhatsAppConfirmation() async {
     final matches = _customers.where((row) => row['id'].toString() == _customerId);
     final customer = matches.isEmpty ? null : matches.first;
     final phone = _normalizedWhatsAppPhone(customer?['phone']?.toString());
     if (customer == null || phone == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Locação criada. Cadastre um telefone válido no cliente para enviar a confirmação pelo WhatsApp.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cadastre um telefone válido no cliente para preparar a confirmação pelo WhatsApp.')));
       return;
     }
-    final itemLines = _items.map((item) =>
-      '- ${item['name']} (quantidade: ${item['quantity']})').join('\n');
+    final itemLines = _items.map((item) => '• ${item['name']} (quantidade: ${item['quantity']})').join('\n');
     final address = _composeAddress();
-    final message = [
-      'Olá, ${customer['name']}! Tudo bem?',
-      'Aqui é da $_companyName. Seu agendamento foi registrado com os seguintes dados:',
-      '',
-      'Data: ${_dateBr(_startDate)}${_date(_startDate) == _date(_endDate) ? '' : ' até ${_dateBr(_endDate)}'}',
-      'Horário: ${_startTime.text.trim()} às ${_endTime.text.trim()}',
-      'Itens:',
-      itemLines,
-      'Entrega: ${_delivery == 'delivery' ? 'no endereço' : 'retirada pelo cliente'}',
-      if (_delivery == 'delivery' && address.isNotEmpty) 'Endereço: $address',
-      'Valor total: R\$ ${double.parse(_total.text.trim().replaceAll(',', '.')).toStringAsFixed(2).replaceAll('.', ',')}',
-      '',
-      'Por favor, confira se está tudo correto. Obrigado pela preferência!',
+    final amount = double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0;
+    final initialMessage = [
+      'Olá, ${customer['name']}! Tudo bem? 😊', '',
+      'Aqui é da *$_companyName*. Seu agendamento está registrado! 🎉', '',
+      '📅 *Data:* ${_dateBr(_startDate)}${_date(_startDate) == _date(_endDate) ? '' : ' até ${_dateBr(_endDate)}'}',
+      '🕒 *Horário:* ${_startTime.text.trim()} às ${_endTime.text.trim()}', '',
+      '🎈 *Itens da locação:*', itemLines, '',
+      '🚚 *Entrega:* ${_delivery == 'delivery' ? 'no endereço' : 'retirada pelo cliente'}',
+      if (_delivery == 'delivery' && address.isNotEmpty) '📍 *Endereço:* $address',
+      '💰 *Valor total:* R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}', '',
+      'Por favor, confira se está tudo certinho. Se precisar de algum ajuste, é só nos avisar!',
+      'Agradecemos pela preferência! 💜',
     ].join('\n');
-    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Locação criada com sucesso'),
-        content: const Text('Deseja abrir o WhatsApp com a mensagem de confirmação pronta para revisar e enviar ao cliente?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Agora não'),
+    final controller = TextEditingController(text: initialMessage);
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Confirmar pelo WhatsApp'),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text('Mensagem para ${customer['name']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text('Revise e personalize o texto antes de abrir a conversa.', style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
+                  child: TextField(controller: controller, minLines: 10, maxLines: 16, decoration: const InputDecoration(border: InputBorder.none, hintText: 'Edite a mensagem...')),
+                ),
+              ]),
+            ),
           ),
-          FilledButton.icon(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-              if (!launched && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Não foi possível abrir o WhatsApp neste dispositivo.')),
-                );
-              }
-            },
-            icon: const Icon(Icons.chat),
-            label: const Text('Abrir WhatsApp'),
-          ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancelar')),
+            FilledButton.icon(
+              onPressed: () async {
+                final message = controller.text.trim();
+                if (message.isEmpty) return;
+                Navigator.of(dialogContext).pop();
+                final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+                final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                if (!launched && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o WhatsApp neste dispositivo.')));
+                }
+              },
+              icon: const Icon(Icons.send), label: const Text('Abrir WhatsApp'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   String _date(DateTime d) =>
@@ -406,8 +418,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       }
       if (!mounted) return;
       if (!widget.isEditing) {
-        await _offerWhatsAppConfirmation();
-        if (!mounted) return;
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Locação atualizada com sucesso.')),
@@ -587,6 +598,23 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
               ),
               if (widget.isEditing) ...[
                 const SizedBox(height: 24),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Confirmação com o cliente', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text('Prepare a mensagem quando quiser. Você poderá editar o texto antes de abrir o WhatsApp.', style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 10),
+                      SizedBox(width: double.infinity, child: OutlinedButton.icon(
+                        onPressed: _saving ? null : _openWhatsAppConfirmation,
+                        icon: const Icon(Icons.chat),
+                        label: const Text('Preparar confirmação no WhatsApp'),
+                      )),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text('Histórico da locação', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 if (_events.isEmpty)
