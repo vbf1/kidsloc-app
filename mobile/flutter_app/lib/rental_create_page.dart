@@ -780,7 +780,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                         const SizedBox(height: 10),
                         Wrap(spacing: 8, runSpacing: 8, children: [
                           OutlinedButton.icon(
-                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0) <= 0 || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('deposit'),
+                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['legacy_deposit_missing'] == true) ? false : (((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0) <= 0)) || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('deposit'),
                             icon: const Icon(Icons.payments_outlined),
                             label: const Text('Pagou sinal'),
                           ),
