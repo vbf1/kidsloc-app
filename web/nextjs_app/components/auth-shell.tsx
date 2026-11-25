@@ -2,6 +2,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+const logoSrc = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/kidsloc-logo.jpg`;
+
 export function AuthShell({ title, description, children }: {
   title: string;
   description: string;
@@ -11,7 +13,7 @@ export function AuthShell({ title, description, children }: {
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-3xl border border-purple-100 bg-white p-7 shadow-sm sm:p-9">
         <Link href="/" className="inline-flex items-center gap-3">
-          <Image src="/kidsloc-logo.jpg" alt="KidsLoc App — Locação de Brinquedos Mais Fácil e Organizada" width={112} height={112} priority className="size-20 rounded-2xl object-contain" />
+          <Image src={logoSrc} alt="KidsLoc App — Locação de Brinquedos Mais Fácil e Organizada" width={112} height={112} priority className="size-20 rounded-2xl object-contain" />
         </Link>
         <h1 className="mt-8 text-2xl font-bold">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-gray-500">{description}</p>
