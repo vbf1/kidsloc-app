@@ -166,7 +166,7 @@ export function validateRental(values: RentalFormValues, isEditing = false): Ren
   if (parseRentalPrice(values.total_amount) === null) errors.total_amount = 'Informe um valor total válido.';
   const totalAmount = parseRentalPrice(values.total_amount);
   const depositAmount = parseRentalPrice(values.deposit_amount);
-  const depositPercentage = Number(values.deposit_percentage.replace(',', '.'));
+  const depositPercentage = Number(String(values.deposit_percentage ?? '30').replace(',', '.'));
   if (!Number.isFinite(depositPercentage) || depositPercentage < 0 || depositPercentage > 100) errors.deposit_percentage = 'Informe um percentual entre 0 e 100.';
   if (depositAmount === null) errors.deposit_amount = 'Informe um valor de sinal válido.';
   else if (totalAmount !== null && depositAmount > totalAmount) errors.deposit_amount = 'O sinal não pode ser maior que o valor total da locação.';
