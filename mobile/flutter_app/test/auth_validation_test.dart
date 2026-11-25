@@ -37,16 +37,28 @@ void main() {
 
   group('validateAuthPasswordConfirmation', () {
     test('requires a confirmation value', () {
-      expect(validateAuthPasswordConfirmation(null, '12345678'), 'Confirme sua senha.');
-      expect(validateAuthPasswordConfirmation('', '12345678'), 'Confirme sua senha.');
+      expect(
+        validateAuthPasswordConfirmation(null, '12345678'),
+        'Confirme sua senha.',
+      );
+      expect(
+        validateAuthPasswordConfirmation('', '12345678'),
+        'Confirme sua senha.',
+      );
     });
 
     test('rejects a confirmation that does not match', () {
-      expect(validateAuthPasswordConfirmation('87654321', '12345678'), 'As senhas não coincidem.');
+      expect(
+        validateAuthPasswordConfirmation('87654321', '12345678'),
+        'As senhas não coincidem.',
+      );
     });
 
     test('accepts a matching confirmation', () {
-      expect(validateAuthPasswordConfirmation('12345678', '12345678'), isNull);
+      expect(
+        validateAuthPasswordConfirmation('12345678', '12345678'),
+        isNull,
+      );
     });
   });
 }
