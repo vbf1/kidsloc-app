@@ -88,7 +88,7 @@ export type RentalFormValues = {
   status: RentalStatus; delivery_method: RentalDeliveryMethod; delivery_address: string;
   total_amount: string; deposit_amount: string; responsible_user_ids: string[]; items: RentalItemValue[];
 };
-export type RentalFieldErrors = Partial<Record<'customer_id' | 'start_date' | 'end_date' | 'start_time' | 'end_time' | 'delivery_address' | 'total_amount' | 'items', string>>;
+export type RentalFieldErrors = Partial<Record<'customer_id' | 'start_date' | 'end_date' | 'start_time' | 'end_time' | 'delivery_address' | 'total_amount' | 'deposit_amount' | 'items', string>>;
 export type RentalRecord = {
   id: string; company_id: string; rental_number: number; customer_id: string | null;
   start_date: string; end_date: string; start_time: string | null; end_time: string | null;
