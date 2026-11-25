@@ -79,7 +79,19 @@ export function RentalForm({
     setValues((current) => {
       const total = parseRentalPrice(current.total_amount);
       const amount = parseRentalPrice(value);
-      const percentage = total && amount !== null ? moneyInput(Math.min(100, Math.max(0, amount / total * 100))).replace('R
+      const percentage = total !== null && total > 0 && amount !== null
+        ? ((Math.min(total, amount) / total) * 100).toFixed(2).replace('.', ',')
+        : current.deposit_percentage;
+      return { ...current, deposit_amount: value, deposit_percentage: percentage };
+    });
+    setFieldErrors((current) => ({ ...current, deposit_amount: undefined, deposit_percentage: undefined }));
+  }
+  function updateItemsAndTotal(nextItems: RentalFormValues['items'], nextTotal: string) {
+    setValues((current) => ({
+      ...current, items: nextItems, total_amount: nextTotal,
+      deposit_amount: amountFromPercentage(nextTotal, current.deposit_percentage),
+    }));
+  }
   function addItem() {
     const product = products.find((item) => item.id === productToAdd);
     if (!product || values.items.some((item) => item.product_id === product.id)) return;
