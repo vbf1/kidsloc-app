@@ -214,6 +214,16 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     return userId != null && _members.any((member) => member['user_id']?.toString() == userId && ['owner', 'admin'].contains(member['role']?.toString()));
   }
 
+  double get _legacyDepositRemaining {
+    final summary = _paymentSummary;
+    if (summary == null) return 0;
+    final total = (summary['total_amount'] as num?)?.toDouble() ?? 0;
+    final percentage = (summary['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
+    final paid = (summary['paid_total'] as num?)?.toDouble() ?? 0;
+    final target = (total * percentage / 100 * 100).round() / 100;
+    return (target - paid).clamp(0, double.infinity).toDouble();
+  }
+
   Future<void> _loadRentalPaymentSummary() async {
     if (widget.rentalId == null || !_canManageRentalPayments) return;
     setState(() { _paymentSummaryLoading = true; _paymentSummaryError = null; });
@@ -238,7 +248,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     if (applyDefault) {
       final percentage = (_paymentSummary?['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
       final total = (_paymentSummary?['total_amount'] as num?)?.toDouble() ?? (double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0);
-      final amount = (total * percentage / 100);
+      final amount = _legacyDepositRemaining;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -780,7 +790,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                         const SizedBox(height: 10),
                         Wrap(spacing: 8, runSpacing: 8, children: [
                           OutlinedButton.icon(
-                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['legacy_deposit_missing'] == true) ? false : (((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0) <= 0)) || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('deposit'),
+                            onPressed: _paymentActionLoading || _paymentSummaryLoading || _paymentSummary == null || ((_paymentSummary!['legacy_deposit_missing'] == true) ? _legacyDepositRemaining <= 0 : (((_paymentSummary!['deposit_remaining'] as num?)?.toDouble() ?? 0) <= 0)) || _status == 'cancelled' ? null : () => _registerRentalPaymentStage('deposit'),
                             icon: const Icon(Icons.payments_outlined),
                             label: const Text('Pagou sinal'),
                           ),
