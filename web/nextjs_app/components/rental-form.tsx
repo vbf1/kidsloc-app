@@ -38,6 +38,12 @@ function TimeField({ value, disabled, onChange }: { value: string; disabled: boo
 function moneyInput(value: number): string {
   return value.toFixed(2).replace('.', ',');
 }
+function amountFromPercentage(totalValue: string, percentageValue: string): string {
+  const total = parseRentalPrice(totalValue);
+  const percentage = Number(percentageValue.replace(',', '.'));
+  if (total === null || !Number.isFinite(percentage) || percentage < 0 || percentage > 100) return '0,00';
+  return moneyInput(Math.round((total * percentage / 100 + Number.EPSILON) * 100) / 100);
+}
 export function RentalForm({
   initialValues = EMPTY_RENTAL, isEditing, saving, error, customers, products, members,
   currentUserId, onCancel, onSubmit,
@@ -61,6 +67,31 @@ export function RentalForm({
     setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
   }
+  function updateTotalAmount(value: string) {
+    setValues((current) => ({ ...current, total_amount: value, deposit_amount: amountFromPercentage(value, current.deposit_percentage) }));
+    setFieldErrors((current) => ({ ...current, total_amount: undefined, deposit_amount: undefined }));
+  }
+  function updateDepositPercentage(value: string) {
+    setValues((current) => ({ ...current, deposit_percentage: value, deposit_amount: amountFromPercentage(current.total_amount, value) }));
+    setFieldErrors((current) => ({ ...current, deposit_percentage: undefined, deposit_amount: undefined }));
+  }
+  function updateDepositAmount(value: string) {
+    setValues((current) => {
+      const total = parseRentalPrice(current.total_amount);
+      const amount = parseRentalPrice(value);
+      const percentage = total !== null && total > 0 && amount !== null
+        ? ((Math.min(total, amount) / total) * 100).toFixed(2).replace('.', ',')
+        : current.deposit_percentage;
+      return { ...current, deposit_amount: value, deposit_percentage: percentage };
+    });
+    setFieldErrors((current) => ({ ...current, deposit_amount: undefined, deposit_percentage: undefined }));
+  }
+  function updateItemsAndTotal(nextItems: RentalFormValues['items'], nextTotal: string) {
+    setValues((current) => ({
+      ...current, items: nextItems, total_amount: nextTotal,
+      deposit_amount: amountFromPercentage(nextTotal, current.deposit_percentage),
+    }));
+  }
   function addItem() {
     const product = products.find((item) => item.id === productToAdd);
     if (!product || values.items.some((item) => item.product_id === product.id)) return;
@@ -68,18 +99,18 @@ export function RentalForm({
       product_id: product.id, quantity: '1',
       unit_price: pricingMode === 'combo' ? '0,00' : moneyInput(defaultRentalUnitPrice(product, values.start_date, values.end_date)),
     }];
-    setValues((current) => ({ ...current, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
+    updateItemsAndTotal(nextItems, pricingMode === 'combo' ? values.total_amount : moneyInput(rentalItemsTotal(nextItems)));
     setFieldErrors((current) => ({ ...current, items: undefined }));
     setProductToAdd('');
   }
   function updateItem(index: number, field: 'quantity' | 'unit_price', value: string) {
     const nextItems = values.items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item);
-    setValues((current) => ({ ...current, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
+    updateItemsAndTotal(nextItems, pricingMode === 'combo' ? values.total_amount : moneyInput(rentalItemsTotal(nextItems)));
     setFieldErrors((current) => ({ ...current, items: undefined }));
   }
   function removeItem(index: number) {
     const nextItems = values.items.filter((_, itemIndex) => itemIndex !== index);
-    setValues((current) => ({ ...current, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
+    updateItemsAndTotal(nextItems, pricingMode === 'combo' ? values.total_amount : moneyInput(rentalItemsTotal(nextItems)));
   }
   function updateDate(field: 'start_date' | 'end_date', value: string) {
     const next = { ...values, [field]: value };
@@ -88,7 +119,8 @@ export function RentalForm({
       if (pricingMode === 'combo' || !product || product.item_type !== 'toy') return item;
       return { ...item, unit_price: moneyInput(defaultRentalUnitPrice(product, next.start_date, next.end_date)) };
     });
-    setValues((current) => ({ ...current, [field]: value, items: nextItems, total_amount: pricingMode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
+    updateItemsAndTotal(nextItems, pricingMode === 'combo' ? values.total_amount : moneyInput(rentalItemsTotal(nextItems)));
+    setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined, end_date: undefined }));
   }
   function changePricingMode(mode: 'individual' | 'combo') {
@@ -98,7 +130,7 @@ export function RentalForm({
       const product = products.find((candidate) => candidate.id === item.product_id);
       return product ? { ...item, unit_price: moneyInput(defaultRentalUnitPrice(product, values.start_date, values.end_date)) } : item;
     });
-    setValues((current) => ({ ...current, items: nextItems, total_amount: mode === 'combo' ? current.total_amount : moneyInput(rentalItemsTotal(nextItems)) }));
+    updateItemsAndTotal(nextItems, mode === 'combo' ? values.total_amount : moneyInput(rentalItemsTotal(nextItems)));
   }
   function toggleResponsible(userId: string, checked: boolean) {
     const next = checked
@@ -272,10 +304,26 @@ export function RentalForm({
       <section aria-labelledby="rental-total-heading">
         <h3 id="rental-total-heading" className="mb-3 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Valor</h3>
         <label className={labelClass}>{pricingMode === 'combo' ? 'Valor total do combo (R$) *' : 'Valor total da locação (R$) *' }
-          <input inputMode="decimal" value={values.total_amount} onChange={(event) => updateField('total_amount', event.target.value)} className={inputClass} disabled={saving} />
+          <input inputMode="decimal" value={values.total_amount} onChange={(event) => updateTotalAmount(event.target.value)} className={inputClass} disabled={saving} />
           {pricingMode === 'combo' && <span className="mt-1 block text-xs font-normal text-gray-500">Informe o preço combinado para todos os equipamentos do pacote.</span>}
           {fieldErrors.total_amount && <FieldFeedback id="rental-total-error">{fieldErrors.total_amount}</FieldFeedback>}
         </label>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className={labelClass}>Percentual do sinal (%)
+            <input inputMode="decimal" value={values.deposit_percentage} onChange={(event) => updateDepositPercentage(event.target.value)} className={inputClass} disabled={saving} placeholder="30" />
+            <span className="mt-1 block text-xs font-normal text-gray-500">Começa em 30%, mas você pode ajustar para cada locação.</span>
+            {fieldErrors.deposit_percentage && <FieldFeedback id="rental-deposit-percentage-error">{fieldErrors.deposit_percentage}</FieldFeedback>}
+          </label>
+          <label className={labelClass}>Valor do sinal (R$)
+            <input inputMode="decimal" value={values.deposit_amount} onChange={(event) => updateDepositAmount(event.target.value)} className={inputClass} disabled={saving} placeholder="0,00" />
+            {fieldErrors.deposit_amount && <FieldFeedback id="rental-deposit-error">{fieldErrors.deposit_amount}</FieldFeedback>}
+          </label>
+          <div className="rounded-xl bg-purple-50 p-3 text-sm">
+            <span className="block text-xs font-medium text-purple-700">Saldo restante</span>
+            <strong className="mt-1 block text-lg text-gray-900">{formatRentalPrice(Math.max(0, (parseRentalPrice(values.total_amount) ?? 0) - (parseRentalPrice(values.deposit_amount) ?? 0)))}</strong>
+            <span className="text-xs text-gray-500">Valor total menos o sinal informado.</span>
+          </div>
+        </div>
       </section>
       <section aria-labelledby="rental-responsibles-heading">
         <h3 id="rental-responsibles-heading" className="mb-2 text-sm font-bold uppercase tracking-wide text-[#6840bd]">Funcionários responsáveis</h3>

@@ -16,7 +16,7 @@ const machine: RentalProduct = {
 const valid: RentalFormValues = {
   customer_id: 'customer-1', start_date: '2026-11-20', end_date: '2026-11-21',
   start_time: '09:00', end_time: '18:00', status: 'pending',
-  delivery_method: 'customer_pickup', delivery_address: '', total_amount: '200,00',
+  delivery_method: 'customer_pickup', delivery_address: '', total_amount: '200,00', deposit_amount: '50,00', deposit_percentage: '25',
   responsible_user_ids: ['member-1'], items: [{ product_id: 'toy-1', quantity: '1', unit_price: '200,00' }],
 };
 describe('rental price and date calculations', () => {
@@ -49,6 +49,16 @@ describe('rental validation', () => {
     expect(errors.start_date).toBeTruthy();
     expect(errors.items).toBeTruthy();
     expect(errors.total_amount).toBeTruthy();
+  });
+  it('validates the paid deposit against the rental total', () => {
+    expect(validateRental({ ...valid, deposit_amount: 'abc' }).deposit_amount).toBeTruthy();
+    expect(validateRental({ ...valid, deposit_amount: '200,01' }).deposit_amount).toBeTruthy();
+    expect(validateRental({ ...valid, deposit_amount: '200,00' }).deposit_amount).toBeUndefined();
+  });
+  it('accepts a custom deposit percentage and rejects values outside 0 to 100', () => {
+    expect(validateRental({ ...valid, deposit_percentage: '45' })).toEqual({});
+    expect(validateRental({ ...valid, deposit_percentage: '-1' }).deposit_percentage).toBeTruthy();
+    expect(validateRental({ ...valid, deposit_percentage: '101' }).deposit_percentage).toBeTruthy();
   });
   it('rejects reversed dates and invalid time ranges', () => {
     expect(validateRental({ ...valid, end_date: '2026-11-19' }).end_date).toBeTruthy();
