@@ -8,6 +8,67 @@ export type RentalProduct = {
 export type RentalCustomer = { id: string; name: string; phone: string | null };
 export type RentalMember = { user_id: string; full_name: string; role: string };
 export type RentalItemValue = { product_id: string; quantity: string; unit_price: string };
+export type RentalAddressParts = {
+  postal_code: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  reference: string;
+};
+export const EMPTY_RENTAL_ADDRESS: RentalAddressParts = {
+  postal_code: '', street: '', number: '', complement: '',
+  neighborhood: '', city: '', state: '', reference: '',
+};
+export function parseRentalAddress(value: string | null | undefined): RentalAddressParts {
+  // Older rentals stored the complete address in one text field. Keep it intact
+  // in the street field so editing never discards legacy information.
+  return { ...EMPTY_RENTAL_ADDRESS, street: value?.trim() ?? '' };
+}
+export function formatRentalAddress(parts: RentalAddressParts): string {
+  return [
+    parts.street.trim(),
+    parts.number.trim(),
+    parts.complement.trim() ? 'Complemento: ' + parts.complement.trim() : '',
+    parts.neighborhood.trim(),
+    [parts.city.trim(), parts.state.trim()].filter(Boolean).join(' - '),
+    parts.postal_code.trim() ? 'CEP: ' + parts.postal_code.trim() : '',
+    parts.reference.trim() ? 'Referência: ' + parts.reference.trim() : '',
+  ].filter(Boolean).join(', ').slice(0, 500);
+}
+export function normalizeWhatsAppPhone(value: string | null | undefined): string | null {
+  let digits = (value ?? '').replace(/\\D/g, '');
+  if (digits.length === 10 || digits.length === 11) digits = '55' + digits;
+  return digits.length >= 12 && digits.length <= 13 ? digits : null;
+}
+export function formatRentalWhatsAppMessage(args: {
+  companyName: string; customerName: string; startDate: string; endDate: string;
+  startTime: string; endTime: string; items: Array<{ name: string; quantity: number }>;
+  deliveryMethod: RentalDeliveryMethod; deliveryAddress: string; totalAmount: number;
+}): string {
+  const date = (value: string) => {
+    const [year, month, day] = value.split('-');
+    return year && month && day ? day + '/' + month + '/' + year : value;
+  };
+  const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(args.totalAmount);
+  const itemLines = args.items.map(item => '- ' + item.name + ' (quantidade: ' + item.quantity + ')').join('\\n');
+  return [
+    'Olá, ' + args.customerName + '! Tudo bem?',
+    'Aqui é da ' + args.companyName + '. Seu agendamento foi registrado com os seguintes dados:',
+    '',
+    'Data: ' + date(args.startDate) + (args.endDate !== args.startDate ? ' até ' + date(args.endDate) : ''),
+    'Horário: ' + args.startTime + ' às ' + args.endTime,
+    'Itens:',
+    itemLines,
+    'Entrega: ' + (args.deliveryMethod === 'delivery' ? 'no endereço' : 'retirada pelo cliente'),
+    ...(args.deliveryMethod === 'delivery' && args.deliveryAddress ? ['Endereço: ' + args.deliveryAddress] : []),
+    'Valor total: ' + money,
+    '',
+    'Por favor, confira se está tudo correto. Obrigado pela preferência!',
+  ].join('\\n');
+}
 export type RentalFormValues = {
   customer_id: string; start_date: string; end_date: string; start_time: string; end_time: string;
   status: RentalStatus; delivery_method: RentalDeliveryMethod; delivery_address: string;
