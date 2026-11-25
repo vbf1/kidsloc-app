@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(32);
 
 insert into auth.users (id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -139,6 +139,20 @@ select set_config(
 );
 
 select lives_ok(
+  $ select public.register_rental_payment_stage(
+       'd2000000-0000-4000-8000-000000000001',
+       current_setting('test.rental_id')::uuid,
+       'deposit', 'Pix', current_date
+     ) $,
+  'company admin can register the configured deposit with one action'
+);
+select is(
+  (select sum(amount) from public.payments where transaction_id = current_setting('test.transaction_id')::uuid),
+  25::numeric,
+  'one-tap deposit records the configured deposit amount'
+);
+
+select lives_ok(
   $$ select public.register_financial_payment(
        current_setting('test.transaction_id')::uuid, 40, 'Pix', current_date, 'Primeira parcela'
      ) $$,
@@ -150,10 +164,12 @@ select is(
   'partial payment keeps the transaction pending'
 );
 select lives_ok(
-  $$ select public.register_financial_payment(
-       current_setting('test.transaction_id')::uuid, 65, 'Pix', current_date, 'Quitação'
-     ) $$,
-  'company admin can register the remaining payment'
+  $ select public.register_rental_payment_stage(
+       'd2000000-0000-4000-8000-000000000001',
+       current_setting('test.rental_id')::uuid,
+       'balance', 'Pix', current_date
+     ) $,
+  'company admin can quit the entire remaining balance with one action'
 );
 select is(
   (select status from public.financial_transactions where id = current_setting('test.transaction_id')::uuid),
@@ -162,8 +178,28 @@ select is(
 );
 select is(
   (select count(*)::integer from public.payments where transaction_id = current_setting('test.transaction_id')::uuid),
-  2,
+  3,
   'each installment is preserved as a separate payment record'
+);
+select is(
+  (select sum(amount) from public.payments where transaction_id = current_setting('test.transaction_id')::uuid),
+  105::numeric,
+  'one-tap balance action completes the rental total'
+);
+select throws_ok(
+  $ select public.register_rental_payment_stage(
+       'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 'deposit'
+     ) $,
+  'P0001',
+  'O sinal desta locação já foi registrado.',
+  'deposit action cannot register the same deposit twice'
+);
+select is(
+  (public.get_rental_payment_summary(
+    'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid
+  ) ->> 'paid_total')::numeric,
+  105::numeric,
+  'payment summary reflects all registered payments'
 );
 
 select throws_ok(
@@ -191,6 +227,14 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claim.sub', 'd1000000-0000-4000-8000-000000000002', true);
+select throws_ok(
+  $ select public.register_rental_payment_stage(
+       'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 'balance'
+     ) $,
+  'P0001',
+  'Somente proprietários e administradores podem registrar recebimentos.',
+  'staff cannot register one-tap rental payments'
+);
 select throws_ok(
   $ select public.set_rental_deposit_amount(
        'd2000000-0000-4000-8000-000000000001', current_setting('test.rental_id')::uuid, 30
