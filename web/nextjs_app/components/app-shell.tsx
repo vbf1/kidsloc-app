@@ -44,6 +44,17 @@ export function AppShell({
   children,
 }: AppShellProps) {
   useEffect(() => {
+    const applyScale = (choice: string | null) => {
+      const scale = choice === 'small' || choice === 'large' ? choice : 'medium';
+      document.documentElement.dataset.uiScale = scale;
+    };
+    applyScale(window.localStorage.getItem('kidsloc-ui-scale'));
+    const onScaleChange = (event: Event) => applyScale((event as CustomEvent<string>).detail);
+    window.addEventListener('kidsloc:ui-scale-change', onScaleChange);
+    return () => window.removeEventListener('kidsloc:ui-scale-change', onScaleChange);
+  }, []);
+
+  useEffect(() => {
     const apply = (choice: string | null) => {
       if (choice === 'dark' || choice === 'light') document.documentElement.dataset.theme = choice;
       else delete document.documentElement.dataset.theme;
