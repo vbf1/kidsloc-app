@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'auth_validation.dart';
 import 'quote_create_page.dart';
 import 'rental_create_page.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'settings_page.dart';
 import 'services/app_theme.dart';
+import 'services/app_language.dart';
 import 'services/push_notifications.dart';
 import 'services/company_realtime.dart';
 
@@ -37,6 +39,7 @@ Future<void> main() async {
     await Supabase.initialize(
         url: supabaseUrl, publishableKey: supabasePublishableKey);
   }
+  await AppLanguageController.load();
   runApp(const ProviderScope(child: KidsLocApp()));
 }
 
@@ -44,11 +47,20 @@ class KidsLocApp extends StatelessWidget {
   const KidsLocApp({super.key});
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<ThemeMode>(
+  Widget build(BuildContext context) => ValueListenableBuilder<Locale>(
+        valueListenable: AppLanguageController.locale,
+        builder: (context, locale, _) => ValueListenableBuilder<ThemeMode>(
         valueListenable: AppThemeController.mode,
         builder: (context, themeMode, _) => MaterialApp(
           title: 'KidsLoc App',
           debugShowCheckedModeBanner: false,
+          locale: locale,
+          supportedLocales: AppLanguageController.supportedLocales,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           themeMode: themeMode,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -74,6 +86,7 @@ class KidsLocApp extends StatelessWidget {
               ? const AuthGate()
               : const FoundationScreen(),
         ),
+      ),
       );
 }
 
