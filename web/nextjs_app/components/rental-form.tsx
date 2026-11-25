@@ -109,10 +109,6 @@ export function RentalForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const deliveryAddress = values.delivery_method === 'delivery' ? formatRentalAddress(addressParts) : '';
-    if (values.delivery_method === 'delivery' && !addressParts.street.trim()) {
-      setFieldErrors((current) => ({ ...current, delivery_address: 'Informe a rua ou avenida do endereço de entrega.' }));
-      return;
-    }
     const errors = validateRental({ ...values, delivery_address: deliveryAddress }, isEditing);
     setFieldErrors(errors);
     if (Object.keys(errors).length) return;
@@ -189,7 +185,7 @@ export function RentalForm({
             ]} placeholder="Selecione a modalidade" searchPlaceholder="Buscar modalidade..." emptyText="Nenhuma modalidade encontrada." disabled={saving} onChange={(value) => updateField('delivery_method', value as RentalFormValues['delivery_method'])} /></div>
           </div>
           {values.delivery_method === 'delivery' && <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
-            <label className={labelClass}>Rua / Avenida *
+            <label className={labelClass}>Rua / Avenida (opcional)
               <input maxLength={500} value={addressParts.street} onChange={(event) => updateAddressPart('street', event.target.value)} className={inputClass} placeholder="Nome da rua ou avenida" disabled={saving} />
             </label>
             <label className={labelClass}>Número
