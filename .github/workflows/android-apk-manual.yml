@@ -1,0 +1,37 @@
+name: Mobile - build Android APK (manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: mobile/flutter_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.9
+      - name: Generate Android platform when missing
+        shell: bash
+        run: |
+          if [ ! -d android ]; then
+            flutter create --platforms=android --org br.com.kidsloc --project-name app --no-pub .
+            git checkout -- pubspec.yaml pubspec.lock
+          fi
+          grep -R --include='build.gradle*' -F 'br.com.kidsloc.app' android/app
+      - run: flutter pub get
+      - name: Build Android APK
+        run: >-
+          flutter build apk --debug
+          --dart-define=SUPABASE_URL=${{ vars.SUPABASE_URL || 'https://wfwohnssvftegnhwdzmt.supabase.co' }}
+          --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ vars.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidsloc-android-debug-apk
+          path: mobile/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
