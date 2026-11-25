@@ -453,7 +453,7 @@ class _FinancePageState extends State<FinancePage> {
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 20),
                           decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
-                          child: const Column(children: [
+                          child: Column(children: [
                             Icon(Icons.account_balance_wallet_outlined, size: 32, color: Color(0xFF94A3B8)),
                             SizedBox(height: 10),
                             Text('Nenhum lançamento financeiro.', style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurfaceVariant)),
