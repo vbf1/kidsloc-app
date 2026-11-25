@@ -39,7 +39,7 @@ export function formatRentalAddress(parts: RentalAddressParts): string {
   ].filter(Boolean).join(', ').slice(0, 500);
 }
 export function normalizeWhatsAppPhone(value: string | null | undefined): string | null {
-  let digits = (value ?? '').replace(/\\D/g, '');
+  let digits = (value ?? '').replace(/\D/g, '');
   if (digits.length === 10 || digits.length === 11) digits = '55' + digits;
   return digits.length >= 12 && digits.length <= 13 ? digits : null;
 }
@@ -53,7 +53,7 @@ export function formatRentalWhatsAppMessage(args: {
     return year && month && day ? day + '/' + month + '/' + year : value;
   };
   const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(args.totalAmount);
-  const itemLines = args.items.map(item => '- ' + item.name + ' (quantidade: ' + item.quantity + ')').join('\\n');
+  const itemLines = args.items.map(item => '- ' + item.name + ' (quantidade: ' + item.quantity + ')').join('\n');
   return [
     'Olá, ' + args.customerName + '! Tudo bem?',
     'Aqui é da ' + args.companyName + '. Seu agendamento foi registrado com os seguintes dados:',
