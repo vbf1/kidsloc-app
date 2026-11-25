@@ -150,7 +150,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       _endTime.text = (rental['end_time'] ?? '18:00').toString().substring(0, 5);
       _status = rental['status']?.toString() ?? 'pending';
       _delivery = rental['delivery_method']?.toString() ?? 'delivery';
-      _street.text = rental['delivery_address']?.toString() ?? '';
+      _restoreAddress(rental['delivery_address']?.toString());
       _total.text = ((rental['total_amount'] ?? 0) as num).toStringAsFixed(2);
       _items
         ..clear()
@@ -174,17 +174,56 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     }
   }
 
+  void _restoreAddress(String? value) {
+    final raw = (value ?? '').trim();
+    if (raw.isEmpty) return;
+    const labels = <String, String>{
+      'Rua': 'street',
+      'Número': 'number',
+      'Complemento': 'complement',
+      'Bairro': 'neighborhood',
+      'Cidade': 'city',
+      'Estado': 'state',
+      'CEP': 'postal_code',
+      'Referência': 'reference',
+    };
+    final parsed = <String, String>{};
+    for (final part in raw.split(' | ')) {
+      final separator = part.indexOf(': ');
+      if (separator < 0) continue;
+      final key = labels[part.substring(0, separator)];
+      if (key != null) parsed[key] = part.substring(separator + 2);
+    }
+    if (parsed.isEmpty) {
+      // Older rentals keep their complete address untouched.
+      _street.text = raw;
+      return;
+    }
+    _street.text = parsed['street'] ?? '';
+    _number.text = parsed['number'] ?? '';
+    _complement.text = parsed['complement'] ?? '';
+    _neighborhood.text = parsed['neighborhood'] ?? '';
+    _city.text = parsed['city'] ?? '';
+    _state.text = parsed['state'] ?? '';
+    _postalCode.text = parsed['postal_code'] ?? '';
+    _reference.text = parsed['reference'] ?? '';
+  }
+
   String _composeAddress() {
-    final parts = [
-      _street.text.trim(),
-      _number.text.trim(),
-      if (_complement.text.trim().isNotEmpty) 'Complemento: ${_complement.text.trim()}',
-      _neighborhood.text.trim(),
-      [_city.text.trim(), _state.text.trim()].where((part) => part.isNotEmpty).join(' - '),
-      if (_postalCode.text.trim().isNotEmpty) 'CEP: ${_postalCode.text.trim()}',
-      if (_reference.text.trim().isNotEmpty) 'Referência: ${_reference.text.trim()}',
-    ].where((part) => part.isNotEmpty).toList();
-    final address = parts.join(', ');
+    final entries = <String, String>{
+      'Rua': _street.text.trim(),
+      'Número': _number.text.trim(),
+      'Complemento': _complement.text.trim(),
+      'Bairro': _neighborhood.text.trim(),
+      'Cidade': _city.text.trim(),
+      'Estado': _state.text.trim(),
+      'CEP': _postalCode.text.trim(),
+      'Referência': _reference.text.trim(),
+    };
+    final address = entries.entries
+        .where((entry) => entry.value.isNotEmpty)
+        .map((entry) => '${entry.key}: ${entry.value}')
+        .join(' | ');
     return address.length > 500 ? address.substring(0, 500) : address;
   }
 
