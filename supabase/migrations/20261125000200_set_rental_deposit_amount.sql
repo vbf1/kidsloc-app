@@ -21,15 +21,15 @@ begin
     raise exception 'Informe um valor de sinal válido.';
   end if;
 
+  if not public.can_manage_rental(p_company_id, p_rental_id) then
+    raise exception 'Você não tem permissão para editar esta locação.';
+  end if;
   select r.* into v_rental
   from public.rentals r
   where r.id = p_rental_id and r.company_id = p_company_id
   for update;
   if not found then
     raise exception 'Locação não encontrada nesta empresa.';
-  end if;
-  if not public.can_manage_rental(p_company_id, p_rental_id) then
-    raise exception 'Você não tem permissão para editar esta locação.';
   end if;
   if p_deposit_amount > v_rental.total_amount then
     raise exception 'O sinal não pode ser maior que o valor total da locação.';
