@@ -332,6 +332,7 @@ export default function RentalsPage() {
             delivery_address: editingRental.delivery_address ?? '',
             total_amount: String(editingRental.total_amount).replace('.', ','),
             deposit_amount: String(editingRental.deposit_amount ?? 0).replace('.', ','),
+            deposit_percentage: Number(editingRental.total_amount) > 0 ? (Number(editingRental.deposit_amount ?? 0) / Number(editingRental.total_amount) * 100).toFixed(2).replace('.', ',') : '0',
             responsible_user_ids: editingRental.responsible_user_ids, items: editingRental.items.map((item) => ({
               product_id: item.product_id, quantity: String(item.quantity),
               unit_price: String(item.unit_price).replace('.', ','),
