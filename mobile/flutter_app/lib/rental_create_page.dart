@@ -26,6 +26,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   final _reference = TextEditingController();
   final _total = TextEditingController(text: '0');
   final _deposit = TextEditingController(text: '0');
+  final _depositPercentage = TextEditingController(text: '30');
   final _startTime = TextEditingController(text: '09:00');
   final _endTime = TextEditingController(text: '18:00');
   bool _loading = true;
@@ -74,9 +75,24 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
     _reference.dispose();
     _total.dispose();
     _deposit.dispose();
+    _depositPercentage.dispose();
     _startTime.dispose();
     _endTime.dispose();
     super.dispose();
+  }
+
+  void _recalculateDeposit() {
+    final total = double.tryParse(_total.text.trim().replaceAll(',', '.'));
+    final percentage = double.tryParse(_depositPercentage.text.trim().replaceAll(',', '.'));
+    if (total == null || percentage == null || percentage < 0 || percentage > 100) return;
+    _deposit.text = (total * percentage / 100).toStringAsFixed(2);
+  }
+
+  void _syncDepositPercentageFromAmount() {
+    final total = double.tryParse(_total.text.trim().replaceAll(',', '.'));
+    final deposit = double.tryParse(_deposit.text.trim().replaceAll(',', '.'));
+    if (total == null || total <= 0 || deposit == null) return;
+    _depositPercentage.text = (deposit / total * 100).clamp(0, 100).toStringAsFixed(2);
   }
 
   Future<void> _loadOptions() async {
@@ -155,6 +171,9 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       _restoreAddress(rental['delivery_address']?.toString());
       _total.text = ((rental['total_amount'] ?? 0) as num).toStringAsFixed(2);
       _deposit.text = ((rental['deposit_amount'] ?? 0) as num).toStringAsFixed(2);
+      final totalValue = (rental['total_amount'] as num?)?.toDouble() ?? 0;
+      final depositValue = (rental['deposit_amount'] as num?)?.toDouble() ?? 0;
+      _depositPercentage.text = totalValue > 0 ? (depositValue / totalValue * 100).toStringAsFixed(2) : '0';
       _items
         ..clear()
         ..addAll(items);
@@ -390,6 +409,11 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       return;
     }
     final deposit = double.tryParse(_deposit.text.trim().replaceAll(',', '.'));
+    final depositPercentage = double.tryParse(_depositPercentage.text.trim().replaceAll(',', '.'));
+    if (depositPercentage == null || depositPercentage < 0 || depositPercentage > 100) {
+      setState(() => _error = 'Informe um percentual de sinal entre 0 e 100.');
+      return;
+    }
     if (deposit == null || deposit < 0 || deposit > total) {
       setState(() => _error = 'Informe um sinal válido, igual ou menor que o valor total.');
       return;
@@ -592,14 +616,20 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
                 controller: _total,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Valor total (R\$)'),
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => setState(_recalculateDeposit),
               ),
               const SizedBox(height: 8),
               TextFormField(
+                controller: _depositPercentage,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Percentual do sinal (%)', helperText: 'Padrão de 30%, ajustável em cada locação.'),
+                onChanged: (_) => setState(_recalculateDeposit),
+              ),
+              TextFormField(
                 controller: _deposit,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Sinal pago (R\$)', helperText: 'Informe quanto o cliente já adiantou.'),
-                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(labelText: 'Valor do sinal (R\$)', helperText: 'Você também pode personalizar o valor manualmente.'),
+                onChanged: (_) => setState(_syncDepositPercentageFromAmount),
               ),
               Builder(builder: (context) {
                 final totalValue = double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0;
