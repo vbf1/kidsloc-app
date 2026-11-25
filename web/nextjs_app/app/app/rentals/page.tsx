@@ -435,12 +435,12 @@ export default function RentalsPage() {
         {notice && !formOpen && <div role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</div>}
         <WorkspaceModal open={Boolean(rentalPaymentStageConfirmation)} title={rentalPaymentStageConfirmation?.stage === 'deposit' ? (rentalPaymentStageConfirmation.applyDefault ? 'Aplicar sinal padrão nesta locação?' : 'Confirmar pagamento do sinal') : 'Confirmar quitação do saldo'} description={rentalPaymentStageConfirmation?.applyDefault ? 'Esta locação foi criada antes do controle de sinal. O valor só será preenchido depois da sua confirmação.' : 'Informe como o cliente realizou o pagamento antes de confirmar.'} onClose={() => { if (!rentalPaymentSaving) setRentalPaymentStageConfirmation(null); }} size="md">
           <div className="space-y-4">
-            <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+            {rentalPaymentStageConfirmation?.applyDefault && <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
               <p>Percentual padrão atual: <strong>{rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage}%</strong></p>
               <p className="mt-1">Valor que falta registrar como sinal: <strong>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Math.max(0, Math.round((Number(rentalPaymentSummary?.total_amount ?? viewingRental?.total_amount ?? 0) * Number(rentalPaymentSummary?.default_deposit_percentage ?? defaultDepositPercentage))/100*100)/100 - Number(rentalPaymentSummary?.paid_total ?? 0)))}</strong></p>
               <p className="mt-2 text-xs">Essa alteração será aplicada somente a esta locação antiga. As demais não serão modificadas.</p>
-            </div>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            </div>}
+            <div className="space-y-3">
               <label className="block text-sm font-medium text-amber-950">Forma de pagamento<select value={rentalPaymentMethod} onChange={(event) => setRentalPaymentMethod(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm"><option value="Pix">Pix</option><option value="Dinheiro">Dinheiro</option><option value="Cartão de crédito">Cartão de crédito</option><option value="Cartão de débito">Cartão de débito</option><option value="Transferência bancária">Transferência bancária</option><option value="Outro">Outro</option></select></label>
               <label className="block text-sm font-medium text-amber-950">Data do pagamento<input type="date" required value={rentalPaymentDate} onChange={(event) => setRentalPaymentDate(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm" /></label>
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => setRentalPaymentStageConfirmation(null)} className="rounded-xl border px-4 py-3 text-sm">Cancelar</button>
