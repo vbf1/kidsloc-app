@@ -102,6 +102,14 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
   Future<void> _loadOptions() async {
     try {
       final client = Supabase.instance.client;
+      if (widget.rentalId == null) {
+        try {
+          final settings = await client.rpc('get_company_settings', params: {'p_company_id': widget.companyId});
+          _depositPercentage.text = (settings['default_deposit_percentage'] ?? 30).toString();
+        } catch (_) {
+          _depositPercentage.text = '30';
+        }
+      }
       final results = await Future.wait([
         client.from('customers').select('id,name,phone').eq('company_id', widget.companyId).order('name'),
         client.from('products').select('id,name,daily_price,event_price').eq('company_id', widget.companyId).eq('active', true).order('name'),
@@ -226,6 +234,24 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
 
   Future<void> _registerRentalPaymentStage(String stage) async {
     if (widget.rentalId == null || _paymentActionLoading) return;
+    final applyDefault = stage == 'deposit' && _paymentSummary?['legacy_deposit_missing'] == true;
+    if (applyDefault) {
+      final percentage = (_paymentSummary?['default_deposit_percentage'] as num?)?.toDouble() ?? 30;
+      final total = double.tryParse(_total.text.trim().replaceAll(',', '.')) ?? 0;
+      final amount = (total * percentage / 100);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Aplicar sinal padrão?'),
+          content: Text('Esta locação é antiga e ainda não possui sinal cadastrado. Aplicaremos $percentage% (R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}) somente nesta locação. Deseja continuar?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Aplicar e registrar')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     setState(() { _paymentActionLoading = true; _paymentSummaryError = null; });
     try {
       await Supabase.instance.client.rpc('register_rental_payment_stage', params: {
@@ -234,6 +260,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
         'p_stage': stage,
         'p_payment_method': null,
         'p_paid_at': _date(DateTime.now()),
+        'p_apply_default_deposit': applyDefault,
       });
       await _loadRentalPaymentSummary();
       if (!mounted) return;
