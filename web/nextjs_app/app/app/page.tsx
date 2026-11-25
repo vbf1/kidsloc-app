@@ -108,6 +108,22 @@ export default function AppHomePage() {
   }, [companyId, workspace]);
   useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_quotes', 'financial_transactions', 'payments'], () => setRealtimeRefresh((value) => value + 1));
 
+  // Listen directly to finance changes so the operation summary refreshes even
+  // when the user stays in the same tab while registering or reversing a payment.
+  useEffect(() => {
+    const client = supabase;
+    if (!companyId || !client || workspace?.role !== 'admin') return;
+    const channel = client.channel(`dashboard-finance-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `company_id=eq.${companyId}` }, () => {
+        setRealtimeRefresh((value) => value + 1);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'financial_transactions', filter: `company_id=eq.${companyId}` }, () => {
+        setRealtimeRefresh((value) => value + 1);
+      })
+      .subscribe();
+    return () => { void client.removeChannel(channel); };
+  }, [companyId, workspace?.role]);
+
   useEffect(() => {
     if (!companyId || !supabase) return;
     let active = true;
@@ -124,10 +140,10 @@ export default function AppHomePage() {
             .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled').order('start_date', { ascending: true }).limit(5),
           supabase!.from('rental_quotes').select('id', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'sent']),
           workspace?.role === 'admin'
-            ? supabase!.from('financial_transactions').select('id,amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
+            ? supabase!.from('financial_transactions').select('id,rental_id,amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
             : Promise.resolve({ data: [], error: null }),
           workspace?.role === 'admin'
-            ? supabase!.from('payments').select('transaction_id,amount').eq('company_id', companyId).is('reversed_at', null)
+            ? supabase!.from('payments').select('transaction_id,rental_id,amount').eq('company_id', companyId).is('reversed_at', null)
             : Promise.resolve({ data: [], error: null }),
         ]);
         if (!active) return;
@@ -136,10 +152,17 @@ export default function AppHomePage() {
           return;
         }
         const financeRows = financeResult.data ?? [];
+        const transactionByRental = new Map<string, string>();
+        for (const row of financeRows) {
+          if (row.rental_id && !transactionByRental.has(row.rental_id)) transactionByRental.set(row.rental_id, row.id);
+        }
         const paymentTotals = new Map<string, number>();
         for (const payment of paymentsResult.data ?? []) {
-          if (!payment.transaction_id) continue;
-          paymentTotals.set(payment.transaction_id, (paymentTotals.get(payment.transaction_id) ?? 0) + Number(payment.amount || 0));
+          // Older payment rows may be linked only by rental_id; include them
+          // so the dashboard does not keep showing the full amount as pending.
+          const transactionId = payment.transaction_id ?? (payment.rental_id ? transactionByRental.get(payment.rental_id) : undefined);
+          if (!transactionId) continue;
+          paymentTotals.set(transactionId, (paymentTotals.get(transactionId) ?? 0) + Number(payment.amount || 0));
         }
         const receivables = financeRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
         const pendingReceivables = financeRows.reduce((sum, row) => {
@@ -167,7 +190,18 @@ export default function AppHomePage() {
       }
     }
     void loadDashboard();
-    return () => { active = false; };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void loadDashboard();
+    };
+    window.addEventListener('focus', refreshWhenVisible);
+    window.addEventListener('pageshow', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshWhenVisible);
+      window.removeEventListener('pageshow', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, [companyId, realtimeRefresh, workspace?.role]);
 
   async function signOut() {

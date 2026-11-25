@@ -436,7 +436,7 @@ export default function RentalsPage() {
             </div>
           </div>
         </WorkspaceModal>
-        <WorkspaceModal open={Boolean(rentalPaymentReversal)} title={rentalPaymentReversal === 'deposit' ? 'Desfazer pagamento do sinal?' : 'Desfazer quitação do saldo?'} description="O recebimento será marcado como estornado, sem apagar o histórico. O valor voltará a constar como pendente no financeiro." onClose={() => { if (!rentalPaymentSaving) setRentalPaymentReversal(null); }} size="md">
+        <WorkspaceModal zIndex={140} open={Boolean(rentalPaymentReversal)} title={rentalPaymentReversal === 'deposit' ? 'Desfazer pagamento do sinal?' : 'Desfazer quitação do saldo?'} description="O recebimento será marcado como estornado, sem apagar o histórico. O valor voltará a constar como pendente no financeiro." onClose={() => { if (!rentalPaymentSaving) setRentalPaymentReversal(null); }} size="md">
           <div className="space-y-4">
             <p className="text-sm leading-6 text-gray-600">Use esta opção se o pagamento foi registrado por engano ou se o valor foi devolvido ao cliente.</p>
             <label className="block text-sm font-medium text-gray-700">Motivo (opcional)<input value={rentalPaymentReversalReason} onChange={(event) => setRentalPaymentReversalReason(event.target.value)} maxLength={300} placeholder="Ex.: pagamento lançado por engano ou valor devolvido" className="mt-1 w-full rounded-xl border border-gray-200 p-3" /></label>

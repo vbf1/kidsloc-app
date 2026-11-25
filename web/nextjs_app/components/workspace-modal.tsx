@@ -9,6 +9,7 @@ type WorkspaceModalProps = {
   onClose: () => void;
   children: React.ReactNode;
   size?: 'md' | 'lg' | 'xl';
+  zIndex?: number;
 };
 
 // Mais de um WorkspaceModal pode ficar aberto durante a troca entre detalhes
@@ -32,7 +33,7 @@ function acquireBodyScrollLock() {
   };
 }
 
-export function WorkspaceModal({ open, title, description, onClose, children, size = 'lg' }: WorkspaceModalProps) {
+export function WorkspaceModal({ open, title, description, onClose, children, size = 'lg', zIndex }: WorkspaceModalProps) {
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLElement>(null);
@@ -71,7 +72,7 @@ export function WorkspaceModal({ open, title, description, onClose, children, si
   const width = size === 'xl' ? 'max-w-5xl' : size === 'md' ? 'max-w-xl' : 'max-w-3xl';
 
   return (
-    <div className="kl-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="kl-modal-backdrop" style={zIndex ? { zIndex } : undefined} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined}
         ref={panelRef} tabIndex={-1} className={`kl-modal-panel ${width}`}>
         <header className="kl-modal-header">
