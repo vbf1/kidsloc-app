@@ -47,7 +47,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
             { value: 'toy', label: 'Brinquedo' }, { value: 'machine', label: 'Máquina' }, { value: 'service', label: 'Serviço' },
           ]} placeholder="Selecione o tipo" searchPlaceholder="Buscar tipo..." emptyText="Nenhum tipo encontrado." disabled={saving || Boolean(initialValues.name)} onChange={(value) => {
             const item_type = value as ProductFormValues['item_type'];
-            setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1', price_mode: item_type === 'service' ? 'event' : 'daily' }));
+            setValues((current) => ({ ...current, item_type, inventory_mode: 'quantity', total_quantity: item_type === 'service' ? '0' : '1', price: item_type === 'service' && !current.price.trim() ? '0,00' : current.price, price_mode: item_type === 'service' ? 'event' : 'daily' }));
             setFieldErrors({});
           }} /></div>
           {initialValues.name && <span className="mt-1 block text-xs text-gray-400">O tipo não pode ser alterado após o cadastro para preservar o histórico.</span>}
@@ -64,6 +64,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass} htmlFor="product-price">{values.item_type === 'toy' ? 'Preço por dia (R$) *' : values.item_type === 'service' || values.price_mode === 'event' ? 'Preço por evento (R$) *' : 'Preço por diária (R$) *'}
           <input id="product-price" inputMode="decimal" value={values.price} disabled={saving} onChange={(event) => updateField('price', event.target.value)} placeholder="0,00" className={inputClass} aria-invalid={Boolean(fieldErrors.price)} aria-describedby={fieldErrors.price ? 'product-price-error' : undefined} />
+          {values.item_type === 'service' && <span className="mt-1 block text-xs font-normal text-gray-500">Para serviços com valor variável, informe 0,00. O valor final poderá ser definido em cada locação.</span>}
           {fieldErrors.price && <FieldFeedback id="product-price-error">{fieldErrors.price}</FieldFeedback>}
         </label>
         {values.item_type === 'machine' && <label className={labelClass}>Cobrança
