@@ -19,6 +19,7 @@ import { supabase } from '../../../lib/supabase';
 import { clearWorkspaceSessionCache, getWorkspaceSessionCache, setWorkspaceSessionCache } from '../../../lib/workspace-session-cache';
 
 type CompanyRole = 'admin' | 'staff';
+type RentalPaymentSummary = { total_amount: number; deposit_amount: number; paid_total: number; deposit_paid: number; deposit_remaining: number; balance_remaining: number };
 
 const RENTAL_COLUMNS = 'id,company_id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,delivery_method,delivery_address,delivery_fee,discount,total_amount,deposit_amount,notes,created_by,created_at,updated_at';
 function localDateValue() {
@@ -57,10 +58,14 @@ export default function RentalsPage() {
   const [listLoading, setListLoading] = useState(!hasModuleData('rentals', workspaceScope));
   const [listError, setListError] = useState('');
   const [notice, setNotice] = useState('');
+  const [rentalPaymentSummary, setRentalPaymentSummary] = useState<RentalPaymentSummary | null>(null);
+  const [rentalPaymentLoading, setRentalPaymentLoading] = useState(false);
+  const [rentalPaymentSaving, setRentalPaymentSaving] = useState(false);
+  const [rentalPaymentError, setRentalPaymentError] = useState('');
   const [confirmationRental, setConfirmationRental] = useState<RentalRecord | null>(null);
   const [confirmationText, setConfirmationText] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
-  useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_items', 'rental_item_units', 'rental_responsibles', 'rental_events', 'product_units'], () => setRefreshIndex((value) => value + 1));
+  useCompanyRealtimeRefresh(companyId, ['rentals', 'rental_items', 'rental_item_units', 'rental_responsibles', 'rental_events', 'product_units', 'financial_transactions', 'payments'], () => setRefreshIndex((value) => value + 1));
   const [searchDraft, setSearchDraft] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | RentalStatus>('all');
@@ -285,6 +290,56 @@ export default function RentalsPage() {
       setFormError('Ocorreu um erro ao salvar a locação. Confira sua conexão e tente novamente.');
     } finally { setSaving(false); }
   }
+
+  useEffect(() => {
+    if (!viewingRental || !companyId || !supabase || role === 'staff') {
+      setRentalPaymentSummary(null);
+      setRentalPaymentError('');
+      return;
+    }
+    let active = true;
+    setRentalPaymentLoading(true);
+    setRentalPaymentError('');
+    supabase.rpc('get_rental_payment_summary', {
+      p_company_id: companyId, p_rental_id: viewingRental.id,
+    }).then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        setRentalPaymentSummary(null);
+        setRentalPaymentError(error.message);
+      } else {
+        setRentalPaymentSummary(data as RentalPaymentSummary);
+      }
+      setRentalPaymentLoading(false);
+    });
+    return () => { active = false; };
+  }, [viewingRental?.id, companyId, role, refreshIndex]);
+
+  async function registerRentalPaymentStage(stage: 'deposit' | 'balance') {
+    if (!supabase || !companyId || !viewingRental || rentalPaymentSaving) return;
+    setRentalPaymentSaving(true);
+    setRentalPaymentError('');
+    const { error } = await supabase.rpc('register_rental_payment_stage', {
+      p_company_id: companyId,
+      p_rental_id: viewingRental.id,
+      p_stage: stage,
+      p_payment_method: null,
+      p_paid_at: localDateValue(),
+    });
+    if (error) {
+      setRentalPaymentError(error.message);
+    } else {
+      const { data, error: summaryError } = await supabase.rpc('get_rental_payment_summary', {
+        p_company_id: companyId, p_rental_id: viewingRental.id,
+      });
+      if (summaryError) setRentalPaymentError(summaryError.message);
+      else setRentalPaymentSummary(data as RentalPaymentSummary);
+      setNotice(stage === 'deposit' ? 'Sinal registrado no Financeiro.' : 'Quitação registrada no Financeiro.');
+      setRefreshIndex((value) => value + 1);
+    }
+    setRentalPaymentSaving(false);
+  }
+
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(0);
@@ -352,7 +407,21 @@ export default function RentalsPage() {
               <div className="rounded-xl border border-gray-100 p-4"><p className="text-xs text-gray-500">Entrega ou retirada</p><p className="mt-1 font-semibold text-gray-900">{viewingRental.delivery_method === 'delivery' ? 'Entrega' : 'Retirada'}</p>{viewingRental.delivery_address && <p className="mt-1 text-sm text-gray-500">{viewingRental.delivery_address}</p>}</div>
             </div>
             <div><h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-purple-700">Itens da locação</h3><div className="divide-y divide-gray-100 rounded-xl border border-gray-100">{viewingRental.items.map(item => <div key={item.id} className="flex justify-between gap-3 p-3 text-sm"><span className="text-gray-700">{item.product_name} × {item.quantity}</span><strong className="text-gray-900">{item.unit_price === 0 ? 'Incluído no combo' : 'R$ ' + Number(item.subtotal).toFixed(2).replace('.', ',')}</strong></div>)}</div></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Responsáveis</p><p className="mt-1 text-sm font-semibold text-gray-900">{viewingRental.responsible_names.join(', ') || 'Não definidos'}</p></div><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Valor total</p><p className="mt-1 text-2xl font-bold text-gray-900">R$ {Number(viewingRental.total_amount).toFixed(2).replace('.', ',')}</p><p className="mt-2 text-xs text-gray-500">Sinal pago: <strong className="text-gray-800">R$ {Number(viewingRental.deposit_amount ?? 0).toFixed(2).replace('.', ',')}</strong></p><p className="text-xs text-gray-500">Saldo restante: <strong className="text-gray-800">R$ {Math.max(0, Number(viewingRental.total_amount) - Number(viewingRental.deposit_amount ?? 0)).toFixed(2).replace('.', ',')}</strong></p></div></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Responsáveis</p><p className="mt-1 text-sm font-semibold text-gray-900">{viewingRental.responsible_names.join(', ') || 'Não definidos'}</p></div><div className="rounded-xl bg-gray-50 p-4"><p className="text-xs text-gray-500">Valor total</p><p className="mt-1 text-2xl font-bold text-gray-900">R$ {Number(viewingRental.total_amount).toFixed(2).replace('.', ',')}</p><p className="mt-2 text-xs text-gray-500">Sinal configurado: <strong className="text-gray-800">R$ {Number(viewingRental.deposit_amount ?? 0).toFixed(2).replace('.', ',')}</strong></p></div></div>
+            {role !== 'staff' && <section className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+              <div><h3 className="text-sm font-bold text-emerald-900">Pagamentos da locação</h3><p className="mt-1 text-xs text-emerald-800">Registre o sinal ou quite o saldo com um toque, sem digitar valores.</p></div>
+              {rentalPaymentLoading ? <p className="text-sm text-gray-600">Consultando pagamentos...</p> : rentalPaymentSummary ? <div className="grid gap-2 sm:grid-cols-3">
+                <div><p className="text-xs text-gray-500">Já recebido</p><strong className="text-sm text-gray-900">R$ {Number(rentalPaymentSummary.paid_total).toFixed(2).replace('.', ',')}</strong></div>
+                <div><p className="text-xs text-gray-500">Sinal pendente</p><strong className="text-sm text-gray-900">R$ {Number(rentalPaymentSummary.deposit_remaining).toFixed(2).replace('.', ',')}</strong></div>
+                <div><p className="text-xs text-gray-500">Saldo para quitar</p><strong className="text-sm text-gray-900">R$ {Number(rentalPaymentSummary.balance_remaining).toFixed(2).replace('.', ',')}</strong></div>
+              </div> : <p className="text-sm text-gray-600">Não foi possível consultar os pagamentos. {rentalPaymentError}</p>}
+              {rentalPaymentError && rentalPaymentSummary && <p role="alert" className="text-sm text-red-700">{rentalPaymentError}</p>}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.deposit_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('deposit')} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Pagou sinal</button>
+                <button type="button" disabled={rentalPaymentSaving || rentalPaymentLoading || !rentalPaymentSummary || rentalPaymentSummary.balance_remaining <= 0 || viewingRental.status === 'cancelled'} onClick={() => registerRentalPaymentStage('balance')} className="rounded-xl bg-[#8054d8] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Quitou saldo restante</button>
+                {rentalPaymentSaving && <span className="self-center text-xs text-gray-500">Registrando recebimento...</span>}
+              </div>
+            </section>}
             <div className="flex flex-col-reverse justify-end gap-2 border-t border-gray-100 pt-4 sm:flex-row">
               <button type="button" onClick={() => { const customer = customers.find((item) => item.id === viewingRental.customer_id); setConfirmationText(formatRentalWhatsAppMessage({ companyName, customerName: viewingRental.customer_name, startDate: viewingRental.start_date, endDate: viewingRental.end_date, startTime: viewingRental.start_time?.slice(0,5) ?? '—', endTime: viewingRental.end_time?.slice(0,5) ?? '—', items: viewingRental.items.map((item) => ({ name: item.product_name, quantity: item.quantity })), deliveryMethod: viewingRental.delivery_method, deliveryAddress: viewingRental.delivery_address ?? '', totalAmount: Number(viewingRental.total_amount) })); setConfirmationRental(viewingRental); }} className="rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">Preparar confirmação</button>
               <button type="button" onClick={() => setViewingRental(null)} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700">Fechar</button>
