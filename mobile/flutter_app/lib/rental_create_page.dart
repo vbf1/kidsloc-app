@@ -223,7 +223,7 @@ class _RentalCreatePageState extends State<RentalCreatePage> {
       'Valor total: R$ ${double.parse(_total.text.trim().replaceAll(',', '.')).toStringAsFixed(2).replaceAll('.', ',')}',
       '',
       'Por favor, confira se está tudo correto. Obrigado pela preferência!',
-    ].join('\\n');
+    ].join('\n');
     final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
     if (!mounted) return;
     await showDialog<void>(
