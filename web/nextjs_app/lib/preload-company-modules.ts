@@ -96,23 +96,18 @@ async function preloadCalendar(client: NonNullable<typeof supabase>, companyId: 
 const [calendarRentals, calendarCustomers, calendarProducts] = await Promise.all([
     client.from('rentals').select('id,rental_number,customer_id,start_date,end_date,start_time,end_time,status,total_amount').eq('company_id', companyId).neq('status', 'cancelled').order('start_date').limit(1000),
     client.from('customers').select('id,name').eq('company_id', companyId),
-    client.from('products').select('id,name,total_quantity,inventory_mode').eq('company_id', companyId).eq('active', true).in('item_type', ['toy', 'machine']).order('name'),
+    client.from('products').select('id,name,total_quantity').eq('company_id', companyId).eq('active', true).in('item_type', ['toy', 'machine']).order('name'),
   ]);
   if (!calendarRentals.error && !calendarCustomers.error && !calendarProducts.error) {
     const ids = (calendarRentals.data ?? []).map((r: any) => r.id);
-    const individualIds = (calendarProducts.data ?? []).filter((p: any) => p.inventory_mode === 'individual').map((p: any) => p.id);
-    const [items, units] = await Promise.all([
-      ids.length ? client.from('rental_items').select('rental_id,product_id,quantity').eq('company_id', companyId).in('rental_id', ids) : Promise.resolve({ data: [], error: null }),
-      individualIds.length ? client.from('product_units').select('product_id,status').eq('company_id', companyId).in('product_id', individualIds) : Promise.resolve({ data: [], error: null }),
-    ]);
-    if (!items.error && !units.error) {
-      const counts: Record<string, number> = {};
-      for (const unit of units.data ?? []) if (unit.status === 'available') counts[unit.product_id] = (counts[unit.product_id] ?? 0) + 1;
+    const items = ids.length
+      ? await client.from('rental_items').select('rental_id,product_id,quantity').eq('company_id', companyId).in('rental_id', ids)
+      : { data: [], error: null };
+    if (!items.error) {
       setModuleData('calendar', 'rentals', scope, calendarRentals.data ?? []);
       setModuleData('calendar', 'customers', scope, Object.fromEntries((calendarCustomers.data ?? []).map((x: any) => [x.id, x.name])));
       setModuleData('calendar', 'products', scope, calendarProducts.data ?? []);
       setModuleData('calendar', 'rentalItems', scope, items.data ?? []);
-      setModuleData('calendar', 'availableUnits', scope, counts);
     }
   }
 }
