@@ -16,7 +16,7 @@ type ProductFormProps = {
 const inputClass = 'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#8054d8] focus:ring-2 focus:ring-purple-100 disabled:bg-gray-50';
 const labelClass = 'block text-sm font-medium text-gray-700';
 export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = null, saving, error, onCancel, onSubmit }: ProductFormProps) {
-  const [values, setValues] = useState<ProductFormValues>({ ...initialValues });
+  const [values, setValues] = useState<ProductFormValues>({ ...initialValues, inventory_mode: 'quantity' });
   const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
@@ -73,11 +73,7 @@ export function ProductForm({ initialValues = EMPTY_PRODUCT, initialImageUrl = n
           ]} placeholder="Selecione a cobrança" searchPlaceholder="Buscar cobrança..." emptyText="Nenhuma opção encontrada." disabled={saving} onChange={(value) => updateField('price_mode', value as ProductFormValues['price_mode'])} /></div>
         </label>}
         {values.item_type !== 'service' && <>
-          <label className={labelClass}>Controle de estoque
-            <div className="mt-1"><SearchablePicker title="Controle de estoque" value={values.inventory_mode} options={[
-              { value: 'quantity', label: 'Por quantidade' }, { value: 'individual', label: 'Unidades individuais' },
-            ]} placeholder="Selecione o controle" searchPlaceholder="Buscar controle..." emptyText="Nenhuma opção encontrada." disabled={saving} onChange={(value) => updateField('inventory_mode', value as ProductFormValues['inventory_mode'])} /></div>
-          </label>
+          <div className="rounded-xl bg-purple-50 px-3 py-3 text-sm text-purple-800">Controle simplificado: informe apenas a quantidade total de itens iguais. Não é necessário cadastrar unidades individuais.</div>
           <label className={labelClass} htmlFor="product-quantity">Quantidade total *
             <input id="product-quantity" type="number" min="0" max="1000000" step="1" value={values.total_quantity} disabled={saving} onChange={(event) => updateField('total_quantity', event.target.value)} className={inputClass} aria-invalid={Boolean(fieldErrors.total_quantity)} aria-describedby={fieldErrors.total_quantity ? 'product-quantity-error' : undefined} />
             {fieldErrors.total_quantity && <FieldFeedback id="product-quantity-error">{fieldErrors.total_quantity}</FieldFeedback>}
