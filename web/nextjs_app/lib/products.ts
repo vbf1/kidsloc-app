@@ -32,7 +32,7 @@ export function formatPrice(value: number | string | null): string {
 }
 export function normalizeProduct(values: ProductFormValues): ProductFormValues {
   return {
-    ...values, name: values.name.trim().replace(/\s+/g, ' '), description: values.description.trim(),
+    ...values, inventory_mode: 'quantity', name: values.name.trim().replace(/\s+/g, ' '), description: values.description.trim(),
     notes: values.notes.trim(),
     total_quantity: values.item_type === 'service' ? '0' : String(Math.trunc(Number(values.total_quantity))),
     price: values.price.trim(),
