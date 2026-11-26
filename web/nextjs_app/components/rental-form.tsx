@@ -58,7 +58,7 @@ export function RentalForm({
   const [fieldErrors, setFieldErrors] = useState<RentalFieldErrors>({});
   const [addressParts, setAddressParts] = useState<RentalAddressParts>(() => parseRentalAddress(initialValues.delivery_address));
   const [productToAdd, setProductToAdd] = useState('');
-  const availableProducts = useMemo(() => products.filter((product) => product.item_type !== 'service' && !values.items.some((item) => item.product_id === product.id)), [products, values.items]);
+  const availableProducts = useMemo(() => products.filter((product) => !values.items.some((item) => item.product_id === product.id)), [products, values.items]);
   function updateAddressPart(field: keyof RentalAddressParts, value: string) {
     setAddressParts((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, delivery_address: undefined }));
@@ -263,13 +263,13 @@ export function RentalForm({
         </fieldset>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
-            <label className={labelClass}>Brinquedo ou máquina</label>
+            <label className={labelClass}>Brinquedo, máquina ou serviço</label>
             <div className="mt-1">
               <SearchablePicker
-                title="Adicionar equipamento"
+                title="Adicionar item à locação"
                 value={productToAdd}
-                options={availableProducts.map((product) => ({ value: product.id, label: product.name, description: product.item_type === 'toy' ? 'Brinquedo' : 'Máquina' }))}
-                placeholder="Selecione um brinquedo ou máquina"
+                options={availableProducts.map((product) => ({ value: product.id, label: product.name, description: product.item_type === 'toy' ? 'Brinquedo' : product.item_type === 'machine' ? 'Máquina' : 'Serviço (ex.: frete)' }))}
+                placeholder="Selecione brinquedo, máquina ou serviço"
                 searchPlaceholder="Buscar equipamento..."
                 emptyText="Nenhum equipamento disponível."
                 disabled={saving || !availableProducts.length}
@@ -286,7 +286,7 @@ export function RentalForm({
               const product = products.find((candidate) => candidate.id === item.product_id);
               return (
                 <div key={item.product_id} className={'grid gap-3 rounded-xl border border-gray-200 p-3 sm:items-end ' + (pricingMode === 'combo' ? 'lg:grid-cols-[minmax(0,1fr)_100px_auto]' : 'lg:grid-cols-[minmax(0,1fr)_100px_150px_auto]')}>
-                  <div className="min-w-0"><p className="text-sm font-semibold text-gray-900">{product?.name ?? 'Item do catálogo'}</p><p className="mt-1 text-xs text-gray-500">{product?.item_type === 'toy' ? 'Preço por dia × período' : 'Preço por evento'}</p></div>
+                  <div className="min-w-0"><p className="text-sm font-semibold text-gray-900">{product?.name ?? 'Item do catálogo'}</p><p className="mt-1 text-xs text-gray-500">{product?.item_type === 'toy' ? 'Preço por dia × período' : product?.item_type === 'service' ? 'Serviço · valor definido nesta locação' : 'Preço por evento'}</p></div>
                   <label className={labelClass}>Quantidade
                     <input type="number" min="1" max="1000000" step="1" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} className={inputClass} disabled={saving} />
                   </label>
