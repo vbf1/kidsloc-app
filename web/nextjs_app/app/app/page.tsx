@@ -14,7 +14,7 @@ import { preloadCompanyModules } from '../../lib/preload-company-modules';
 type CompanyRole = 'admin' | 'staff';
 type Workspace = { email: string; companyName: string; companyId: string; role: CompanyRole };
 type DashboardStats = { rentalsToday: number; rentalsNext7Days: number; pendingQuotes: number; receivables: number; pendingReceivables: number };
-type RecentRental = { id: string; rental_number: number; start_date: string; status: string; total_amount: number };
+type RecentRental = { id: string; rental_number: number; customer_id: string | null; customer_name: string; start_date: string; status: string; total_amount: number };
 
 function formatDate(value: string) {
   const date = new Date(`${value}T00:00:00`);
@@ -136,7 +136,7 @@ export default function AppHomePage() {
         const [todayResult, upcomingResult, recentResult, quotesResult, financeResult, paymentsResult] = await Promise.all([
           supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('start_date', today).neq('status', 'cancelled'),
           supabase!.from('rentals').select('id', { count: 'exact', head: true }).eq('company_id', companyId).gte('start_date', today).lte('start_date', nextWeek).neq('status', 'cancelled'),
-          supabase!.from('rentals').select('id,rental_number,start_date,status,total_amount')
+          supabase!.from('rentals').select('id,rental_number,customer_id,start_date,status,total_amount')
             .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled').order('start_date', { ascending: true }).limit(5),
           supabase!.from('rental_quotes').select('id', { count: 'exact', head: true }).eq('company_id', companyId).in('status', ['draft', 'sent']),
           workspace?.role === 'admin'
@@ -176,7 +176,21 @@ export default function AppHomePage() {
           receivables,
           pendingReceivables,
         };
-        const nextRecentRentals = (recentResult.data ?? []) as RecentRental[];
+        const recentRows = recentResult.data ?? [];
+        const recentCustomerIds = [...new Set(recentRows.map((rental) => rental.customer_id).filter((id) => Boolean(id)))];
+        const recentCustomersResult = recentCustomerIds.length
+          ? await supabase!.from('customers').select('id,name').eq('company_id', companyId).in('id', recentCustomerIds)
+          : { data: [], error: null };
+        if (!active) return;
+        if (recentCustomersResult.error) {
+          setStatsError('Não foi possível carregar os nomes dos clientes no painel.');
+          return;
+        }
+        const recentCustomerNames = new Map((recentCustomersResult.data ?? []).map((customer) => [customer.id, customer.name]));
+        const nextRecentRentals = recentRows.map((rental) => ({
+          ...rental,
+          customer_name: rental.customer_id ? recentCustomerNames.get(rental.customer_id) ?? 'Cliente não disponível' : 'Cliente não disponível',
+        })) as RecentRental[];
         const cachedWorkspaceNow = getWorkspaceSessionCache();
         const scope = cachedWorkspaceNow && cachedWorkspaceNow.companyId === companyId ? `${cachedWorkspaceNow.userId}:${cachedWorkspaceNow.companyId}` : '';
         setModuleData('dashboard','stats',scope,nextStats);
@@ -293,8 +307,8 @@ export default function AppHomePage() {
                   <span className="mt-1 text-[9px] font-extrabold uppercase tracking-wider">{new Date(`${rental.start_date}T00:00:00`).toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-[#262238]">Locação #{rental.rental_number}</p>
-                  <p className="mt-1 text-xs text-[#777187]">{formatDate(rental.start_date)}</p>
+                  <p className="truncate text-sm font-bold text-[#262238]">Locação · {rental.customer_name}</p>
+                  <p className="mt-1 text-xs text-[#777187]">#{rental.rental_number} · {formatDate(rental.start_date)}</p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${rental.status==='confirmed'?'bg-emerald-50 text-emerald-700':rental.status==='in_progress'?'bg-blue-50 text-blue-700':'bg-amber-50 text-amber-700'}`}>{rentalStatus(rental.status)}</span>
