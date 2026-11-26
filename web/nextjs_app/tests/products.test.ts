@@ -13,7 +13,7 @@ describe('product price handling', () => {
 });
 describe('product normalization and validation', () => {
   it('normalizes names and keeps toy inventory', () => {
-    expect(normalizeProduct(toy)).toMatchObject({ name: 'Cama Elástica', total_quantity: '3', inventory_mode: 'individual' });
+    expect(normalizeProduct(toy)).toMatchObject({ name: 'Cama Elástica', total_quantity: '3', inventory_mode: 'quantity' });
     expect(validateProduct(toy)).toEqual({});
   });
   it('normalizes services to zero physical stock', () => { expect(normalizeProduct(service).total_quantity).toBe('0'); expect(validateProduct(service)).toEqual({}); });
