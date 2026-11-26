@@ -22,7 +22,7 @@ function ProductActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: ()
 function ProductStatus({ active }: { active: boolean }) {
   return <span className={active ? 'inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700' : 'inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600'}>{active ? 'Ativo' : 'Inativo'}</span>;
 }
-export function ProductList({ products, loading, totalCount, page, pageSize, onEdit, onView, onDelete }: ProductListProps) {
+export function ProductList({ products, loading, totalCount, page, pageSize, onPageChange, onEdit, onView, onDelete }: ProductListProps) {
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
   if (loading) return <p role="status" className="rounded-2xl border border-purple-100 bg-white p-6 text-sm text-gray-500">Carregando catálogo...</p>;
   if (products.length === 0) return (
@@ -44,14 +44,14 @@ export function ProductList({ products, loading, totalCount, page, pageSize, onE
             <td className="px-4 py-4 font-semibold text-gray-900">{formatPrice(product.item_type === 'service' || (product.item_type === 'machine' && product.event_price !== null) ? product.event_price : product.daily_price)}<p className="mt-1 text-xs font-normal text-gray-500">{product.item_type === 'service' || (product.item_type === 'machine' && product.event_price !== null) ? 'por evento' : 'por diária'}</p></td>
             <td className="px-4 py-4 text-gray-600">{product.item_type === 'service' ? 'Não se aplica' : product.total_quantity + (product.total_quantity === 1 ? ' unidade' : ' unidades')}</td>
             <td className="px-4 py-4"><ProductStatus active={product.active} /></td>
-            <td className="px-5 py-4"><div className="flex justify-end"><span onClick={(event) => event.stopPropagation()}><ProductActions product={product} onEdit={() => onEdit(product)} onDelete={() => onDelete(product)} /></span></div></td>
+            <td className="px-5 py-4"><div className="flex justify-end"><span onClick={(event) => event.stopPropagation()}><ProductActions onEdit={() => onEdit(product)} onDelete={() => onDelete(product)} /></span></div></td>
           </tr>)}</tbody>
         </table></div>
       </div>
       <ul className="space-y-3 lg:hidden">{products.map((product) => <li key={product.id} role="button" tabIndex={0} onClick={() => onView(product)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onView(product); } }} className="cursor-pointer rounded-2xl border border-purple-100 bg-white p-4 shadow-sm transition hover:shadow-md">
         <div className="flex items-start gap-3"><div className="size-16 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50">{product.image_url ? <div role="img" aria-label={`Foto de ${product.name}`} className="size-full bg-cover bg-center" style={{ backgroundImage: `url("${product.image_url}")` }} /> : <div aria-hidden="true" className="grid size-full place-items-center text-2xl text-gray-300">📷</div>}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="break-words font-bold text-gray-900">{product.name}</h2><ProductStatus active={product.active} /></div>{product.description && <p className="mt-1 text-sm text-gray-500">{product.description}</p>}</div><span className="shrink-0 rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-[#6840bd]">{product.item_type === 'toy' ? 'Brinquedo' : product.item_type === 'machine' ? 'Máquina' : 'Serviço'}</span></div>
         <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-3"><div><p className="text-xs text-gray-500">Preço</p><p className="mt-1 font-bold text-gray-900">{formatPrice(product.item_type === 'toy' ? product.daily_price : product.event_price)}</p><p className="text-xs text-gray-500">{product.item_type === 'toy' ? 'por diária' : 'por evento'}</p></div><div><p className="text-xs text-gray-500">Estoque</p><p className="mt-1 text-sm font-semibold text-gray-800">{product.item_type === 'service' ? 'Não se aplica' : product.total_quantity + (product.total_quantity === 1 ? ' unidade' : ' unidades')}</p></div></div>
-        <div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs text-gray-400">Cadastro: {formatDate(product.created_at)}</span><ProductActions product={product} onEdit={() => onEdit(product)} onDelete={() => onDelete(product)} /></div>
+        <div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs text-gray-400">Cadastro: {formatDate(product.created_at)}</span><ProductActions onEdit={() => onEdit(product)} onDelete={() => onDelete(product)} /></div>
       </li>)}</ul>
       <div className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-gray-500">Mostrando {products.length} de {totalCount} {totalCount === 1 ? 'item' : 'itens'} · Página {page + 1} de {pageCount}</p>
