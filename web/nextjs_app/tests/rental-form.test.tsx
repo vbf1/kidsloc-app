@@ -17,6 +17,10 @@ const products: RentalProduct[] = [
     id: 'machine-1', name: 'Máquina de Pipoca', item_type: 'machine', inventory_mode: 'quantity',
     total_quantity: 1, daily_price: 0, event_price: 300,
   },
+  {
+    id: 'service-1', name: 'Frete', item_type: 'service', inventory_mode: 'quantity',
+    total_quantity: 0, daily_price: 0, event_price: 0,
+  },
 ];
 const members = [{ user_id: 'member-1', full_name: 'Responsável', role: 'owner' }];
 
@@ -53,10 +57,10 @@ describe('RentalForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retirada pelo cliente' }));
     fireEvent.click(screen.getByRole('option', { name: /Entrega no endereço/ }));
     fireEvent.change(screen.getByLabelText('Rua / Avenida (opcional)'), { target: { value: 'Rua das Flores' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Selecione um brinquedo ou máquina' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Selecione brinquedo, máquina ou serviço' }));
     fireEvent.click(screen.getByRole('option', { name: /Cama Elástica/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Selecione um brinquedo ou máquina' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Selecione brinquedo, máquina ou serviço' }));
     fireEvent.click(screen.getByRole('option', { name: /Máquina de Pipoca/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
     fireEvent.change(screen.getByRole('textbox', { name: /Valor total do combo/ }), { target: { value: '450,00' } });
@@ -94,7 +98,7 @@ describe('RentalForm', () => {
     fillRequiredFields();
     fireEvent.click(screen.getByRole('button', { name: 'Retirada pelo cliente' }));
     fireEvent.click(screen.getByRole('option', { name: /Entrega no endereço/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Selecione um brinquedo ou máquina' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Selecione brinquedo, máquina ou serviço' }));
     fireEvent.click(screen.getByRole('option', { name: /Cama Elástica/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Criar locação' }));
@@ -102,6 +106,35 @@ describe('RentalForm', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       delivery_method: 'delivery',
       delivery_address: '',
+    })));
+  });
+
+  it('adds a variable-price service such as freight and includes its price in the rental total', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <RentalForm
+        isEditing={false}
+        saving={false}
+        error=""
+        customers={customers}
+        products={products}
+        members={members}
+        currentUserId="member-1"
+        onCancel={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: 'Selecione brinquedo, máquina ou serviço' }));
+    fireEvent.click(screen.getByRole('option', { name: /Frete/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar item' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /Preço unitário \(R\$\)/ }), { target: { value: '55,00' } });
+    expect((screen.getByRole('textbox', { name: /Valor total da locação/ }) as HTMLInputElement).value).toBe('55,00');
+    fireEvent.click(screen.getByRole('button', { name: 'Criar locação' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      total_amount: '55,00',
+      items: [{ product_id: 'service-1', quantity: '1', unit_price: '55,00' }],
     })));
   });
 
