@@ -28,7 +28,7 @@ export default function CalendarPage(){
  const selectedRentals=daysWithEvents[selected]??[];
  const occupiedByProduct=useMemo(()=>{const used:Record<string,number>={};const activeIds=new Set(rentals.filter(r=>['pending','confirmed','ongoing'].includes(r.status)&&r.start_date<=selected&&r.end_date>=selected).map(r=>r.id));for(const item of rentalItems){if(activeIds.has(item.rental_id))used[item.product_id]=(used[item.product_id]??0)+Number(item.quantity||0);}return used;},[rentals,rentalItems,selected]);
 
- function shift(n:number){const d=new Date(year,mon+n,1);setMonth(d);setRentalPage(0);setProductPage(0);}
+ function shift(n:number){const d=new Date(year,mon+n,1);setMonth(d);setSelected(key(d.getFullYear(),d.getMonth(),1));setRentalPage(0);setProductPage(0);}
  async function signOut(){if(supabase){await supabase.auth.signOut();router.push('/login/');}}
  return <AppShell companyName={companyName} email={email} role={role} companyId={companyId} basePath={process.env.NEXT_PUBLIC_BASE_PATH??''} signingOut={false} onSignOut={signOut}><section>
  {loading && <p role="status" className="mb-4 rounded-xl border border-purple-100 bg-white px-4 py-3 text-sm text-gray-500">Atualizando agenda e disponibilidade...</p>}
