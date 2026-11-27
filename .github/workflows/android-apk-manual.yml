@@ -32,6 +32,8 @@ jobs:
           grep -q 'br.com.kidsloc.app' android/app/build.gradle.kts
           grep -q 'POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
+      - name: Format Dart sources
+        run: dart format lib test
       - name: Verify Dart formatting
         run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze Flutter application
