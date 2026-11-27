@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,15 +19,19 @@ class KidsLocWebApp extends StatefulWidget {
   State<KidsLocWebApp> createState() => _KidsLocWebAppState();
 }
 
-class _KidsLocWebAppState extends State<KidsLocWebApp> {
+class _KidsLocWebAppState extends State<KidsLocWebApp>
+    with WidgetsBindingObserver {
   late final WebViewController _controller;
   bool _loading = true;
   String? _pageError;
   String? _lastRegisteredSession;
+  String? _webVersion;
+  bool _versionCheckInProgress = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFF8F7FC))
@@ -69,7 +74,83 @@ class _KidsLocWebAppState extends State<KidsLocWebApp> {
           },
         ),
       )
-      ..loadRequest(Uri.parse(_kidsLocWebUrl));
+      ;
+    unawaited(_openLatestVersion());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_checkForWebUpdate());
+    }
+  }
+
+  Uri _urlForVersion(String? version) {
+    final uri = Uri.parse(_kidsLocWebUrl);
+    if (version == null || version.isEmpty) return uri;
+    return uri.replace(queryParameters: {'v': version});
+  }
+
+  Future<String?> _fetchWebVersion() async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 5);
+    try {
+      final uri = Uri.parse(
+        'https://$_kidsLocWebHost/kidsloc-app/app-version.json'
+        '?check=${DateTime.now().microsecondsSinceEpoch}',
+      );
+      final request = await client.getUrl(uri).timeout(
+            const Duration(seconds: 6),
+          );
+      request.headers.set(HttpHeaders.cacheControlHeader, 'no-cache');
+      final response = await request.close().timeout(
+            const Duration(seconds: 6),
+          );
+      if (response.statusCode != HttpStatus.ok) return null;
+      final body = await utf8.decoder.bind(response).join().timeout(
+            const Duration(seconds: 4),
+          );
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) return null;
+      final version = decoded['version'];
+      return version is String && version.isNotEmpty ? version : null;
+    } catch (error) {
+      debugPrint('KidsLoc: não foi possível verificar a versão web: $error');
+      return null;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<void> _openLatestVersion() async {
+    final version = await _fetchWebVersion();
+    if (!mounted) return;
+    _webVersion = version;
+    await _controller.loadRequest(_urlForVersion(version));
+  }
+
+  Future<void> _checkForWebUpdate() async {
+    if (_versionCheckInProgress || !mounted) return;
+    _versionCheckInProgress = true;
+    try {
+      final latestVersion = await _fetchWebVersion();
+      if (!mounted || latestVersion == null) return;
+      if (_webVersion == null) {
+        _webVersion = latestVersion;
+        return;
+      }
+      if (latestVersion == _webVersion) return;
+
+      setState(() {
+        _loading = true;
+        _pageError = null;
+      });
+      await _controller.clearCache();
+      _webVersion = latestVersion;
+      await _controller.loadRequest(_urlForVersion(latestVersion));
+    } finally {
+      _versionCheckInProgress = false;
+    }
   }
 
   Future<void> _handleNativeMessage(JavaScriptMessage message) async {
@@ -111,7 +192,7 @@ class _KidsLocWebAppState extends State<KidsLocWebApp> {
       _loading = true;
       _pageError = null;
     });
-    await _controller.loadRequest(Uri.parse(_kidsLocWebUrl));
+    await _openLatestVersion();
   }
 
   Future<void> _handleBack() async {
@@ -120,6 +201,12 @@ class _KidsLocWebAppState extends State<KidsLocWebApp> {
     } else {
       await SystemNavigator.pop();
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
