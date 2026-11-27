@@ -68,6 +68,27 @@ export function AppShell({
     return () => window.removeEventListener('kidsloc:theme-change', onThemeChange);
   }, []);
 
+  // Dentro do APK, sincroniza a sessão web com o cliente nativo apenas para
+  // registrar o token FCM do aparelho. No navegador comum, a ponte não existe.
+  useEffect(() => {
+    if (!companyId || !supabase) return;
+    const bridge = (window as Window & {
+      KidsLocNative?: { postMessage: (message: string) => void };
+    }).KidsLocNative;
+    if (!bridge) return;
+    let active = true;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      const session = data.session;
+      if (!active || error || !session?.refresh_token) return;
+      bridge.postMessage(JSON.stringify({
+        type: 'session',
+        companyId,
+        refreshToken: session.refresh_token,
+      }));
+    });
+    return () => { active = false; };
+  }, [companyId]);
+
   useEffect(() => {
     if (!companyId || !supabase) return;
     const client = supabase;
@@ -107,7 +128,13 @@ export function AppShell({
             <Image src={logoSrc} alt="KidsLoc App" width={88} height={88} priority className="size-14 shrink-0 rounded-xl object-contain" />
           </Link>
           <p className="order-3 w-full truncate text-xs font-medium text-gray-500 sm:hidden" aria-label="Empresa atual">{companyName}</p>
-          <button type="button" onClick={() => { clearWorkspaceSessionCache(); clearModuleDataCache(); onSignOut(); }} disabled={signingOut}
+          <button type="button" onClick={() => {
+              (window as Window & { KidsLocNative?: { postMessage: (message: string) => void } })
+                .KidsLocNative?.postMessage(JSON.stringify({ type: 'logout' }));
+              clearWorkspaceSessionCache();
+              clearModuleDataCache();
+              onSignOut();
+            }} disabled={signingOut}
             className="shrink-0 rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-purple-200 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4">
             {signingOut ? 'Saindo...' : 'Sair'}
           </button>

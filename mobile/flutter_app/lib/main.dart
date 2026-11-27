@@ -18,6 +18,7 @@ import 'services/app_theme.dart';
 import 'services/app_language.dart';
 import 'services/push_notifications.dart';
 import 'services/company_realtime.dart';
+import 'web_app_shell.dart';
 
 const _webAppBaseUrl = 'https://vbf1.github.io/kidsloc-app';
 
@@ -137,7 +138,7 @@ class KidsLocApp extends StatelessWidget {
             cardTheme: const CardThemeData(color: Color(0xFF1D2030)),
           ),
           home: supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty
-              ? const AuthGate()
+              ? const KidsLocWebApp()
               : const FoundationScreen(),
         ),
       ),
