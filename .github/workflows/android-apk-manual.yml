@@ -1,12 +1,20 @@
-name: Mobile - build Android APK (manual)
+name: Mobile - build Android APK
+
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/flutter_app/**'
+      - '.github/workflows/android-apk-manual.yml'
+
 permissions:
   contents: read
+
 jobs:
   build-apk:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: mobile/flutter_app
@@ -15,23 +23,37 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.9
-      - name: Generate Android platform when missing
+          cache: true
+      - name: Validate Android package and Firebase configuration
         shell: bash
         run: |
-          if [ ! -d android ]; then
-            flutter create --platforms=android --org br.com.kidsloc --project-name app --no-pub .
-            git checkout -- pubspec.yaml pubspec.lock
-          fi
-          grep -R --include='build.gradle*' -F 'br.com.kidsloc.app' android/app
+          test -s android/app/google-services.json
+          grep -q '"project_id"' android/app/google-services.json
+          grep -q 'br.com.kidsloc.app' android/app/build.gradle.kts
+          grep -q 'POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
+      - name: Verify Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Analyze Flutter application
+        run: flutter analyze --no-pub --no-fatal-infos
+      - name: Run Flutter tests
+        run: flutter test
       - name: Build Android APK
         run: >-
           flutter build apk --debug
           --dart-define=SUPABASE_URL=${{ vars.SUPABASE_URL || 'https://wfwohnssvftegnhwdzmt.supabase.co' }}
           --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ vars.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
+      - name: Verify APK output
+        shell: bash
+        run: |
+          APK=build/app/outputs/flutter-apk/app-debug.apk
+          test -s "$APK"
+          file "$APK"
+          sha256sum "$APK"
+          stat -c 'APK size: %s bytes' "$APK"
       - uses: actions/upload-artifact@v4
         with:
           name: kidsloc-android-debug-apk
           path: mobile/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
