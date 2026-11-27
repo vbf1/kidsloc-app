@@ -46,6 +46,10 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState<AppLanguage>('pt-BR');
   const [languageSaving, setLanguageSaving] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState('30');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderDays, setReminderDays] = useState(3);
+  const [reminderFrequency, setReminderFrequency] = useState(1);
+  const [reminderSaving, setReminderSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -84,6 +88,15 @@ export default function SettingsPage() {
       if (!active) return;
       if (settingsError) setError('Não foi possível carregar as configurações da empresa.');
       else setDepositPercentage(String(settings?.default_deposit_percentage ?? 30));
+      const { data: reminderSettings, error: reminderError } = await supabase.from('company_event_reminder_settings')
+        .select('enabled,days_before,notifications_per_day').eq('company_id', id).maybeSingle();
+      if (!active) return;
+      if (reminderError) setError('Não foi possível carregar os lembretes de locação.');
+      else if (reminderSettings) {
+        setReminderEnabled(Boolean(reminderSettings.enabled));
+        setReminderDays(Number(reminderSettings.days_before) || 3);
+        setReminderFrequency(Number(reminderSettings.notifications_per_day) || 1);
+      }
       setLoading(false);
     }
     void load();
@@ -120,6 +133,22 @@ export default function SettingsPage() {
       setNotice('Configurações salvas. O percentual será usado nas novas locações.');
     }
     setSaving(false);
+  }
+
+  async function saveReminderSettings() {
+    if (!supabase || !companyId || !canManage || reminderSaving) return;
+    setReminderSaving(true); setError(''); setNotice('');
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error: saveError } = await supabase.from('company_event_reminder_settings').upsert({
+      company_id: companyId, enabled: reminderEnabled, days_before: reminderDays,
+      notifications_per_day: reminderFrequency, updated_by: user?.id ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'company_id' });
+    if (saveError) setError(saveError.message);
+    else setNotice(reminderEnabled
+      ? `Lembretes ativados: avisos até ${reminderDays} dia(s) antes, ${reminderFrequency} vez(es) por dia.`
+      : 'Lembretes de locação desativados.');
+    setReminderSaving(false);
   }
 
   async function signOut() {
@@ -161,6 +190,28 @@ export default function SettingsPage() {
           <p className="mt-2 text-xs leading-5 text-slate-500">O padrão inicial é 30%. Você ainda poderá alterar o valor ou percentual individualmente em cada locação. Alterar esta configuração não modifica locações antigas.</p>
           {!canManage && <p className="mt-2 text-xs text-amber-700">Somente administradores podem alterar esta configuração.</p>}
           {canManage && <button type="button" onClick={saveSettings} disabled={saving} className="mt-4 rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{saving?'Salvando...':'Salvar configurações'}</button>}
+        </section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-xl">🔔</span><div><h2 className="font-bold text-slate-900">Lembretes de locação</h2><p className="mt-1 text-sm text-slate-500">Receba notificações push no APK quando uma locação estiver se aproximando. O agendador verifica os avisos automaticamente.</p></div></div>
+          <label className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4">
+            <span><span className="block text-sm font-semibold text-slate-800">Ativar lembretes</span><span className="mt-1 block text-xs text-slate-500">Os avisos são enviados para administradores e responsáveis pela locação.</span></span>
+            <input type="checkbox" checked={reminderEnabled} disabled={!canManage} onChange={event=>setReminderEnabled(event.target.checked)} className="size-5 accent-[#8054d8]"/>
+          </label>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm font-semibold text-slate-700">Antecedência
+              <select value={reminderDays} disabled={!canManage || !reminderEnabled} onChange={event=>setReminderDays(Number(event.target.value))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-base disabled:opacity-50">
+                {Array.from({length:30},(_,i)=>i+1).map(day=><option key={day} value={day}>{day} {day===1?'dia':'dias'} antes</option>)}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">Avisos por dia
+              <select value={reminderFrequency} disabled={!canManage || !reminderEnabled} onChange={event=>setReminderFrequency(Number(event.target.value))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-base disabled:opacity-50">
+                {[1,2,3,4].map(count=><option key={count} value={count}>{count} {count===1?'aviso':'avisos'} por dia</option>)}
+              </select>
+            </label>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Os avisos são enviados em horários programados (horário de Brasília), apenas para locações confirmadas ou em andamento. A ativação não altera os dados das locações.</p>
+          {!canManage && <p className="mt-2 text-xs text-amber-700">Somente proprietários e administradores podem alterar os lembretes.</p>}
+          {canManage && <button type="button" onClick={saveReminderSettings} disabled={reminderSaving} className="mt-4 rounded-xl bg-[#8054d8] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{reminderSaving?'Salvando...':'Salvar lembretes'}</button>}
         </section>
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="font-bold text-slate-900">Sobre o aplicativo</h2><p className="mt-2 text-sm text-slate-500">KidsLoc App · Gestão de locações, clientes e financeiro.</p><p className="mt-1 text-xs text-slate-400">As preferências de aparência são salvas neste dispositivo; o percentual de sinal é compartilhado com a empresa.</p></section>
       </>}
