@@ -108,7 +108,7 @@ export default function ContractsPage(){
  async function saveContractEdit(){
   if(!supabase||!editing)return;
   const old=editing.contract_snapshot;
-  const amount=(value:string)=>{const raw=value.trim();return Number(raw.includes(',')?raw.replace(/\\./g,'').replace(',','.'):raw)||0;};
+  const amount=(value:string)=>{const raw=value.trim();if(!raw)return Number.NaN;const normalized=raw.includes(',')?raw.replace(/\\./g,'').replace(',','.'):raw;return /^\\d+(?:\\.\\d{1,2})?$/.test(normalized)?Number(normalized):Number.NaN;};
   const lines=editItemsText.split('\\n').filter(line=>line.trim());
   const parsedItems:Item[]=[];
   for(let index=0;index<lines.length;index++){
@@ -123,7 +123,7 @@ export default function ContractsPage(){
   if(!parsedItems.length){setError('Inclua ao menos um item no contrato.');return;}
   const fee=amount(editDeliveryFee);
   const discountValue=amount(editDiscount);
-  if(fee<0||discountValue<0){setError('Frete e desconto não podem ter valores negativos.');return;}
+  if(!Number.isFinite(fee)||!Number.isFinite(discountValue)){setError('Informe valores válidos para frete e desconto, usando até duas casas decimais.');return;}\n  if(fee<0||discountValue<0){setError('Frete e desconto não podem ter valores negativos.');return;}
   if(editDate&&editEndDate&&editEndDate<editDate){setError('A data final do evento não pode ser anterior à data inicial.');return;}
   if(editDate===editEndDate&&editStartTime&&editEndTime&&editEndTime<=editStartTime){setError('O horário final deve ser posterior ao horário inicial.');return;}
   const subtotal=parsedItems.reduce((sum,item)=>sum+Number(item.subtotal||0),0);
