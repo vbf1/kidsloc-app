@@ -29,19 +29,17 @@ const supabasePublishableKey =
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppThemeController.load();
-  if (defaultTargetPlatform == TargetPlatform.android) {
-    try {
-      await PushNotifications.initialize();
-    } catch (error) {
-      debugPrint('KidsLoc: Firebase Messaging não foi inicializado: $error');
-    }
-  }
   if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
     await Supabase.initialize(
         url: supabaseUrl, publishableKey: supabasePublishableKey);
   }
   await AppLanguageController.load();
   runApp(const ProviderScope(child: KidsLocApp()));
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    unawaited(PushNotifications.initialize().catchError((Object error) {
+      debugPrint('KidsLoc: Firebase Messaging não foi inicializado: $error');
+    }));
+  }
 }
 
 class KidsLocApp extends StatelessWidget {
