@@ -14,7 +14,7 @@ import { preloadCompanyModules } from '../../lib/preload-company-modules';
 type CompanyRole = 'admin' | 'staff';
 type Workspace = { email: string; companyName: string; companyId: string; role: CompanyRole };
 type DashboardStats = { rentalsToday: number; rentalsNext7Days: number; pendingQuotes: number; receivables: number; pendingReceivables: number };
-type RecentRental = { id: string; rental_number: number; customer_id: string | null; customer_name: string; start_date: string; status: string; total_amount: number };
+type RecentRental = { id: string; rental_number: number; customer_id: string | null; customer_name: string; start_date: string; status: string; total_amount: number; deposit_paid?: number };
 
 function formatDate(value: string) {
   const date = new Date(`${value}T00:00:00`);
@@ -143,7 +143,7 @@ export default function AppHomePage() {
             ? supabase!.from('financial_transactions').select('id,rental_id,amount,status,transaction_type').eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
             : Promise.resolve({ data: [], error: null }),
           workspace?.role === 'admin'
-            ? supabase!.from('payments').select('transaction_id,rental_id,amount').eq('company_id', companyId).is('reversed_at', null)
+            ? supabase!.from('payments').select('transaction_id,rental_id,amount,notes').eq('company_id', companyId).is('reversed_at', null)
             : Promise.resolve({ data: [], error: null }),
         ]);
         if (!active) return;
@@ -187,9 +187,16 @@ export default function AppHomePage() {
           return;
         }
         const recentCustomerNames = new Map((recentCustomersResult.data ?? []).map((customer) => [customer.id, customer.name]));
+        const depositPaidByRental = new Map<string, number>();
+        for (const payment of paymentsResult.data ?? []) {
+          if (payment.rental_id && payment.notes === 'Sinal da locação') {
+            depositPaidByRental.set(payment.rental_id, (depositPaidByRental.get(payment.rental_id) ?? 0) + Number(payment.amount || 0));
+          }
+        }
         const nextRecentRentals = recentRows.map((rental) => ({
           ...rental,
           customer_name: rental.customer_id ? recentCustomerNames.get(rental.customer_id) ?? 'Cliente não disponível' : 'Cliente não disponível',
+          deposit_paid: depositPaidByRental.get(rental.id) ?? 0,
         })) as RecentRental[];
         const cachedWorkspaceNow = getWorkspaceSessionCache();
         const scope = cachedWorkspaceNow && cachedWorkspaceNow.companyId === companyId ? `${cachedWorkspaceNow.userId}:${cachedWorkspaceNow.companyId}` : '';
@@ -313,6 +320,7 @@ export default function AppHomePage() {
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${rental.status==='confirmed'?'bg-emerald-50 text-emerald-700':rental.status==='in_progress'?'bg-blue-50 text-blue-700':'bg-amber-50 text-amber-700'}`}>{rentalStatus(rental.status)}</span>
                   <span className="text-xs font-extrabold text-[#393348]">{formatCurrency(Number(rental.total_amount)||0)}</span>
+                  <span className="text-[10px] font-semibold text-emerald-700">Sinal pago: {formatCurrency(Number(rental.deposit_paid)||0)}</span>
                 </div>
               </li>)}
             </ul>:<div className="px-5 py-9 text-center">
