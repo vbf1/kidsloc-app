@@ -23,6 +23,9 @@ class PushNotifications {
   static String? _companyId;
   static String? _userId;
   static StreamSubscription<String>? _tokenRefreshSubscription;
+  static String? _pendingCompanyId;
+  static String? _pendingUserId;
+  static String? _pendingAccessToken;
 
   static Future<void> initialize() async {
     if (defaultTargetPlatform != TargetPlatform.android || _initialized) return;
@@ -42,6 +45,19 @@ class PushNotifications {
 
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
     _initialized = true;
+    final pendingCompanyId = _pendingCompanyId;
+    final pendingUserId = _pendingUserId;
+    final pendingAccessToken = _pendingAccessToken;
+    _pendingCompanyId = null;
+    _pendingUserId = null;
+    _pendingAccessToken = null;
+    if (pendingCompanyId != null && pendingUserId != null) {
+      await registerDevice(
+        companyId: pendingCompanyId,
+        userId: pendingUserId,
+        accessToken: pendingAccessToken,
+      );
+    }
   }
 
   static Future<void> _showForegroundNotification(RemoteMessage message) async {
@@ -71,7 +87,13 @@ class PushNotifications {
     String? userId,
     String? accessToken,
   }) async {
-    if (!_initialized || defaultTargetPlatform != TargetPlatform.android) return;
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    if (!_initialized) {
+      _pendingCompanyId = companyId;
+      _pendingUserId = userId;
+      _pendingAccessToken = accessToken;
+      return;
+    }
 
     final client = Supabase.instance.client;
     final resolvedUserId = client.auth.currentUser?.id ?? userId;
