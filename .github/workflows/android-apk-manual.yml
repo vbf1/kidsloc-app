@@ -42,13 +42,13 @@ jobs:
         run: flutter test
       - name: Build Android APK
         run: >-
-          flutter build apk --debug
+          flutter build apk --release
           --dart-define=SUPABASE_URL=${{ vars.SUPABASE_URL || 'https://wfwohnssvftegnhwdzmt.supabase.co' }}
           --dart-define=SUPABASE_PUBLISHABLE_KEY=${{ vars.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_CNbcPta61eS3yFkmWukRoQ_3rdGsOhl' }}
       - name: Verify APK output
         shell: bash
         run: |
-          SOURCE_APK=build/app/outputs/flutter-apk/app-debug.apk
+          SOURCE_APK=build/app/outputs/flutter-apk/app-release.apk
           APK=build/app/outputs/flutter-apk/KidsLoc.apk
           test -s "$SOURCE_APK"
           cp "$SOURCE_APK" "$APK"
