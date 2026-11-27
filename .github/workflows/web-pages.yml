@@ -34,7 +34,7 @@ jobs:
       - run: npm run lint
       - name: Publish web app version for the Android updater
         shell: bash
-        run: printf '{"version":"%s"}\\n' "$GITHUB_SHA" > public/app-version.json
+        run: printf '{"version":"%s"}\n' "$GITHUB_SHA" > public/app-version.json
       - run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH || '/kidsloc-app' }}
