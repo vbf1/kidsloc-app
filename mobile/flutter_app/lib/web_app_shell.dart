@@ -23,6 +23,7 @@ class _KidsLocWebAppState extends State<KidsLocWebApp>
     with WidgetsBindingObserver {
   late final WebViewController _controller;
   bool _loading = true;
+  bool _showBrandSplash = true;
   String? _pageError;
   String? _lastRegisteredSession;
   String? _webVersion;
@@ -50,12 +51,16 @@ class _KidsLocWebAppState extends State<KidsLocWebApp>
           },
           onPageFinished: (_) {
             if (!mounted) return;
-            setState(() => _loading = false);
+            setState(() {
+              _loading = false;
+              _showBrandSplash = false;
+            });
           },
           onWebResourceError: (error) {
             if (error.isForMainFrame != true || !mounted) return;
             setState(() {
               _loading = false;
+              _showBrandSplash = false;
               _pageError =
                   'Não foi possível carregar o KidsLoc. Verifique sua conexão e tente novamente.';
             });
@@ -222,6 +227,20 @@ class _KidsLocWebAppState extends State<KidsLocWebApp>
           child: Stack(
             children: [
               WebViewWidget(controller: _controller),
+              if (_showBrandSplash)
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: const Color(0xFF6810C8),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/brand/kidsloc-logo.jpg',
+                        width: MediaQuery.sizeOf(context).width,
+                        height: MediaQuery.sizeOf(context).height,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
               if (_loading && _pageError == null)
                 const Positioned(
                   top: 0,
