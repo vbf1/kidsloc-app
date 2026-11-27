@@ -275,7 +275,7 @@ class _ContractsPageState extends State<ContractsPage> {
     var legalType = _companySettings['legal_type']?.toString() ?? 'individual';
     final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
       title: const Text('Dados da empresa no contrato'),
-      content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      content: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(padding: const EdgeInsets.only(bottom: 10), child: DropdownButtonFormField<String>(value: legalType, decoration: const InputDecoration(labelText: 'Tipo de locadora', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'individual', child: Text('Pessoa física (sem CNPJ)')), DropdownMenuItem(value: 'company', child: Text('Pessoa jurídica (com CNPJ)'))], onChanged: (value) { if (value != null) legalType = value; })),
         for (final entry in <(String, TextEditingController)>[('Nome comercial da empresa',name),('Nome completo do responsável / razão social',legal),('CPF do responsável / CNPJ',document),('Telefone',phone),('E-mail',email),('Endereço',address),('CEP',zip)])
           Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
@@ -314,7 +314,7 @@ class _ContractsPageState extends State<ContractsPage> {
     final discount = TextEditingController(text: rental['discount']?.toString() ?? '0');
     final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
       title: Text('Editar contrato #${contract['contract_number']}'),
-      content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      content: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
         for (final entry in <(String, TextEditingController)>[('Nome do cliente',name),('CPF / documento',cpf),('Telefone',phone),('E-mail',email),('Data do evento (AAAA-MM-DD)',date),('Horário inicial',start),('Horário final',end),('Endereço do evento',address),('Itens (descrição | quantidade | valor unitário)',itemLines),('Taxa de entrega',deliveryFee),('Desconto',discount),('Condições adicionais',terms)])
           Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.$2, maxLines: entry.$1=='Condições adicionais'||entry.$1.startsWith('Itens ')?4:1, decoration: InputDecoration(labelText: entry.$1, border: const OutlineInputBorder()))),
       ]))),
@@ -452,8 +452,8 @@ class _ContractsPageState extends State<ContractsPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text('Contrato #${contract['contract_number']}'),
-        content: SizedBox(
-          width: 520,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
           child: SingleChildScrollView(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SelectableText(content, style: const TextStyle(height: 1.5)),

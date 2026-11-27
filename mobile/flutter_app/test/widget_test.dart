@@ -8,6 +8,9 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const ProviderScope(child: KidsLocApp()));
     expect(find.byType(Image), findsOneWidget);
+    final logo = tester.widget<Image>(find.byType(Image));
+    expect(logo.width, 72);
+    expect(logo.height, 72);
     expect(
       find.textContaining('Configure a conexão do aplicativo'),
       findsOneWidget,

@@ -69,7 +69,61 @@ class KidsLocApp extends StatelessWidget {
               secondary: const Color(0xFFFFC83D),
             ),
             useMaterial3: true,
+            visualDensity: VisualDensity.standard,
             scaffoldBackgroundColor: const Color(0xFFFAF9FD),
+            appBarTheme: const AppBarTheme(
+              centerTitle: false,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              backgroundColor: Colors.white,
+              foregroundColor: Color(0xFF29243A),
+              surfaceTintColor: Colors.transparent,
+            ),
+            cardTheme: CardThemeData(
+              elevation: 0,
+              color: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: const BorderSide(color: Color(0xFFECE8F3)),
+              ),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 15,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E1EE)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E1EE)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFF8054D8),
+                  width: 1.6,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFD92D20)),
+              ),
+            ),
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -114,14 +168,18 @@ class FoundationScreen extends StatelessWidget {
 }
 
 class _BrandHeader extends StatelessWidget {
-  const _BrandHeader();
+  const _BrandHeader({this.size = 72});
+
+  final double size;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Image.asset('assets/brand/kidsloc-logo.jpg', width: 220, height: 220, fit: BoxFit.contain),
-    ],
-  );
+  Widget build(BuildContext context) => Image.asset(
+        'assets/brand/kidsloc-logo.jpg',
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+      );
 }
 
 class AuthGate extends StatelessWidget {
@@ -155,6 +213,7 @@ class _AuthPageState extends State<AuthPage> {
   final _confirmPassword = TextEditingController();
   bool _creating = false;
   bool _busy = false;
+  bool _obscurePassword = true;
   String? _message;
 
   @override
@@ -206,129 +265,260 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: Center(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F7FC),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 16 : 24,
+                vertical: 28,
+              ),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _BrandHeader(),
-                      const SizedBox(height: 32),
-                      Text(
-                        _creating ? 'Criar sua conta' : 'Entrar na sua conta',
-                        style: Theme.of(context).textTheme.headlineSmall,
+                constraints: const BoxConstraints(maxWidth: 448),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(isCompact ? 22 : 30),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(color: const Color(0xFFECE8F3)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x10000000),
+                        blurRadius: 28,
+                        offset: Offset(0, 12),
                       ),
-                      const SizedBox(height: 20),
-                      if (_creating) ...[
-                        TextFormField(
-                          controller: _name,
-                          decoration:
-                              const InputDecoration(labelText: 'Seu nome'),
-                          validator: (value) =>
-                              (value == null || value.trim().length < 2)
-                                  ? 'Informe seu nome.'
-                                  : null,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      TextFormField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'E-mail'),
-                        validator: validateAuthEmail,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _password,
-                        obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Senha'),
-                        validator: (value) => validateAuthPassword(
-                          value,
-                          isCreatingAccount: _creating,
-                        ),
-                      ),
-                      if (_creating) ...[
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _confirmPassword,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirmar senha',
-                          ),
-                          validator: (value) =>
-                              validateAuthPasswordConfirmation(
-                            value,
-                            _password.text,
-                          ),
-                        ),
-                      ],
-                      if (_message != null) ...[
-                        const SizedBox(height: 16),
-                        Text(_message!,
-                            style: const TextStyle(color: Colors.red)),
-                      ],
-                      const SizedBox(height: 20),
-                      FilledButton(
-                        onPressed: _busy ? null : _submit,
-                        child: Text(_busy
-                            ? 'Aguarde...'
-                            : _creating
-                                ? 'Criar conta'
-                                : 'Entrar'),
-                      ),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => setState(() {
-                                  _creating = !_creating;
-                                  _message = null;
-                                }),
-                        child: Text(_creating
-                            ? 'Já tenho uma conta'
-                            : 'Ainda não tenho conta'),
-                      ),
-                      if (!_creating)
-                        TextButton(
-                          onPressed: () async {
-                            final email = _email.text.trim();
-                            final emailError = validateAuthEmail(email);
-                            if (emailError != null) {
-                              setState(() => _message = emailError);
-                              return;
-                            }
-                            try {
-                              await Supabase.instance.client.auth
-                                  .resetPasswordForEmail(
-                                email,
-                                redirectTo: '$_webAppBaseUrl/reset-password/',
-                              );
-                              if (mounted) {
-                                setState(() => _message =
-                                    'Se o e-mail estiver cadastrado, você receberá o link de recuperação.');
-                              }
-                            } catch (_) {
-                              if (mounted) {
-                                setState(() => _message =
-                                    'Não foi possível solicitar a recuperação.');
-                              }
-                            }
-                          },
-                          child: const Text('Esqueci minha senha'),
-                        ),
                     ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Center(child: _BrandHeader(size: 72)),
+                        const SizedBox(height: 28),
+                        Text(
+                          _creating ? 'Criar sua conta' : 'Entrar na sua conta',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF29243A),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _creating
+                              ? 'Crie seu acesso para organizar sua locadora e seus eventos.'
+                              : 'Acesse o KidsLoc para organizar sua locadora e seus eventos.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF777184),
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 26),
+                        if (_creating) ...[
+                          TextFormField(
+                            controller: _name,
+                            textCapitalization: TextCapitalization.words,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.name],
+                            decoration: const InputDecoration(
+                              labelText: 'Seu nome',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            validator: (value) =>
+                                (value == null || value.trim().length < 2)
+                                    ? 'Informe seu nome.'
+                                    : null,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        TextFormField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autocorrect: false,
+                          autofillHints: const [AutofillHints.email],
+                          decoration: const InputDecoration(
+                            labelText: 'E-mail',
+                            hintText: 'voce@empresa.com',
+                            prefixIcon: Icon(Icons.mail_outline),
+                          ),
+                          validator: validateAuthEmail,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _password,
+                          obscureText: _obscurePassword,
+                          textInputAction: _creating
+                              ? TextInputAction.next
+                              : TextInputAction.done,
+                          autofillHints: [
+                            _creating
+                                ? AutofillHints.newPassword
+                                : AutofillHints.password,
+                          ],
+                          onFieldSubmitted: (_) {
+                            if (!_creating && !_busy) _submit();
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Senha',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              tooltip: _obscurePassword
+                                  ? 'Mostrar senha'
+                                  : 'Ocultar senha',
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                            ),
+                          ),
+                          validator: (value) => validateAuthPassword(
+                            value,
+                            isCreatingAccount: _creating,
+                          ),
+                        ),
+                        if (_creating) ...[
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _confirmPassword,
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                            decoration: const InputDecoration(
+                              labelText: 'Confirmar senha',
+                              prefixIcon: Icon(Icons.lock_reset_outlined),
+                            ),
+                            validator: (value) =>
+                                validateAuthPasswordConfirmation(
+                              value,
+                              _password.text,
+                            ),
+                          ),
+                        ],
+                        if (_message != null) ...[
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.all(13),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF1F1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFF4CCCC),
+                              ),
+                            ),
+                            child: Text(
+                              _message!,
+                              style: const TextStyle(
+                                color: Color(0xFFB42318),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 22),
+                        SizedBox(
+                          height: 50,
+                          child: FilledButton(
+                            onPressed: _busy ? null : _submit,
+                            child: _busy
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    _creating ? 'Criar conta' : 'Entrar',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (!_creating)
+                          Align(
+                            alignment: Alignment.center,
+                            child: TextButton(
+                              onPressed: _busy
+                                  ? null
+                                  : () async {
+                                      final email = _email.text.trim();
+                                      final emailError =
+                                          validateAuthEmail(email);
+                                      if (emailError != null) {
+                                        setState(
+                                          () => _message = emailError,
+                                        );
+                                        return;
+                                      }
+                                      try {
+                                        await Supabase.instance.client.auth
+                                            .resetPasswordForEmail(
+                                          email,
+                                          redirectTo:
+                                              '$_webAppBaseUrl/reset-password/',
+                                        );
+                                        if (mounted) {
+                                          setState(
+                                            () => _message =
+                                                'Se o e-mail estiver cadastrado, você receberá o link de recuperação.',
+                                          );
+                                        }
+                                      } catch (_) {
+                                        if (mounted) {
+                                          setState(
+                                            () => _message =
+                                                'Não foi possível solicitar a recuperação.',
+                                          );
+                                        }
+                                      }
+                                    },
+                              child: const Text('Esqueci minha senha'),
+                            ),
+                          ),
+                        const Divider(height: 24, color: Color(0xFFECE8F3)),
+                        TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => setState(() {
+                                    _creating = !_creating;
+                                    _message = null;
+                                    _obscurePassword = true;
+                                  }),
+                          child: Text(
+                            _creating
+                                ? 'Já tenho uma conta · Entrar'
+                                : 'Ainda não tenho conta · Criar conta',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class CompanySetupPage extends StatefulWidget {
@@ -823,7 +1013,24 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('KidsLoc App'), actions: [
+    appBar: AppBar(
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/brand/kidsloc-logo.jpg',
+              width: 32,
+              height: 32,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Text('KidsLoc'),
+        ],
+      ),
+      actions: [
       IconButton(tooltip: 'Atualizar', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
       if (_companyId != null) IconButton(
         tooltip: 'Configurações',
@@ -852,16 +1059,57 @@ class _HomePageState extends State<HomePage> {
           child: Padding(padding: const EdgeInsets.all(16), child: Text(_error!))),
         Text('O que precisa de atenção?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
-        GridView.count(
-          shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.65,
-          children: [
-            _DashboardMetric(title: 'Locações hoje', value: _dashboardLoading ? '...' : '$_rentalsToday', hint: 'Ver agenda', icon: Icons.today_outlined, onTap: () => _openQuickAction('calendar')),
-            _DashboardMetric(title: 'Próximos 7 dias', value: _dashboardLoading ? '...' : '$_rentalsNext7Days', hint: 'Planejar eventos', icon: Icons.event_available_outlined, onTap: () => _openQuickAction('calendar')),
-            _DashboardMetric(title: 'Orçamentos em aberto', value: _dashboardLoading ? '...' : '$_pendingQuotes', hint: 'Acompanhar propostas', icon: Icons.request_quote_outlined, onTap: () => _openModule('Orçamentos', 'rental_quotes')),
-            if (_role == 'admin') _DashboardMetric(title: 'A receber', value: _dashboardLoading ? '...' : _currency(_pendingReceivables), hint: 'Abrir financeiro', icon: Icons.account_balance_wallet_outlined, onTap: () => _openModule('Financeiro', 'financial_transactions')),
-          ],
-        ),
+        LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 900
+              ? 4
+              : constraints.maxWidth >= 600
+                  ? 3
+                  : 2;
+          final metrics = <Widget>[
+            _DashboardMetric(
+              title: 'Locações hoje',
+              value: _dashboardLoading ? '...' : '$_rentalsToday',
+              hint: 'Ver agenda',
+              icon: Icons.today_outlined,
+              onTap: () => _openQuickAction('calendar'),
+            ),
+            _DashboardMetric(
+              title: 'Próximos 7 dias',
+              value: _dashboardLoading ? '...' : '$_rentalsNext7Days',
+              hint: 'Planejar eventos',
+              icon: Icons.event_available_outlined,
+              onTap: () => _openQuickAction('calendar'),
+            ),
+            _DashboardMetric(
+              title: 'Orçamentos em aberto',
+              value: _dashboardLoading ? '...' : '$_pendingQuotes',
+              hint: 'Acompanhar propostas',
+              icon: Icons.request_quote_outlined,
+              onTap: () => _openModule('Orçamentos', 'rental_quotes'),
+            ),
+            if (_role == 'admin')
+              _DashboardMetric(
+                title: 'A receber',
+                value: _dashboardLoading ? '...' : _currency(_pendingReceivables),
+                hint: 'Abrir financeiro',
+                icon: Icons.account_balance_wallet_outlined,
+                onTap: () =>
+                    _openModule('Financeiro', 'financial_transactions'),
+              ),
+          ];
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: metrics.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              mainAxisExtent: 124,
+            ),
+            itemBuilder: (context, index) => metrics[index],
+          );
+        }),
         if (_dashboardError != null) Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Text(_dashboardError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -906,7 +1154,11 @@ class _HomePageState extends State<HomePage> {
             shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
             itemCount: _visibleModules.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.3),
+              crossAxisCount: columns,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              mainAxisExtent: 122,
+            ),
             itemBuilder: (context, index) {
               final module = _visibleModules[index];
               return Card(clipBehavior: Clip.antiAlias, child: InkWell(
@@ -942,22 +1194,69 @@ class _DashboardMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-            Text(hint, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-          ]),
-        ]),
-      ),
-    ),
-  );
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                      ),
+                      Text(
+                        hint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 String _currency(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
