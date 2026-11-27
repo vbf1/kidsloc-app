@@ -16,6 +16,10 @@ class _SettingsPageState extends State<SettingsPage> {
   final _deposit = TextEditingController(text: '30');
   bool _loading = true;
   bool _saving = false;
+  bool _remindersEnabled = false;
+  int _reminderDays = 3;
+  int _reminderFrequency = 1;
+  bool _reminderSaving = false;
   String? _error;
   String? _notice;
   bool get _canManage => widget.role == 'owner' || widget.role == 'admin';
@@ -39,6 +43,13 @@ class _SettingsPageState extends State<SettingsPage> {
       });
       if (!mounted) return;
       _deposit.text = (data['default_deposit_percentage'] ?? 30).toString();
+      final reminder = await Supabase.instance.client.from('company_event_reminder_settings')
+          .select('enabled,days_before,notifications_per_day').eq('company_id', widget.companyId).maybeSingle();
+      if (reminder != null) {
+        _remindersEnabled = reminder['enabled'] == true;
+        _reminderDays = (reminder['days_before'] as num?)?.toInt() ?? 3;
+        _reminderFrequency = (reminder['notifications_per_day'] as num?)?.toInt() ?? 1;
+      }
     } on PostgrestException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
@@ -69,6 +80,31 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) setState(() => _error = appText('Não foi possível salvar as configurações.'));
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _saveReminders() async {
+    if (!_canManage || _reminderSaving) return;
+    setState(() { _reminderSaving = true; _error = null; _notice = null; });
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      await Supabase.instance.client.from('company_event_reminder_settings').upsert({
+        'company_id': widget.companyId,
+        'enabled': _remindersEnabled,
+        'days_before': _reminderDays,
+        'notifications_per_day': _reminderFrequency,
+        'updated_by': user?.id,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'company_id');
+      if (mounted) setState(() => _notice = appText(_remindersEnabled
+          ? 'Lembretes ativados. Você receberá avisos antes das locações.'
+          : 'Lembretes de locação desativados.'));
+    } on PostgrestException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = appText('Não foi possível salvar os lembretes.'));
+    } finally {
+      if (mounted) setState(() => _reminderSaving = false);
     }
   }
 
@@ -160,6 +196,57 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: FilledButton(
                           onPressed: _saving ? null : _save,
                           child: Text(appText(_saving ? 'Salvando...' : 'Salvar configurações')),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(appText('Lembretes de locação'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(appText('Receba notificações push no APK quando uma locação estiver se aproximando. O agendador verifica os avisos automaticamente.')),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(appText('Ativar lembretes')),
+                        subtitle: Text(appText('Avisos para administradores e responsáveis pela locação.')),
+                        value: _remindersEnabled,
+                        onChanged: _canManage ? (value) => setState(() => _remindersEnabled = value) : null,
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<int>(
+                        value: _reminderDays,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: appText('Antecedência'), border: const OutlineInputBorder()),
+                        items: List.generate(30, (index) => index + 1).map((days) => DropdownMenuItem<int>(
+                          value: days, child: Text('${days} ${days == 1 ? 'dia' : 'dias'} antes'),
+                        )).toList(),
+                        onChanged: _canManage && _remindersEnabled ? (value) { if (value != null) setState(() => _reminderDays = value); } : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        value: _reminderFrequency,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: appText('Avisos por dia'), border: const OutlineInputBorder()),
+                        items: [1, 2, 3, 4].map((count) => DropdownMenuItem<int>(
+                          value: count, child: Text('${count} ${count == 1 ? 'aviso' : 'avisos'} por dia'),
+                        )).toList(),
+                        onChanged: _canManage && _remindersEnabled ? (value) { if (value != null) setState(() => _reminderFrequency = value); } : null,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(appText('Os avisos são enviados em horários programados no horário de Brasília. Apenas locações confirmadas ou em andamento são consideradas.')),
+                      if (!_canManage) Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(appText('Somente proprietários e administradores podem alterar os lembretes.')),
+                      ),
+                      if (_canManage) Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton(
+                          onPressed: _reminderSaving ? null : _saveReminders,
+                          child: Text(appText(_reminderSaving ? 'Salvando...' : 'Salvar lembretes')),
                         ),
                       ),
                     ]),
