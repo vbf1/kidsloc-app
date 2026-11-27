@@ -123,7 +123,8 @@ export default function ContractsPage(){
   if(!parsedItems.length){setError('Inclua ao menos um item no contrato.');return;}
   const fee=amount(editDeliveryFee);
   const discountValue=amount(editDiscount);
-  if(!Number.isFinite(fee)||!Number.isFinite(discountValue)){setError('Informe valores válidos para frete e desconto, usando até duas casas decimais.');return;}\n  if(fee<0||discountValue<0){setError('Frete e desconto não podem ter valores negativos.');return;}
+  if(!Number.isFinite(fee)||!Number.isFinite(discountValue)){setError('Informe valores válidos para frete e desconto, usando até duas casas decimais.');return;}
+  if(fee<0||discountValue<0){setError('Frete e desconto não podem ter valores negativos.');return;}
   if(editDate&&editEndDate&&editEndDate<editDate){setError('A data final do evento não pode ser anterior à data inicial.');return;}
   if(editDate===editEndDate&&editStartTime&&editEndTime&&editEndTime<=editStartTime){setError('O horário final deve ser posterior ao horário inicial.');return;}
   const subtotal=parsedItems.reduce((sum,item)=>sum+Number(item.subtotal||0),0);
