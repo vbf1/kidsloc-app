@@ -48,14 +48,17 @@ jobs:
       - name: Verify APK output
         shell: bash
         run: |
-          APK=build/app/outputs/flutter-apk/app-debug.apk
+          SOURCE_APK=build/app/outputs/flutter-apk/app-debug.apk
+          APK=build/app/outputs/flutter-apk/KidsLoc.apk
+          test -s "$SOURCE_APK"
+          cp "$SOURCE_APK" "$APK"
           test -s "$APK"
           file "$APK"
           sha256sum "$APK"
           stat -c 'APK size: %s bytes' "$APK"
       - uses: actions/upload-artifact@v4
         with:
-          name: kidsloc-android-debug-apk
-          path: mobile/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+          name: KidsLoc-Android
+          path: mobile/flutter_app/build/app/outputs/flutter-apk/KidsLoc.apk
           if-no-files-found: error
           retention-days: 14
