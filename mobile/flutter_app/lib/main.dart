@@ -687,7 +687,7 @@ class _HomePageState extends State<HomePage> {
             .eq('company_id', companyId).eq('start_date', today).neq('status', 'cancelled'),
         client.from('rentals').select('id')
             .eq('company_id', companyId).gte('start_date', today).lte('start_date', nextWeek).neq('status', 'cancelled'),
-        client.from('rentals').select('id,rental_number,start_date,status,total_amount')
+        client.from('rentals').select('id,rental_number,customer_id,start_date,status,total_amount')
             .eq('company_id', companyId).gte('start_date', today).neq('status', 'cancelled')
             .order('start_date').limit(5),
         client.from('rental_quotes').select('id')
@@ -697,6 +697,22 @@ class _HomePageState extends State<HomePage> {
                 .eq('company_id', companyId).eq('transaction_type', 'income').neq('status', 'cancelled')
             : Future.value(<dynamic>[]),
       ]);
+      final upcomingRows = (results[2] as List<dynamic>)
+          .map((row) => Map<String, dynamic>.from(row)).toList();
+      final customerIds = upcomingRows
+          .map((row) => row['customer_id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty).toSet().toList();
+      final customerNames = <String, String>{};
+      if (customerIds.isNotEmpty) {
+        final customers = await client.from('customers').select('id,name')
+            .eq('company_id', companyId).inFilter('id', customerIds);
+        for (final customer in customers) {
+          customerNames[customer['id'].toString()] = customer['name']?.toString() ?? 'Cliente';
+        }
+      }
+      for (final rental in upcomingRows) {
+        rental['customer_name'] = customerNames[rental['customer_id']?.toString()] ?? 'Cliente';
+      }
       if (!mounted || requestToken != _dashboardRefreshToken || _companyId != companyId) return;
       final financeRows = results[4] as List<dynamic>;
       final pending = role == 'admin'
@@ -706,8 +722,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _rentalsToday = (results[0] as List<dynamic>).length;
         _rentalsNext7Days = (results[1] as List<dynamic>).length;
-        _upcomingRentals = (results[2] as List<dynamic>)
-            .map((row) => Map<String, dynamic>.from(row)).toList();
+        _upcomingRentals = upcomingRows;
         _pendingQuotes = (results[3] as List<dynamic>).length;
         _pendingReceivables = pending;
         _dashboardError = null;
@@ -864,7 +879,7 @@ class _HomePageState extends State<HomePage> {
               const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Nenhum evento futuro programado.')),
             ..._upcomingRentals.map((rental) => ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text('Locação #${rental['rental_number']}'),
+              title: Text('${rental['customer_name']} · Locação #${rental['rental_number']}'),
               subtitle: Text('${_dateLabel(rental['start_date']?.toString())} · ${_statusLabel(rental['status']?.toString())}'),
               trailing: Text(_currency((rental['total_amount'] as num?)?.toDouble() ?? 0), style: const TextStyle(fontWeight: FontWeight.w600)),
             )),
