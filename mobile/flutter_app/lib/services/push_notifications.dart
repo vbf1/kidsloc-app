@@ -66,15 +66,22 @@ class PushNotifications {
     );
   }
 
-  static Future<void> registerDevice({required String companyId}) async {
+  static Future<void> registerDevice({
+    required String companyId,
+    String? userId,
+    String? accessToken,
+  }) async {
     if (!_initialized || defaultTargetPlatform != TargetPlatform.android) return;
 
     final client = Supabase.instance.client;
-    final user = client.auth.currentUser;
-    if (user == null) return;
+    final resolvedUserId = client.auth.currentUser?.id ?? userId;
+    if (resolvedUserId == null || resolvedUserId.isEmpty) return;
+    if (accessToken != null && accessToken.isNotEmpty) {
+      client.rest.setAuth(accessToken);
+    }
 
     _companyId = companyId;
-    _userId = user.id;
+    _userId = resolvedUserId;
 
     try {
       final permission = await FirebaseMessaging.instance.requestPermission(
@@ -120,8 +127,8 @@ class PushNotifications {
   static Future<void> unregisterCurrentDevice() async {
     if (!_initialized) return;
 
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    final userId = _userId ?? Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
 
     try {
       final token = await FirebaseMessaging.instance.getToken();
@@ -130,7 +137,7 @@ class PushNotifications {
             .from('fcm_device_tokens')
             .delete()
             .eq('token', token)
-            .eq('user_id', user.id);
+            .eq('user_id', userId);
       }
     } catch (error) {
       debugPrint('KidsLoc: não foi possível remover o registro deste dispositivo: $error');

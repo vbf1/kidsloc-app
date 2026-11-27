@@ -79,18 +79,20 @@ class _KidsLocWebAppState extends State<KidsLocWebApp> {
       switch (decoded['type']) {
         case 'session':
           final companyId = decoded['companyId'] as String?;
-          final refreshToken = decoded['refreshToken'] as String?;
+          final userId = decoded['userId'] as String?;
+          final accessToken = decoded['accessToken'] as String?;
           if (companyId == null || companyId.isEmpty ||
-              refreshToken == null || refreshToken.isEmpty) {
+              userId == null || userId.isEmpty ||
+              accessToken == null || accessToken.isEmpty) {
             return;
           }
-          final sessionKey = '$companyId:$refreshToken';
+          final sessionKey = '$companyId:$userId:$accessToken';
           if (_lastRegisteredSession == sessionKey) return;
-          final client = Supabase.instance.client;
-          if (client.auth.currentSession?.refreshToken != refreshToken) {
-            await client.auth.setSession(refreshToken);
-          }
-          await PushNotifications.registerDevice(companyId: companyId);
+          await PushNotifications.registerDevice(
+            companyId: companyId,
+            userId: userId,
+            accessToken: accessToken,
+          );
           _lastRegisteredSession = sessionKey;
           break;
         case 'logout':

@@ -68,25 +68,37 @@ export function AppShell({
     return () => window.removeEventListener('kidsloc:theme-change', onThemeChange);
   }, []);
 
-  // Dentro do APK, sincroniza a sessão web com o cliente nativo apenas para
-  // registrar o token FCM do aparelho. No navegador comum, a ponte não existe.
+  // Dentro do APK, compartilha somente o token de acesso da sessão ativa
+  // com a ponte nativa para registrar FCM. Não compartilha refresh tokens.
   useEffect(() => {
     if (!companyId || !supabase) return;
     const bridge = (window as Window & {
       KidsLocNative?: { postMessage: (message: string) => void };
     }).KidsLocNative;
     if (!bridge) return;
-    let active = true;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      const session = data.session;
-      if (!active || error || !session?.refresh_token) return;
+    const sendSession = (session: {
+      access_token: string;
+      user: { id: string };
+    } | null) => {
+      if (!session?.access_token || !session.user?.id) return;
       bridge.postMessage(JSON.stringify({
         type: 'session',
         companyId,
-        refreshToken: session.refresh_token,
+        userId: session.user.id,
+        accessToken: session.access_token,
       }));
+    };
+    let active = true;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (active && !error) sendSession(data.session);
     });
-    return () => { active = false; };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) sendSession(session);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, [companyId]);
 
   useEffect(() => {
