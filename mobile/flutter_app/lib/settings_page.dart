@@ -20,6 +20,9 @@ class _SettingsPageState extends State<SettingsPage> {
   int _reminderDays = 3;
   int _reminderFrequency = 1;
   bool _reminderSaving = false;
+  bool _pushChecking = false;
+  bool _pushTesting = false;
+  Map<String, dynamic>? _pushDiagnostics;
   String? _error;
   String? _notice;
   bool get _canManage => widget.role == 'owner' || widget.role == 'admin';
@@ -80,6 +83,51 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) setState(() => _error = appText('Não foi possível salvar as configurações.'));
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _checkPushStatus() async {
+    if (!_canManage || _pushChecking) return;
+    setState(() { _pushChecking = true; _error = null; _notice = null; });
+    try {
+      final response = await Supabase.instance.client.functions.invoke(
+        'send-employee-push',
+        body: {'action': 'diagnostics', 'company_id': widget.companyId},
+      );
+      final data = Map<String, dynamic>.from(response.data as Map);
+      if (!mounted) return;
+      setState(() {
+        _pushDiagnostics = data;
+        _notice = data['firebaseAuthenticated'] == true && data['projectMatches'] == true
+            ? 'Firebase conectado. Dispositivos Android registrados: ${data['deviceTokens'] ?? 0}.'
+            : (data['serverError']?.toString() ?? 'Verifique a configuração do Firebase no servidor.');
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Não foi possível verificar o Firebase. Confira a conexão e tente novamente.');
+    } finally {
+      if (mounted) setState(() => _pushChecking = false);
+    }
+  }
+
+  Future<void> _sendPushTest() async {
+    if (!_canManage || _pushTesting) return;
+    setState(() { _pushTesting = true; _error = null; _notice = null; });
+    try {
+      final response = await Supabase.instance.client.functions.invoke(
+        'send-employee-push',
+        body: {'action': 'test', 'company_id': widget.companyId},
+      );
+      final data = Map<String, dynamic>.from(response.data as Map);
+      if (!mounted) return;
+      if ((data['sent'] as num? ?? 0) > 0) {
+        setState(() => _notice = 'Teste enviado com sucesso. Confira a central de notificações do Android.');
+      } else {
+        setState(() => _error = data['error']?.toString() ?? 'Nenhuma notificação foi entregue.');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Falha no teste. Verifique se o Firebase e a permissão de notificações estão ativos.');
+    } finally {
+      if (mounted) setState(() => _pushTesting = false);
     }
   }
 
@@ -249,6 +297,32 @@ class _SettingsPageState extends State<SettingsPage> {
                           child: Text(appText(_reminderSaving ? 'Salvando...' : 'Salvar lembretes')),
                         ),
                       ),
+                      if (_canManage) ...[
+                        const Divider(height: 28),
+                        Text(appText('Diagnóstico das notificações'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        Text(appText('Confira a conexão com o Firebase e envie um aviso de teste para este aparelho.')),
+                        const SizedBox(height: 10),
+                        Wrap(spacing: 8, runSpacing: 8, children: [
+                          OutlinedButton.icon(
+                            onPressed: _pushChecking ? null : _checkPushStatus,
+                            icon: const Icon(Icons.health_and_safety_outlined),
+                            label: Text(_pushChecking ? 'Verificando...' : 'Verificar Firebase'),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: _pushTesting ? null : _sendPushTest,
+                            icon: const Icon(Icons.notifications_active_outlined),
+                            label: Text(_pushTesting ? 'Enviando...' : 'Enviar notificação teste'),
+                          ),
+                        ]),
+                        if (_pushDiagnostics != null) Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Firebase: ${_pushDiagnostics!['firebaseAuthenticated'] == true ? 'autenticado' : 'não autenticado'} · Projeto correto: ${_pushDiagnostics!['projectMatches'] == true ? 'sim' : 'não'} · Aparelhos registrados: ${_pushDiagnostics!['deviceTokens'] ?? 0}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
                     ]),
                   ),
                 ),
