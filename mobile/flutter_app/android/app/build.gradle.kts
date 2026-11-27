@@ -15,6 +15,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    buildTypes {
+        getByName("release") {
+            // APK de distribuição de testes; usar assinatura de produção antes da Play Store.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
     defaultConfig {
         applicationId = "br.com.kidsloc.app"
         minSdk = maxOf(flutter.minSdkVersion, 24)
