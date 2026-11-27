@@ -105,7 +105,43 @@ export default function ContractsPage(){
  }
  async function downloadSignedPdf(c:Contract){if(!supabase)return;const tab=window.open('about:blank','_blank');if(!tab){setError('Permita a abertura de novas abas para baixar o PDF.');return;}setPdfDownloading(c.id);setError('');try{let url='';if(c.signed_pdf_path){const {data,error:e}=await supabase.storage.from('rental-contracts').createSignedUrl(c.signed_pdf_path,3600);if(e||!data?.signedUrl)throw new Error(e?.message??'Não foi possível criar o link do PDF.');url=data.signedUrl;}else{const {data,error:e}=await supabase.functions.invoke('rental-contract-pdf',{body:{contract_id:c.id}});if(e||!data?.signed_url)throw new Error(data?.error??e?.message??'Não foi possível gerar o PDF.');url=data.signed_url;await load();}tab.location.href=url;}catch(e){tab.close();setError(e instanceof Error?e.message:'Não foi possível baixar o PDF assinado.');}finally{setPdfDownloading(null);}}
  function beginEdit(c:Contract){const s=c.contract_snapshot;const customer=s.customer??({} as Customer);const rental=s.rental??({} as Rental);setEditing(c);setEditName(customer.name??'');setEditCpf(customer.cpf??'');setEditPhone(customer.phone??'');setEditEmail(customer.email??'');setEditDate(rental.start_date??'');setEditEndDate(rental.end_date??rental.start_date??'');setEditItemsText((s.items??[]).map(i=>[i.name,i.quantity,i.unit_price].join(' | ')).join('\n'));setEditDeliveryFee(String(rental.delivery_fee??0));setEditDiscount(String(rental.discount??0));setEditStartTime(rental.start_time??'');setEditEndTime(rental.end_time??'');setEditAddress(rental.delivery_address??'');setEditTerms(s.terms??'');}
- async function saveContractEdit(){if(!supabase||!editing)return;setSavingEdit(true);setError('');const old=editing.contract_snapshot;const customer={...(old.customer??{}),name:editName.trim(),cpf:editCpf.trim(),phone:editPhone.trim(),email:editEmail.trim()};const amount=(value:string)=>{const raw=value.trim();return Number(raw.includes(',')?raw.replace(/\./g,'').replace(',','.'):raw)||0;};const editedItems=editItemsText.split('\n').map((line,index)=>{const [itemName,qty,price]=line.split('|').map(part=>part.trim());if(!itemName)return null;const previous=old.items?.[index];const quantity=Math.max(1,Number(qty)||1);const unitPrice=amount(price??'0');return {...(previous??{}),product_id:previous?.product_id??'manual',name:itemName,quantity,unit_price:unitPrice,subtotal:quantity*unitPrice};}).filter(Boolean) as Item[];const fee=amount(editDeliveryFee);const discountValue=amount(editDiscount);const total=editedItems.reduce((sum,item)=>sum+Number(item.subtotal||0),0)+fee-discountValue;const rental={...(old.rental??{}),start_date:editDate,end_date:editEndDate||editDate,start_time:editStartTime||null,end_time:editEndTime||null,delivery_address:editAddress.trim()||null,delivery_fee:fee,discount:discountValue,total_amount:Math.max(0,total)};const snapshot={...old,company:{name:companyName,...companySettings},customer,rental,items:editedItems,terms:editTerms.trim()};const invalidate=['sent','viewed','expired'].includes(contractStatus(editing));const patch:Record<string,unknown>={contract_snapshot:snapshot};if(invalidate){patch.status='draft';patch.token_hash=null;patch.token_expires_at=null;}const {error:e}=await supabase.from('rental_contracts').update(patch).eq('id',editing.id).eq('company_id',companyId);setSavingEdit(false);if(e){setError('Não foi possível salvar as alterações: '+e.message);return;}setEditing(null);setNotice('Contrato atualizado. Se já havia um link enviado, gere um novo link para o cliente.');await load();}
+ async function saveContractEdit(){
+  if(!supabase||!editing)return;
+  const old=editing.contract_snapshot;
+  const amount=(value:string)=>{const raw=value.trim();return Number(raw.includes(',')?raw.replace(/\\./g,'').replace(',','.'):raw)||0;};
+  const lines=editItemsText.split('\\n').filter(line=>line.trim());
+  const parsedItems:Item[]=[];
+  for(let index=0;index<lines.length;index++){
+   const [itemName,qty,price]=lines[index].split('|').map(part=>part.trim());
+   const quantity=Number(qty);
+   const unitPrice=amount(price??'0');
+   if(!itemName||!Number.isInteger(quantity)||quantity<=0){setError('Revise os itens: informe descrição e quantidade inteira maior que zero em cada linha.');return;}
+   if(!Number.isFinite(unitPrice)||unitPrice<0){setError('O valor unitário de cada item não pode ser negativo.');return;}
+   const previous=old.items?.[index];
+   parsedItems.push({... (previous??{}),product_id:previous?.product_id??'manual',name:itemName,quantity,unit_price:unitPrice,subtotal:quantity*unitPrice});
+  }
+  if(!parsedItems.length){setError('Inclua ao menos um item no contrato.');return;}
+  const fee=amount(editDeliveryFee);
+  const discountValue=amount(editDiscount);
+  if(fee<0||discountValue<0){setError('Frete e desconto não podem ter valores negativos.');return;}
+  if(editDate&&editEndDate&&editEndDate<editDate){setError('A data final do evento não pode ser anterior à data inicial.');return;}
+  if(editDate===editEndDate&&editStartTime&&editEndTime&&editEndTime<=editStartTime){setError('O horário final deve ser posterior ao horário inicial.');return;}
+  const subtotal=parsedItems.reduce((sum,item)=>sum+Number(item.subtotal||0),0);
+  if(discountValue>subtotal+fee){setError('O desconto não pode ser maior que a soma dos itens e do frete.');return;}
+  const total=subtotal+fee-discountValue;
+  if(total<=0){setError('O valor total do contrato precisa ser maior que zero.');return;}
+  setSavingEdit(true);setError('');
+  const customer={...(old.customer??{}),name:editName.trim(),cpf:editCpf.trim(),phone:editPhone.trim(),email:editEmail.trim()};
+  const rental={...(old.rental??{}),start_date:editDate,end_date:editEndDate||editDate,start_time:editStartTime||null,end_time:editEndTime||null,delivery_address:editAddress.trim()||null,delivery_fee:fee,discount:discountValue,total_amount:total};
+  const snapshot={...old,company:{name:companyName,...companySettings},customer,rental,items:parsedItems,terms:editTerms.trim()};
+  const invalidate=['sent','viewed','expired'].includes(contractStatus(editing));
+  const patch:Record<string,unknown>={contract_snapshot:snapshot};
+  if(invalidate){patch.status='draft';patch.token_hash=null;patch.token_expires_at=null;}
+  const {error:e}=await supabase.from('rental_contracts').update(patch).eq('id',editing.id).eq('company_id',companyId);
+  setSavingEdit(false);
+  if(e){setError('Não foi possível salvar as alterações: '+e.message);return;}
+  setEditing(null);setNotice('Contrato atualizado. Se já havia um link enviado, gere um novo link para o cliente.');await load();
+ }
  async function saveCompanyDetails(){if(!supabase)return;const settings={legal_type:companyForm.legal_type,legal_name:companyForm.legal_name.trim(),document:companyForm.document.trim(),phone:companyForm.phone.trim(),email:companyForm.email.trim(),address:companyForm.address.trim(),zip:companyForm.zip.trim()};const {error:e}=await supabase.from('companies').update({name:companyForm.name.trim(),contract_settings:settings}).eq('id',companyId);if(e){setError('Não foi possível salvar os dados da empresa: '+e.message);return;}setCompanyName(companyForm.name.trim());setCompanySettings(settings);setCompanyFormOpen(false);setNotice('Dados da empresa atualizados.');}
  async function deleteContract(c:Contract){if(!supabase)return;const {error:e}=await supabase.from('rental_contracts').delete().eq('id',c.id).eq('company_id',companyId).neq('status','signed');if(e){setError('Não foi possível excluir o contrato: '+e.message);return;}setDeleteTarget(null);setNotice('Contrato excluído.');await load();}
  async function signOut(){if(supabase){await supabase.auth.signOut();router.push('/login/');}}
